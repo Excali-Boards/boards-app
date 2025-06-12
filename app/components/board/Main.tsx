@@ -11,6 +11,7 @@ import { TopBar } from '~/components/TopBar';
 import { Component, Suspense } from 'react';
 import throttle from 'lodash.throttle';
 import { Buffer } from 'buffer';
+import axios from 'axios';
 
 export type BoardProps = {
 	updateCollaborators: (users: ColabUser[]) => void;
@@ -45,7 +46,6 @@ export type BoardState = {
 
 // eslint-disable-next-line import/no-unresolved
 import '@excalidraw/excalidraw/index.css';
-import axios from 'axios';
 
 export class Board extends Component<BoardProps, BoardState> {
 	private broadcastedElementVersions = new Map<string, number>();
@@ -456,7 +456,6 @@ export class Board extends Component<BoardProps, BoardState> {
 							username: collaborator.username || 'Unknown',
 							avatarUrl: collaborator.avatarUrl || null,
 						});
-
 
 						return [
 							collaborator.socketId as SocketId,
