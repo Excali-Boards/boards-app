@@ -165,7 +165,7 @@ export default function Profile() {
 
 					{!!platforms.length && <Divider my={4} />}
 
-					{platforms.map((p) => (
+					{platforms.map((p, i) => (
 						<Platform
 							key={p.id}
 							icon={allPlatformData.find((d) => d.name.toLowerCase() === p.id.toLowerCase())?.faIcon({ boxSize: 10 }) || <FaLink />}
@@ -173,7 +173,7 @@ export default function Profile() {
 							isConnected={p.isConnected}
 							manageUrl={p.isConnected ? `/unlink/${p.name.toLowerCase()}?backTo=/profile` : `/login?type=${p.name.toLowerCase()}&add=true&backTo=/profile`}
 							text={p.isConnected ? `Connected with ${p.name} as ${showEmail ? p.connectedEmailDecrypted : p.connectedEmail}.` : `Connect your ${p.name} account.`}
-							addDivider
+							addDivider={i < platforms.length - 1}
 						/>
 					))}
 
