@@ -332,7 +332,7 @@ export class Board extends Component<BoardProps, BoardState> {
 						method: 'GET',
 						responseType: 'arraybuffer',
 					}).catch(() => null);
-					if (!response || response.status !== 200) throw new Error(`Failed to fetch file ${fileId}: ${response?.statusText || 'Unknown error'}`);
+					if (!response || response.status !== 200) throw new Error(response?.data || 'Unknown error fetching file.');
 
 					const buffer = await response.data as ArrayBuffer;
 					const contentType = response.headers['content-type'] as BinaryFileData['mimeType'];

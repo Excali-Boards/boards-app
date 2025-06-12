@@ -14,26 +14,44 @@ export function randomIndex(max: number) {
 	return randomValue % max;
 }
 
+const cryptoOptions = {
+	ivLength: 12,
+	keyLength: 16,
+	saltLength: 12,
+	authTagLength: 16,
+	pbkdf2Iterations: 50000,
+
+	key: createHash('sha256').update(config.apiToken).digest(),
+	iv: Buffer.alloc(12, 0),
+};
+
 export const securityUtils = {
-	encrypt: (text: string) => {
-		const iv = Buffer.alloc(16, 0);
-		const cipher = createCipheriv('aes-256-cbc', config.apiToken.slice(0, 32) || '', iv);
-		const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
+	encrypt: (input: string): string => {
 
-		return encrypted.toString('hex');
+		const cipher = createCipheriv('aes-256-gcm', cryptoOptions.key, cryptoOptions.iv);
+		const encrypted = Buffer.concat([cipher.update(input, 'utf8'), cipher.final()]);
+		const authTag = cipher.getAuthTag();
+
+		const result = Buffer.concat([encrypted, authTag]);
+		return result.toString('hex');
 	},
-	decrypt: (text: string) => {
-		const iv = Buffer.alloc(16, 0);
-		const encryptedText = Buffer.from(text, 'hex');
-		const decipher = createDecipheriv('aes-256-cbc', config.apiToken.slice(0, 32) || '', iv);
-		const decrypted = Buffer.concat([decipher.update(encryptedText), decipher.final()]);
+	decrypt: (hex: string): string => {
+		const data = Buffer.from(hex, 'hex');
 
+		const encrypted = data.subarray(0, data.length - cryptoOptions.authTagLength);
+		const authTag = data.subarray(data.length - cryptoOptions.authTagLength);
+
+		const decipher = createDecipheriv('aes-256-gcm', cryptoOptions.key, cryptoOptions.iv);
+		decipher.setAuthTag(authTag);
+
+		const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
 		return decrypted.toString('utf8');
 	},
-	hash: (text: string) => {
+
+	hash: (text: string): string => {
 		return createHash('sha256').update(text).digest('hex');
 	},
-	randomString: (length: number) => {
+	randomString: (length: number): string => {
 		return randomBytes(Math.ceil(length / 2)).toString('hex').slice(0, length);
 	},
 };
