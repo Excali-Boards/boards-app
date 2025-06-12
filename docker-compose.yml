@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  boards-app:
+    image: ghcr.io/excali-boards/boards-app:latest
+    container_name: boards-app
+    network_mode: bridge
+    pull_policy: build
+    restart: always
+    ports:
+      - ${DOCKER_PORT:-${PORT}}:${PORT}
+    env_file:
+      - stack.env

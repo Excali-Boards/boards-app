@@ -1,0 +1,28 @@
+html,
+body {
+	scroll-behavior: smooth;
+	background-color: #1a1a1a;
+}
+
+::-webkit-scrollbar {
+	display: none;
+}
+
+::-webkit-scrollbar-track {
+	background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background-color: #a8bbbf;
+	border-radius: 10px;
+	border: 3px solid transparent;
+	background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background-color: #a8bbbf;
+}
+
+.chakra-collapse[style*='height: auto'] {
+	overflow: initial !important;
+}
