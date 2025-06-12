@@ -48,7 +48,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 		allUsers: allUsers.data.map((user) => ({
 			...user,
 			decryptedEmail: securityUtils.decrypt(user.email),
-		})),
+		})).sort((a, b) => {
+			if (a.isDev && !b.isDev) return -1;
+			if (!a.isDev && b.isDev) return 1;
+			if (a.isBoardsAdmin && !b.isBoardsAdmin) return -1;
+			if (!a.isBoardsAdmin && b.isBoardsAdmin) return 1;
+			return 1;
+		}),
 	};
 };
 
@@ -165,7 +171,7 @@ export default function AdminUsers() {
 												setModalType('update');
 											}}
 											colorScheme={user.isDev ? 'red' : user.isBoardsAdmin ? 'orange' : 'blue'}
-											isDisabled={user.isDev || currentUser?.isDev ? false : user.isDev || user.isBoardsAdmin}
+											isDisabled={user.isDev ? true : currentUser?.isDev ? false : !!user.isBoardsAdmin}
 											_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
 										/>
 									</Tooltip>
@@ -282,6 +288,7 @@ export function ManageUser({ isOpen, onClose, fetcher, userData, allBoards, curr
 										const added = ids
 											.filter((id) => !current.find((p) => p.boardId === id))
 											.map((id) => ({ boardId: id, permissionType: 'Read' as BoardPermissionType }));
+
 										setSelectedPermissions([...current, ...added]);
 									}}
 								/>

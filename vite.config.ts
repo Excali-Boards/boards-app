@@ -13,7 +13,6 @@ installGlobals();
 export default defineConfig({
 	mode: process.env.NODE_ENV,
 	server: {
-		// port: 3002,
 		port: 3000,
 		warmup: {
 			clientFiles: [
