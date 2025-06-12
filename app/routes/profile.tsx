@@ -263,7 +263,7 @@ export function Platform({ icon, title, isConnected, manageUrl, text, addDivider
 						width={{ base: '100%', md: 'auto' }}
 						to={manageUrl}
 					>
-						{isConnected ? 'Odvoji' : 'Poveži'}
+						{isConnected ? 'Unlink' : 'Link'}
 					</LinkButton>
 					{otherButtons?.map((b, i) => (
 						<Tooltip key={i} label={b.label}>
