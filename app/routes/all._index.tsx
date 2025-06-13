@@ -5,8 +5,10 @@ import { makeResponse } from '~/utils/functions.server';
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { IconLinkButton } from '~/components/Button';
 import { authenticator } from '~/utils/auth.server';
+import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
 import { useLoaderData } from '@remix-run/react';
+import { useContext, useMemo } from 'react';
 import { api } from '~/utils/web.server';
 import { FaLink } from 'react-icons/fa';
 
@@ -22,6 +24,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function All() {
 	const { isAdmin, list } = useLoaderData<typeof loader>();
+	const { user } = useContext(RootContext) || {};
+
+	const indexOfDefaultGroup = useMemo(() => {
+		const defaultGroup = list.findIndex((group) => group.id === user?.mainGroupId);
+		return defaultGroup !== -1 ? defaultGroup : undefined;
+	}, [list, user]);
 
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }} id='a1'>
@@ -46,7 +54,7 @@ export default function All() {
 					bg={'transparent'}
 					p={0}
 				>
-					<Accordion allowMultiple defaultIndex={[0]}>
+					<Accordion allowMultiple defaultIndex={indexOfDefaultGroup}>
 						{list.length ? (
 							<Flex flex={1} bg={'alpha100'} p={2} rounded={'lg'} gap={2} flexDir='column'>
 								{list.map((group, groupIndex) => (
