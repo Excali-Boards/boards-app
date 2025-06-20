@@ -113,9 +113,9 @@ export default function Groups() {
 	}, [groups, dbcSearch]);
 
 	const handleSave = useCallback(() => {
-		fetcher.submit({ type: 'reorderGroups', groups: groups.join(',') }, { method: 'post' });
+		fetcher.submit({ type: 'reorderGroups', groups: tempGroups.join(',') }, { method: 'post' });
 		setTempGroups([]);
-	}, [fetcher, groups]);
+	}, [fetcher, tempGroups]);
 
 	useEffect(() => {
 		if (tempGroups.length > 0 && !didShowAlert) {

@@ -125,9 +125,9 @@ export default function Boards() {
 	}, [boards, dbcSearch, fetcher.state]); // eslint-disable-line
 
 	const handleSave = useCallback(() => {
-		fetcher.submit({ type: 'reorderBoards', boards: boards.join(',') }, { method: 'post' });
+		fetcher.submit({ type: 'reorderBoards', boards: tempBoards.join(',') }, { method: 'post' });
 		setTempBoards([]);
-	}, [fetcher, boards]);
+	}, [fetcher, tempBoards]);
 
 	useEffect(() => {
 		if (tempBoards.length > 0 && !didShowAlert) {

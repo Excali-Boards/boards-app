@@ -118,9 +118,9 @@ export default function Categories() {
 	}, [categories, dbcSearch]);
 
 	const handleSave = useCallback(() => {
-		fetcher.submit({ type: 'reorderCategories', categories: categories.join(',') }, { method: 'post' });
+		fetcher.submit({ type: 'reorderCategories', categories: tempCategories.join(',') }, { method: 'post' });
 		setTempCategories([]);
-	}, [fetcher, categories]);
+	}, [fetcher, tempCategories]);
 
 	useEffect(() => {
 		if (tempCategories.length > 0 && !didShowAlert) {
