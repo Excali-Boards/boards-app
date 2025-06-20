@@ -29,6 +29,23 @@ export function getBaseDomainClient(urlString: string) {
 	}
 }
 
+export function getCardDeletionTime(date: Date | null) {
+	if (!date) return { bg: 'alpha100', borderColor: 'alpha200', text: 'Not scheduled for deletion', badge: 'alpha500' };
+
+	const now = new Date();
+	const diffTime = date.getTime() - now.getTime();
+	const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+	const minutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+	const hours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+	const timeString = diffDays > 0 ? `${diffDays}d ${hours}h ${minutes}m` : hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+	if (diffDays <= 0) return { bg: 'red.100', borderColor: 'red.200', text: timeString, badge: 'red.500' };
+	if (diffDays <= 3) return { bg: 'orange.100', borderColor: 'orange.200', text: timeString, badge: 'orange.500' };
+	return { bg: 'yellow.100', borderColor: 'yellow.200', text: timeString, badge: 'yellow.500' };
+}
+
 export function parseZodError(error: ZodError) {
 	const errors: string[] = [];
 
@@ -219,19 +236,3 @@ export const isImageElement = (
 ): element is ExcalidrawImageElement => {
 	return !!element && element.type === 'image';
 };
-
-export type Key = string | number | symbol;
-export type Value = string | number | boolean | null | undefined | object;
-
-export class CustomMap<K extends Key, V extends Value> extends Map<K, V> {
-	constructor(entries?: readonly (readonly [K, V])[] | null) {
-		super(entries);
-	}
-
-	public update(key: K, value: (oldValue?: V) => V): this {
-		if (!this.has(key)) this.set(key, value(undefined));
-		else this.set(key, value(this.get(key)!));
-
-		return this;
-	}
-}

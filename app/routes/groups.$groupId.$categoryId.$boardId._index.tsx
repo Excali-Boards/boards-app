@@ -69,9 +69,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 			const userId = formData.get('userId') as string;
 
 			const isKicked = await api?.boards.kickUserFromRoom({ auth: token, categoryId, groupId, userId, boardId });
-			if (!isKicked || 'error' in isKicked) return makeResObject(isKicked, 'Failed to kick user from board.');
-
-			return { status: 200, data: 'User kicked successfully.' };
+			return makeResObject(isKicked, 'Failed to kick user from board.');
 		}
 		default: {
 			return { status: 400, error: 'Invalid request.' };

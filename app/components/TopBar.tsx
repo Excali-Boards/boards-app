@@ -58,11 +58,11 @@ export function TopBar({
 			</Flex>
 
 			{dismissable && uniqueId && (
-				<Tooltip label='Zatvori.' aria-label='Zatvori'>
+				<Tooltip label='Close.' aria-label='Close'>
 					<IconButton
 						right={4}
 						position='absolute'
-						aria-label='Zatvori'
+						aria-label='Close'
 						icon={<MdClose size={20} />}
 						variant='ghost'
 						_hover={{ bg: undefined }}

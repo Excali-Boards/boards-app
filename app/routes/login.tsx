@@ -17,7 +17,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	const DBUser = await getCachedUser(request);
 
 	const type = query.get('type') as string | undefined;
-	if (!type || !allowedPlatforms.some((p) => p.toLowerCase() === type.toLowerCase())) return { data: null };
+	if (!type || !allowedPlatforms.some((p) => p.toLowerCase() === type.toLowerCase())) {
+		if (token) return redirect('/');
+		else return { data: null };
+	}
 
 	const backTo = query.get('backTo') || '/';
 	if (token && DBUser && 'data' in DBUser && type === DBUser.data.mainLoginType.toLowerCase()) return redirect(backTo || '/');

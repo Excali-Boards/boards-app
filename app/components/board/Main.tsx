@@ -2,13 +2,14 @@ import Excalidraw, { getSceneVersion, getVisibleSceneBounds, isSyncableElement, 
 import { AppState, BinaryFileData, Collaborator, DataURL, ExcalidrawImperativeAPI, ExcalidrawInitialDataState, Gesture, SocketId } from '@excalidraw/excalidraw/types';
 import { FileId, InitializedExcalidrawImageElement, OrderedExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { ClientData, ClientToServerEvents, ColabUser, SceneBroadcastData, ServerToClientEvents } from '~/other/types';
-import { CustomMap, isInitializedImageElement, throttleRAF } from '~/other/utils';
+import { isInitializedImageElement, throttleRAF } from '~/other/utils';
 import { GetUsersOutput } from '@excali-boards/boards-api-client';
 import { Box, Flex, Spinner, Text } from '@chakra-ui/react';
 import msgPack from 'socket.io-msgpack-parser';
 import { io, Socket } from 'socket.io-client';
 import { TopBar } from '~/components/TopBar';
 import { Component, Suspense } from 'react';
+import { CustomMap } from '~/other/map';
 import throttle from 'lodash.throttle';
 import { Buffer } from 'buffer';
 import axios from 'axios';

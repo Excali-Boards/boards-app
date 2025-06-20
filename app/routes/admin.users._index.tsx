@@ -81,9 +81,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 			}
 
 			const TargetDBUser = await api?.admin.updateUserPermissions({ auth: token, body: { userId, isBoardsAdmin, permissions } });
-			if (!TargetDBUser || 'error' in TargetDBUser) return makeResObject(TargetDBUser, 'Failed to update user permissions.');
-
-			return { status: 200, data: 'User permissions updated successfully.' };
+			return makeResObject(TargetDBUser, 'Failed to update user permissions.');
 		}
 		default: {
 			return { status: 400, error: 'Invalid request.' };

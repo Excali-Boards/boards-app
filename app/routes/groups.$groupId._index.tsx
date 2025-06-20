@@ -65,9 +65,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 			const categoryName = formData.get('categoryName') as string;
 
 			const DBCategory = await api?.groups.createCategoryInGroup({ auth: token, groupId, body: { name: categoryName } });
-			if (!DBCategory || 'error' in DBCategory) return makeResObject(DBCategory, 'Failed to create category.');
-
-			return { status: 200, data: 'Category created successfully.' };
+			return makeResObject(DBCategory, 'Failed to create category.');
 		}
 		case 'updateCategory': {
 			const categoryId = formData.get('categoryId') as string;
@@ -75,27 +73,21 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 			if (!categoryId || !categoryName) return { status: 400, error: 'Invalid category name.' };
 
 			const DBCategory = await api?.categories.updateCategory({ auth: token, categoryId, groupId, body: { name: categoryName } });
-			if (!DBCategory || 'error' in DBCategory) return makeResObject(DBCategory, 'Failed to update category.');
-
-			return { status: 200, data: 'Category updated successfully.' };
+			return makeResObject(DBCategory, 'Failed to update category.');
 		}
 		case 'reorderCategories': {
 			const categories = (formData.get('categories') as string)?.split(',') || [];
 			if (!categories || categories.length && categories.some((category) => typeof category !== 'string')) return { status: 400, error: 'Invalid categories.' };
 
 			const DBReorderedCategories = await api?.groups.reorderCategoriesInGroup({ auth: token, groupId, body: categories });
-			if (!DBReorderedCategories || 'error' in DBReorderedCategories) return makeResObject(DBReorderedCategories, 'Failed to reorder categories.');
-
-			return { status: 200, data: 'Categories reordered successfully.' };
+			return makeResObject(DBReorderedCategories, 'Failed to reorder categories.');
 		}
 		case 'deleteCategory': {
 			const categoryId = formData.get('categoryId') as string;
 			if (!categoryId) return { status: 400, error: 'Invalid category id.' };
 
 			const DBDeleteCategory = await api?.categories.deleteCategory({ auth: token, categoryId, groupId });
-			if (!DBDeleteCategory || 'error' in DBDeleteCategory) return makeResObject(DBDeleteCategory, 'Failed to delete category.');
-
-			return { status: 200, data: 'Category deleted successfully.' };
+			return makeResObject(DBDeleteCategory, 'Failed to delete category.');
 		}
 		default: {
 			return { status: 400, error: 'Invalid request.' };

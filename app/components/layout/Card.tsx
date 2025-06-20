@@ -1,17 +1,20 @@
-import { Flex, Text, HStack, Divider, IconButton, FlexProps } from '@chakra-ui/react';
-import { FaLink, FaPen, FaSync, FaTrash } from 'react-icons/fa';
+import { Flex, Text, HStack, Divider, IconButton, FlexProps, useColorMode, Badge, Tooltip } from '@chakra-ui/react';
+import { FaLink, FaPen, FaSync, FaTrash, FaTrashRestore } from 'react-icons/fa';
 import { IconLinkButton } from '~/components/Button';
+import { getCardDeletionTime } from '~/other/utils';
 import { useContext, useState } from 'react';
 import { RootContext } from '../Context';
 
 export type CardProps = ({
 	id: string;
+	name: string;
 	refresh?: boolean;
 	description?: string;
+	isDeleteDisabled?: boolean;
+	isScheduledForDeletion?: Date;
+	onCancelDeletion?: () => void;
 	onDelete?: () => void;
 	onEdit?: () => void;
-	isDeleteDisabled?: boolean;
-	name: string;
 }) & ({
 	url: string;
 } | {
@@ -22,29 +25,33 @@ export function Card({
 	refresh,
 	description,
 	isDeleteDisabled,
+	isScheduledForDeletion,
+	onCancelDeletion,
 	onDelete,
 	onEdit,
 	name,
 	...rest
 }: CardProps & FlexProps) {
+	const isDeletedSoon = getCardDeletionTime(isScheduledForDeletion || null);
 	const { sortType } = useContext(RootContext) || { sortType: 'list' };
+
 	const [isLoading, setIsLoading] = useState(false);
+	const { colorMode } = useColorMode();
 
 	return (
 		<Flex
-			rounded={'lg'}
-			bg={'alpha100'}
-			py={4}
-			px={6}
-			w={'100%'}
-			_hover={{ bg: 'alpha200' }}
-			transition={'all 0.3s ease'}
-			alignItems={'center'}
-			justifyContent={'space-between'}
-			wordBreak={'break-word'}
-			flexDirection={sortType === 'list' ? 'row' : 'column'}
-			height={'100%'}
 			gap={4}
+			w={'100%'}
+			py={4} px={6}
+			rounded={'lg'}
+			height={'100%'}
+			alignItems={'center'}
+			bg={isDeletedSoon.bg}
+			wordBreak={'break-word'}
+			transition={'all 0.3s ease'}
+			justifyContent={'space-between'}
+			_hover={{ bg: isDeletedSoon.borderColor }}
+			flexDirection={sortType === 'list' ? 'row' : 'column'}
 			{...rest}
 		>
 			<Flex
@@ -57,6 +64,22 @@ export function Card({
 				<Text fontSize={'2xl'} fontWeight={'bold'}>{name}</Text>
 				{description && <Text fontSize={'lg'}>{description}</Text>}
 			</Flex>
+
+			{isScheduledForDeletion && (
+				<Tooltip label={`This card will be deleted in ${isDeletedSoon.text}!`} placement={'top'} hasArrow>
+					<Badge
+						px={2} py={1}
+						fontWeight={'bold'}
+						borderRadius={'full'}
+						textTransform={'none'}
+						bg={isDeletedSoon.borderColor}
+						color={colorMode === 'light' ? 'white' : 'black'}
+					>
+						{isDeletedSoon.text}
+					</Badge>
+				</Tooltip>
+			)}
+
 			<Flex
 				alignItems={'center'}
 				justifyContent={'center'}
@@ -65,7 +88,23 @@ export function Card({
 			>
 				{sortType === 'list' && <Divider orientation={'vertical'} color={'red'} height={'50px'} />}
 				<HStack spacing={2}>
-					{onDelete && (
+					{isScheduledForDeletion && onCancelDeletion && (
+						<IconButton
+							onClick={onCancelDeletion}
+							variant={'ghost'}
+							rounded={'full'}
+							bg={'alpha100'}
+							icon={<FaTrashRestore />}
+							colorScheme='blue'
+							aria-label={'Cancel deletion'}
+							alignItems={'center'}
+							justifyContent={'center'}
+							_hover={{ bg: 'alpha300' }}
+							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+						/>
+					)}
+
+					{onDelete && !isScheduledForDeletion && (
 						<IconButton
 							onClick={onDelete}
 							variant={'ghost'}
@@ -73,7 +112,7 @@ export function Card({
 							bg={'alpha100'}
 							icon={<FaTrash />}
 							colorScheme='red'
-							aria-label={'Obriši'}
+							aria-label={'Delete'}
 							alignItems={'center'}
 							justifyContent={'center'}
 							_hover={{ bg: 'alpha300' }}
@@ -88,12 +127,13 @@ export function Card({
 							variant={'ghost'}
 							rounded={'full'}
 							bg={'alpha100'}
-							aria-label={'Uredi'}
+							aria-label={'Edit'}
 							icon={<FaPen />}
 							colorScheme='orange'
 							alignItems={'center'}
 							justifyContent={'center'}
 							_hover={{ bg: 'alpha300' }}
+							isDisabled={!!isScheduledForDeletion}
 							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
 						/>
 					)}
@@ -105,7 +145,7 @@ export function Card({
 							rounded={'full'}
 							bg={'alpha100'}
 							icon={<FaLink />}
-							aria-label={'Otvori'}
+							aria-label={'Open'}
 							alignItems={'center'}
 							reloadDocument={refresh}
 							justifyContent={'center'}
@@ -120,7 +160,7 @@ export function Card({
 							rounded={'full'}
 							bg={'alpha100'}
 							icon={<FaSync />}
-							aria-label={'Otvori'}
+							aria-label={'Open'}
 							alignItems={'center'}
 							justifyContent={'center'}
 							_hover={{ bg: 'alpha300' }}

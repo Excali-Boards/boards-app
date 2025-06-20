@@ -65,9 +65,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 			const boardName = formData.get('boardName') as string;
 
 			const DBBoard = await api?.categories.createBoardInCategory({ auth: token, categoryId, groupId, body: { name: boardName } });
-			if (!DBBoard || 'error' in DBBoard) return makeResObject(DBBoard, 'Failed to create board.');
-
-			return { status: 200, data: 'Board created successfully.' };
+			return makeResObject(DBBoard, 'Failed to create board.');
 		}
 		case 'updateBoard': {
 			const boardId = formData.get('boardId') as string;
@@ -75,27 +73,28 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 			if (!boardId || !boardName) return { status: 400, error: 'Invalid board name.' };
 
 			const DBBoard = await api?.boards.updateBoard({ auth: token, boardId, groupId, categoryId, body: { name: boardName } });
-			if (!DBBoard || 'error' in DBBoard) return makeResObject(DBBoard, 'Failed to update board.');
-
-			return { status: 200, data: 'Board updated successfully.' };
+			return makeResObject(DBBoard, 'Failed to update board.');
 		}
 		case 'reorderBoards': {
 			const boards = (formData.get('boards') as string)?.split(',') || [];
 			if (!boards || boards.length && boards.some((board) => typeof board !== 'string')) return { status: 400, error: 'Invalid boards.' };
 
 			const DBReorderedBoards = await api?.categories.reorderBoardsInCategory({ auth: token, categoryId, groupId, body: boards });
-			if (!DBReorderedBoards || 'error' in DBReorderedBoards) return makeResObject(DBReorderedBoards, 'Failed to reorder boards.');
-
-			return { status: 200, data: 'Boards reordered successfully.' };
+			return makeResObject(DBReorderedBoards, 'Failed to reorder boards.');
 		}
 		case 'deleteBoard': {
 			const boardId = formData.get('boardId') as string;
 			if (!boardId) return { status: 400, error: 'Invalid board id.' };
 
 			const DBDeleteBoard = await api?.boards.scheduleBoardDeletion({ auth: token, boardId, groupId, categoryId });
-			if (!DBDeleteBoard || 'error' in DBDeleteBoard) return makeResObject(DBDeleteBoard, 'Failed to delete board.');
+			return makeResObject(DBDeleteBoard, 'Failed to delete board.');
+		}
+		case 'cancelDeletion': {
+			const boardId = formData.get('boardId') as string;
+			if (!boardId) return { status: 400, error: 'Invalid board id.' };
 
-			return { status: 200, data: 'Board deleted successfully.' };
+			const DBCancelDeletion = await api?.boards.cancelBoardDeletion({ auth: token, boardId, groupId, categoryId });
+			return makeResObject(DBCancelDeletion, 'Failed to cancel board deletion.');
 		}
 		default: {
 			return { status: 400, error: 'Invalid request.' };
@@ -123,7 +122,7 @@ export default function Boards() {
 	const finalBoards = useMemo(() => {
 		if (!dbcSearch) return boards;
 		return boards.filter((b) => dbcSearch ? b.name.includes(dbcSearch) : true);
-	}, [boards, dbcSearch]);
+	}, [boards, dbcSearch, fetcher.state]); // eslint-disable-line
 
 	const handleSave = useCallback(() => {
 		fetcher.submit({ type: 'reorderBoards', boards: boards.join(',') }, { method: 'post' });
@@ -187,20 +186,27 @@ export default function Boards() {
 					onReorder={isAdmin && editorMode ? (orderedIds) => {
 						setTempBoards(orderedIds);
 					} : undefined}
+					onCancelDeletion={isAdmin ? (index) => {
+						const board = finalBoards[index];
+						if (!board.scheduledForDeletion) return;
+
+						fetcher.submit({ type: 'cancelDeletion', boardId: board.id }, { method: 'post' });
+					} : undefined}
 					cards={finalBoards.map((b) => ({
 						id: b.id,
-						name: b.name.charAt(0).toUpperCase() + b.name.slice(1),
 						url: `/groups/${group.id}/${category.id}/${b.id}`,
+						name: b.name.charAt(0).toUpperCase() + b.name.slice(1),
+						isScheduledForDeletion: b.scheduledForDeletion ? new Date(b.scheduledForDeletion) : undefined,
 					}))}
 				/>
 
 				<ManageBoard
-					isOpen={modalOpen !== null}
-					onClose={() => setModalOpen(null)}
-					type={modalOpen || 'createBoard'}
 					fetcher={fetcher}
-					defaultName={finalBoards.find((g) => g.id === boardId)?.name || ''}
+					isOpen={modalOpen !== null}
 					boardId={boardId || undefined}
+					type={modalOpen || 'createBoard'}
+					onClose={() => setModalOpen(null)}
+					defaultName={finalBoards.find((g) => g.id === boardId)?.name || ''}
 				/>
 			</Box>
 		</VStack>

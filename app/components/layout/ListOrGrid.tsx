@@ -9,17 +9,19 @@ import { CSS } from '@dnd-kit/utilities';
 export type ListOrGridProps = {
 	cards: CardProps[];
 	noWhat: string;
-	onDelete?: (index: number) => void;
 	onEdit?: (index: number) => void;
+	onDelete?: (index: number) => void;
 	onReorder?: (orderedIds: string[]) => void;
+	onCancelDeletion?: (index: number) => void;
 };
 
 export default function ListOrGrid({
 	cards,
 	noWhat,
-	onDelete,
 	onEdit,
+	onDelete,
 	onReorder,
+	onCancelDeletion,
 }: ListOrGridProps) {
 	const { sortType } = useContext(RootContext) || { sortType: 'list' };
 	const [items, setItems] = useState(cards.map((card) => card.id));
@@ -52,6 +54,8 @@ export default function ListOrGrid({
 			return (
 				<SortableItem key={id + '|' + i} id={id}>
 					<Card
+						isScheduledForDeletion={card.isScheduledForDeletion}
+						onCancelDeletion={onCancelDeletion ? () => onCancelDeletion(i) : undefined}
 						onDelete={onDelete ? () => onDelete(i) : undefined}
 						onEdit={onEdit ? () => onEdit(i) : undefined}
 						{...card}
@@ -62,14 +66,18 @@ export default function ListOrGrid({
 	);
 
 	const renderNormalCards = () => (
-		cards.map((card, i) => (
-			<Card
-				key={card.id + '|' + i}
-				onDelete={onDelete ? () => onDelete(i) : undefined}
-				onEdit={onEdit ? () => onEdit(i) : undefined}
-				{...card}
-			/>
-		))
+		cards.map((card, i) => {
+			return (
+				<Card
+					key={card.id + '|' + i}
+					isScheduledForDeletion={card.isScheduledForDeletion}
+					onCancelDeletion={onCancelDeletion ? () => onCancelDeletion(i) : undefined}
+					onDelete={onDelete ? () => onDelete(i) : undefined}
+					onEdit={onEdit ? () => onEdit(i) : undefined}
+					{...card}
+				/>
+			);
+		})
 	);
 
 	return onReorder ? (

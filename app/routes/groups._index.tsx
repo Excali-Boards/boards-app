@@ -60,9 +60,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 			const groupName = formData.get('groupName') as string;
 
 			const DBCategory = await api?.groups.createGroup({ auth: token, body: { name: groupName } });
-			if (!DBCategory || 'error' in DBCategory) return makeResObject(DBCategory, 'Failed to create group.');
-
-			return { status: 200, data: 'Category created successfully.' };
+			return makeResObject(DBCategory, 'Failed to create group.');
 		}
 		case 'updateGroup': {
 			const groupId = formData.get('groupId') as string;
@@ -70,27 +68,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 			if (!groupId || !groupName) return { status: 400, error: 'Invalid group name.' };
 
 			const DBCategory = await api?.groups.updateGroup({ auth: token, groupId, body: { name: groupName } });
-			if (!DBCategory || 'error' in DBCategory) return makeResObject(DBCategory, 'Failed to update group.');
-
-			return { status: 200, data: 'Group updated successfully.' };
+			return makeResObject(DBCategory, 'Failed to update group.');
 		}
 		case 'reorderGroups': {
 			const groups = (formData.get('groups') as string)?.split(',') || [];
 			if (!groups || groups.length && groups.some((category) => typeof category !== 'string')) return { status: 400, error: 'Invalid groups.' };
 
 			const DBReorderedGroups = await api?.groups.reorderGroups({ auth: token, body: groups });
-			if (!DBReorderedGroups || 'error' in DBReorderedGroups) return makeResObject(DBReorderedGroups, 'Failed to reorder groups.');
-
-			return { status: 200, data: 'Groups reordered successfully.' };
+			return makeResObject(DBReorderedGroups, 'Failed to reorder groups.');
 		}
 		case 'deleteGroup': {
 			const groupId = formData.get('groupId') as string;
 			if (!groupId) return { status: 400, error: 'Invalid group id.' };
 
 			const DBDeleteGroup = await api?.groups.deleteGroup({ auth: token, groupId });
-			if (!DBDeleteGroup || 'error' in DBDeleteGroup) return makeResObject(DBDeleteGroup, 'Failed to delete group.');
-
-			return { status: 200, data: 'Group deleted successfully.' };
+			return makeResObject(DBDeleteGroup, 'Failed to delete group.');
 		}
 		default: {
 			return { status: 400, error: 'Invalid request.' };
