@@ -186,7 +186,7 @@ export default function Boards() {
 					onReorder={isAdmin && editorMode ? (orderedIds) => {
 						setTempBoards(orderedIds);
 					} : undefined}
-					onCancelDeletion={isAdmin ? (index) => {
+					onCancelDeletion={isAdmin && editorMode ? (index) => {
 						const board = finalBoards[index];
 						if (!board.scheduledForDeletion) return;
 

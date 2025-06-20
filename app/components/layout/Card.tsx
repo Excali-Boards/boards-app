@@ -88,7 +88,7 @@ export function Card({
 			>
 				{sortType === 'list' && <Divider orientation={'vertical'} color={'red'} height={'50px'} />}
 				<HStack spacing={2}>
-					{isScheduledForDeletion && onCancelDeletion && (
+					{onCancelDeletion && isScheduledForDeletion && (
 						<IconButton
 							onClick={onCancelDeletion}
 							variant={'ghost'}
