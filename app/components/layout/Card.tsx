@@ -1,4 +1,4 @@
-import { Flex, Text, HStack, Divider, IconButton, FlexProps, useColorMode, Badge, Tooltip } from '@chakra-ui/react';
+import { Flex, Text, HStack, Divider, IconButton, FlexProps, useColorMode, Badge } from '@chakra-ui/react';
 import { FaLink, FaPen, FaSync, FaTrash, FaTrashRestore } from 'react-icons/fa';
 import { IconLinkButton } from '~/components/Button';
 import { getCardDeletionTime } from '~/other/utils';
@@ -66,18 +66,16 @@ export function Card({
 			</Flex>
 
 			{isScheduledForDeletion && (
-				<Tooltip label={`This card will be deleted in ${isDeletedSoon.text}!`} placement={'top'} hasArrow>
-					<Badge
-						px={2} py={1}
-						fontWeight={'bold'}
-						borderRadius={'full'}
-						textTransform={'none'}
-						bg={isDeletedSoon.borderColor}
-						color={colorMode === 'light' ? 'white' : 'black'}
-					>
-						{isDeletedSoon.text}
-					</Badge>
-				</Tooltip>
+				<Badge
+					px={2} py={1}
+					fontWeight={'bold'}
+					borderRadius={'full'}
+					textTransform={'none'}
+					bg={isDeletedSoon.borderColor}
+					color={colorMode === 'light' ? 'white' : 'black'}
+				>
+					{isDeletedSoon.text}
+				</Badge>
 			)}
 
 			<Flex
