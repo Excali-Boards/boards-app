@@ -54,7 +54,6 @@ export default function ListOrGrid({
 			return (
 				<SortableItem key={id + '|' + i} id={id}>
 					<Card
-						isScheduledForDeletion={card.isScheduledForDeletion}
 						onCancelDeletion={onCancelDeletion ? () => onCancelDeletion(i) : undefined}
 						onDelete={onDelete ? () => onDelete(i) : undefined}
 						onEdit={onEdit ? () => onEdit(i) : undefined}
@@ -70,7 +69,6 @@ export default function ListOrGrid({
 			return (
 				<Card
 					key={card.id + '|' + i}
-					isScheduledForDeletion={card.isScheduledForDeletion}
 					onCancelDeletion={onCancelDeletion ? () => onCancelDeletion(i) : undefined}
 					onDelete={onDelete ? () => onDelete(i) : undefined}
 					onEdit={onEdit ? () => onEdit(i) : undefined}

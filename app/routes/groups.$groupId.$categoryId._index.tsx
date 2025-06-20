@@ -150,8 +150,9 @@ export default function Boards() {
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }} id='a1'>
 			<Box maxWidth='1000px' width={{ base: '100%', sm: '90%', md: '80%', xl: '60%' }} id='a2'>
 				<MenuBar
-					name={`Boards in category ${category.name}`}
+					name={`Boards in category: ${category.name}`}
 					description={'List of all boards that are currently available to you in this category.'}
+					goBackPath={`/groups/${group.id}`}
 					customButtons={isAdmin ? [{
 						type: 'normal',
 						label: 'Manage boards.',
@@ -194,6 +195,7 @@ export default function Boards() {
 					} : undefined}
 					cards={finalBoards.map((b) => ({
 						id: b.id,
+						sizeBytes: b.sizeBytes,
 						url: `/groups/${group.id}/${category.id}/${b.id}`,
 						name: b.name.charAt(0).toUpperCase() + b.name.slice(1),
 						isScheduledForDeletion: b.scheduledForDeletion ? new Date(b.scheduledForDeletion) : undefined,

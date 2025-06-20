@@ -174,11 +174,12 @@ export default function Groups() {
 					onReorder={isAdmin && editorMode ? (orderedIds) => {
 						setTempGroups(orderedIds);
 					} : undefined}
-					cards={finalGroups.map((b) => ({
-						id: b.id,
-						name: b.name.charAt(0).toUpperCase() + b.name.slice(1),
-						isDeleteDisabled: b.categories > 0,
-						url: `/groups/${b.id}`,
+					cards={finalGroups.map((g) => ({
+						id: g.id,
+						url: `/groups/${g.id}`,
+						sizeBytes: g.sizeBytes,
+						isDeleteDisabled: g.categories > 0,
+						name: g.name.charAt(0).toUpperCase() + g.name.slice(1),
 					}))}
 				/>
 

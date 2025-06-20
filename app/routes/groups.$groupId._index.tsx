@@ -143,8 +143,9 @@ export default function Categories() {
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }} id='a1'>
 			<Box maxWidth='1000px' width={{ base: '100%', sm: '90%', md: '80%', xl: '60%' }} id='a2'>
 				<MenuBar
-					name={`Categories in group ${group.name}`}
+					name={`Categories in group: ${group.name}`}
 					description={'List of all categories that are currently available to you in this group.'}
+					goBackPath='/groups'
 					customButtons={isAdmin ? [{
 						type: 'normal',
 						label: 'Manage categories.',
@@ -179,11 +180,12 @@ export default function Categories() {
 					onReorder={isAdmin && editorMode ? (orderedIds) => {
 						setTempCategories(orderedIds);
 					} : undefined}
-					cards={finalCategories.map((b) => ({
-						id: b.id,
-						name: b.name.charAt(0).toUpperCase() + b.name.slice(1),
-						isDeleteDisabled: b.boards > 0,
-						url: `/groups/${group.id}/${b.id}`,
+					cards={finalCategories.map((c) => ({
+						id: c.id,
+						sizeBytes: c.sizeBytes,
+						isDeleteDisabled: c.boards > 0,
+						url: `/groups/${group.id}/${c.id}`,
+						name: c.name.charAt(0).toUpperCase() + c.name.slice(1),
 					}))}
 				/>
 

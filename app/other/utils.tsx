@@ -29,12 +29,19 @@ export function getBaseDomainClient(urlString: string) {
 	}
 }
 
+export function formatBytes(bytes: number): string {
+	if (bytes < 1024) return `${bytes} B`;
+	else if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+	else if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+	else return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
 export function getCardDeletionTime(date: Date | null) {
 	if (!date) return { bg: 'alpha100', borderColor: 'alpha200', text: 'Not scheduled for deletion', badge: 'alpha500' };
 
 	const now = new Date();
 	const diffTime = date.getTime() - now.getTime();
-	const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+	const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
 	const minutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
 	const hours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));

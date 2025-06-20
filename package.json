@@ -32,7 +32,7 @@
 		"@dnd-kit/utilities": "3.2.2",
 		"@emotion/cache": "11.13.1",
 		"@emotion/react": "11.13.3",
-		"@excali-boards/boards-api-client": "1.0.25",
+		"@excali-boards/boards-api-client": "1.0.28",
 		"@excalidraw/excalidraw": "0.18.0",
 		"@hono/node-server": "1.12.2",
 		"@loadable/component": "5.16.4",
