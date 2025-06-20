@@ -37,7 +37,7 @@ export function formatBytes(bytes: number): string {
 }
 
 export function getCardDeletionTime(date: Date | null) {
-	if (!date) return { bg: 'alpha100', borderColor: 'alpha200', text: 'Not scheduled for deletion', badge: 'alpha500' };
+	if (!date) return { bg: 'alpha100', borderColor: 'alpha200', text: 'Not scheduled for deletion' };
 
 	const now = new Date();
 	const diffTime = date.getTime() - now.getTime();
@@ -48,9 +48,9 @@ export function getCardDeletionTime(date: Date | null) {
 
 	const timeString = diffDays > 0 ? `${diffDays}d ${hours}h ${minutes}m` : hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
-	if (diffDays <= 0) return { bg: 'red.100', borderColor: 'red.200', text: timeString, badge: 'red.500' };
-	if (diffDays <= 3) return { bg: 'orange.100', borderColor: 'orange.200', text: timeString, badge: 'orange.500' };
-	return { bg: 'yellow.100', borderColor: 'yellow.200', text: timeString, badge: 'yellow.500' };
+	if (diffDays <= 0) return { bg: 'red.100', borderColor: 'red.200', text: timeString };
+	if (diffDays <= 3) return { bg: 'orange.100', borderColor: 'orange.200', text: timeString };
+	return { bg: 'yellow.100', borderColor: 'yellow.200', text: timeString };
 }
 
 export function parseZodError(error: ZodError) {

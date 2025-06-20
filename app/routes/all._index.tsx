@@ -1,4 +1,5 @@
-import { Flex, VStack, Accordion, AccordionItem, AccordionButton, AccordionPanel, Box, Text, Divider, AccordionIcon } from '@chakra-ui/react';
+import { Flex, VStack, Accordion, AccordionItem, AccordionButton, AccordionPanel, Box, Text, Divider, AccordionIcon, Badge, useColorMode } from '@chakra-ui/react';
+import { formatBytes, getCardDeletionTime } from '~/other/utils';
 import { Container } from '~/components/layout/Container';
 import { MdOutlineManageHistory } from 'react-icons/md';
 import { makeResponse } from '~/utils/functions.server';
@@ -25,6 +26,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function All() {
 	const { isAdmin, list } = useLoaderData<typeof loader>();
 	const { user } = useContext(RootContext) || {};
+	const { colorMode } = useColorMode();
 
 	const indexOfDefaultGroup = useMemo(() => {
 		const defaultGroup = list.findIndex((group) => group.id === user?.mainGroupId);
@@ -54,7 +56,7 @@ export default function All() {
 					bg={'transparent'}
 					p={0}
 				>
-					<Accordion allowMultiple defaultIndex={indexOfDefaultGroup}>
+					<Accordion allowMultiple defaultIndex={typeof indexOfDefaultGroup === 'number' ? [indexOfDefaultGroup] : undefined}>
 						{list.length ? (
 							<Flex flex={1} bg={'alpha100'} p={2} rounded={'lg'} gap={2} flexDir='column'>
 								{list.map((group, groupIndex) => (
@@ -88,35 +90,66 @@ export default function All() {
 															flexWrap='wrap'
 															gap={2}
 														>
-															{category.boards.map((board, boardIndex) => (
-																<Flex
-																	key={boardIndex}
-																	justifyContent={'space-between'}
-																	gap={{ base: 0, md: 2 }}
-																	alignItems={'center'}
-																	textAlign={'start'}
-																	bg={'alpha100'}
-																	rounded={'lg'}
-																	px={4}
-																	py={2}
-																>
-																	<Text flex='1' textAlign='left' fontWeight='bold' fontSize='lg'>
-																		{board.name}
-																	</Text>
-																	<IconLinkButton
-																		variant={'ghost'}
-																		rounded={'full'}
-																		bg={'alpha100'}
-																		icon={<FaLink />}
-																		aria-label={'Otvori'}
+															{category.boards.map((board, boardIndex) => {
+																const isDeletedSoon = getCardDeletionTime(board.scheduledForDeletion ? new Date(board.scheduledForDeletion) : null);
+
+																return (
+																	<Flex
+																		key={boardIndex}
+																		justifyContent={'space-between'}
+																		gap={{ base: 0, md: 2 }}
+																		bg={isDeletedSoon.bg}
 																		alignItems={'center'}
-																		justifyContent={'center'}
-																		_hover={{ bg: 'alpha300' }}
-																		_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-																		to={`/groups/${group.id}/${category.id}/${board.id}`}
-																	/>
-																</Flex>
-															))}
+																		textAlign={'start'}
+																		rounded={'lg'}
+																		px={4}
+																		py={2}
+																	>
+																		<Text flex='1' textAlign='left' fontWeight='bold' fontSize='lg'>
+																			{board.name}
+																		</Text>
+
+																		{board.scheduledForDeletion && (
+																			<Badge
+																				px={2} py={1}
+																				fontWeight={'bold'}
+																				borderRadius={'full'}
+																				textTransform={'none'}
+																				bg={isDeletedSoon.borderColor}
+																				color={colorMode === 'light' ? 'white' : 'black'}
+																			>
+																				{isDeletedSoon.text}
+																			</Badge>
+																		)}
+
+																		{typeof board.sizeBytes === 'number' && (
+																			<Badge
+																				px={2} py={1}
+																				fontWeight={'bold'}
+																				borderRadius={'full'}
+																				textTransform={'none'}
+																				bg={colorMode === 'light' ? 'alpha500' : 'alpha300'}
+																				color={colorMode === 'light' ? 'white' : 'black'}
+																			>
+																				{formatBytes(board.sizeBytes)}
+																			</Badge>
+																		)}
+
+																		<IconLinkButton
+																			variant={'ghost'}
+																			rounded={'full'}
+																			icon={<FaLink />}
+																			bg={'alpha100'}
+																			aria-label={'Open'}
+																			alignItems={'center'}
+																			justifyContent={'center'}
+																			_hover={{ bg: 'alpha300' }}
+																			_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+																			to={`/groups/${group.id}/${category.id}/${board.id}`}
+																		/>
+																	</Flex>
+																);
+															})}
 														</AccordionPanel>
 													</AccordionItem>
 												</Flex>
@@ -127,7 +160,7 @@ export default function All() {
 							</Flex>
 						) : (
 							<Text flex={1} textAlign='center' fontSize='lg'>
-								No sections available at the moment.
+								Trenutno nema dostupnih sekcija.
 							</Text>
 						)}
 					</Accordion>
