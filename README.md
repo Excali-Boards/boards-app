@@ -98,6 +98,25 @@ Frontend runs at `http://localhost:3002`.
 
 ---
 
+## 🤝 Contributing
+
+Contributions, fixes, and ideas are welcome! If you'd like to get involved:
+
+* Fork the repository and make your changes.
+* Run `pnpm lint && pnpm typecheck:once` before pushing.
+* Open a pull request with a clear description.
+
+Please follow the existing coding style and commit clean, atomic changes.
+
+---
+
+## 💬 Support
+
+Questions, issues, or just want to chat? Join our community on **Discord**:
+👉 [https://discord.gg/4rphpersCa](https://discord.gg/4rphpersCa)
+
+---
+
 ## 📜 License
 
 [GNU General Public License v3.0](./LICENSE)

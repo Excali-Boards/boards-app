@@ -4,6 +4,12 @@ on:
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - '**.md'
+      - 'README.md'
+      - 'LICENSE'
+      - 'screenshots/**'
+      - 'example.env'
   workflow_dispatch:
 
 jobs:

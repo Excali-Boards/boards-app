@@ -4,6 +4,17 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'app/**'
+      - 'server/**'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'docker-compose.yml'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+
   workflow_dispatch:
 
 jobs:
