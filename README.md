@@ -7,10 +7,28 @@
 ## 🚀 Features
 
 - 🧠 Real-time multi-user drawing (Excalidraw)
-- 📁 Grouped & categorized boards
-- 🔐 OAuth login (GitHub, Google, Microsoft, Discord)
+- 📁 Organization hierarchy: Groups > Categories > Boards > Live Rooms
+- 🔐 Admin panel to manage live rooms and users
+- 🗝️ Fine-grained user access control (read/write permissions)
+- 🙈 Option to hide collaborators if preferred
+- 🌗 Dark and light mode themes
+- 🔒 OAuth login (GitHub, Google, Microsoft, Discord)
 - ☁️ S3-based file storage
 - 🗃️ PostgreSQL for persistent board and user data
+
+---
+
+## 🖼️ Screenshots
+
+Here are some screenshots showcasing the app interface and key features:
+
+| Group View                                | Category View                                   | Board View                                |
+| ----------------------------------------- | ----------------------------------------------- | ------------------------------------------ |
+| [![Group View](screenshots/thumbs/group_view_tn.jpg)](screenshots/group_view.png) | [![Category View](screenshots/thumbs/category_view_tn.jpg)](screenshots/category_view.png) | [![Boards View](screenshots/thumbs/board_view_tn.jpg)](screenshots/board_view.png) |
+
+| All-in-One View                       | Admin: Rooms                                | Admin: Users                                |
+| ------------------------------------- | ------------------------------------------- | ------------------------------------------- |
+| [![All View](screenshots/thumbs/all_view_tn.jpg)](screenshots/all_view.png) | [![Admin Rooms](screenshots/thumbs/admin_rooms_tn.jpg)](screenshots/admin_rooms.png) | [![Admin Users](screenshots/thumbs/admin_users_tn.jpg)](screenshots/admin_users.png) |
 
 ---
 
@@ -77,15 +95,6 @@ pnpm run rebuild
 ```
 
 Frontend runs at `http://localhost:3002`.
-
----
-
-## 🧰 Tech Stack
-
-- ⚛️ Remix + Chakra UI (UI framework)
-- 🎨 Excalidraw (drawing canvas)
-- 🔌 Socket.IO (real-time sync)
-- ☁️ S3 + PostgreSQL (file and board storage)
 
 ---
 
