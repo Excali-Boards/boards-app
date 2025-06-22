@@ -64,10 +64,8 @@
 		"remix-auth-google": "2.0.0",
 		"remix-auth-microsoft": "2.0.1",
 		"remix-hono": "0.0.16",
-		"remix-typedjson": "0.4.1",
 		"socket.io-client": "4.8.1",
 		"socket.io-msgpack-parser": "3.0.2",
-		"vite-plugin-node-polyfills": "^0.23.0",
 		"zod": "3.23.8"
 	},
 	"overrides": {

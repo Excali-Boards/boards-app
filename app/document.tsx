@@ -25,7 +25,7 @@ export const Document = withEmotionCache(({ children }: DocumentProps, emotionCa
 	}, []); // eslint-disable-line
 
 	return (
-		<html lang='hr' suppressHydrationWarning={true}>
+		<html lang='en' suppressHydrationWarning={true}>
 			<head>
 				<Meta />
 				<Links />
