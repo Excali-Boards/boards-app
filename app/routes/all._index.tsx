@@ -91,7 +91,7 @@ export default function All() {
 															gap={2}
 														>
 															{category.boards.map((board, boardIndex) => {
-																const isDeletedSoon = getCardDeletionTime(board.scheduledForDeletion ? new Date(board.scheduledForDeletion) : null);
+																const isDeletedSoon = getCardDeletionTime(board.scheduledForDeletion ? new Date(board.scheduledForDeletion) : null, colorMode);
 
 																return (
 																	<Flex

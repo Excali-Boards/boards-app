@@ -32,11 +32,11 @@ export function Card({
 	name,
 	...rest
 }: CardProps & FlexProps) {
-	const isDeletedSoon = getCardDeletionTime(isScheduledForDeletion || null);
-	const { sortType } = useContext(RootContext) || { sortType: 'list' };
-
 	const [isLoading, setIsLoading] = useState(false);
 	const { colorMode } = useColorMode();
+
+	const isDeletedSoon = getCardDeletionTime(isScheduledForDeletion || null, colorMode);
+	const { sortType } = useContext(RootContext) || { sortType: 'list' };
 
 	return (
 		<Flex
@@ -80,11 +80,11 @@ export function Card({
 			{typeof sizeBytes === 'number' && (
 				<Badge
 					px={2} py={1}
+					color={'white'}
+					bg={'alpha500'}
 					fontWeight={'bold'}
 					borderRadius={'full'}
 					textTransform={'none'}
-					bg={colorMode === 'light' ? 'alpha500' : 'alpha300'}
-					color={colorMode === 'light' ? 'white' : 'black'}
 				>
 					{formatBytes(sizeBytes)}
 				</Badge>
