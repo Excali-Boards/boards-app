@@ -12,6 +12,7 @@
 		"start": "dotenv cross-env NODE_ENV=production node ./build/server/index.js",
 		"rebuild": "pnpm run build && pnpm run start",
 		"typecheck": "tsc --watch",
+		"typecheck:once": "tsc --noEmit",
 		"updates": "pnpm npm-check-updates -i --format group"
 	},
 	"license": "GPL-3.0",
