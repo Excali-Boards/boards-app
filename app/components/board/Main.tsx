@@ -1,7 +1,7 @@
 import Excalidraw, { getSceneVersion, getVisibleSceneBounds, isSyncableElement, newElementWith, reconcileElements, WelcomeScreen, zoomToFitBounds } from '~/components/board/Excalidraw';
 import { AppState, BinaryFileData, Collaborator, DataURL, ExcalidrawImperativeAPI, ExcalidrawInitialDataState, Gesture, SocketId } from '@excalidraw/excalidraw/types';
+import { ClientData, ClientToServerEvents, ColabUser, SceneBroadcastData, ServerToClientEvents, StatsData } from '~/other/types';
 import { FileId, InitializedExcalidrawImageElement, OrderedExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { ClientData, ClientToServerEvents, ColabUser, SceneBroadcastData, ServerToClientEvents } from '~/other/types';
 import { isInitializedImageElement, throttleRAF } from '~/other/utils';
 import { GetUsersOutput } from '@excali-boards/boards-api-client';
 import { Box, Flex, Spinner, Text } from '@chakra-ui/react';
@@ -187,7 +187,7 @@ export class Board extends Component<BoardProps, BoardState> {
 		socketIO.on('init', this.handleInit);
 		socketIO.on('kick', this.handleKicked);
 		socketIO.on('preloadFiles', this.loadImageFiles);
-		socketIO.on('filesUpdated', this.loadImageFilesWithElements);
+		socketIO.on('filesUpdated', (stats) => this.loadImageFilesWithElements(false, [], stats));
 		socketIO.on('setCollaborators', this.handleSetCollaborators);
 		socketIO.on('broadcastScene', this.handleBroadcastScene);
 		socketIO.on('sendSnapshot', (data) => {
@@ -367,11 +367,22 @@ export class Board extends Component<BoardProps, BoardState> {
 		return { loadedFiles, erroredFiles };
 	}
 
-	loadImageFilesWithElements = throttle(async (forceFetchFiles = false, elements?: OrderedExcalidrawElement[]) => {
+	loadImageFilesWithElements = throttle(async (forceFetchFiles = false, elements?: OrderedExcalidrawElement[], stats?: StatsData) => {
 		if (!this.state.excalidrawAPI) return;
 
+		if (stats) {
+			console.log(`Successfully uploaded ${stats.success} file${stats.success > 1 ? 's' : ''}, failed to upload ${stats.failed} file${stats.failed > 1 ? 's' : ''} out of ${stats.total} total.`);
+			if (stats.failed > 0) {
+				this.state.excalidrawAPI.setToast({
+					message: `Failed to upload ${stats.failed} file${stats.failed > 1 ? 's' : ''}.`,
+					closable: true,
+					duration: 5000,
+				});
+			}
+		}
+
 		const { loadedFiles, erroredFiles } = await this.fetchImageFilesWithElements(
-			elements || this.state.excalidrawAPI.getSceneElementsIncludingDeleted(),
+			elements && elements.length > 0 ? elements : this.state.excalidrawAPI.getSceneElementsIncludingDeleted(),
 			forceFetchFiles,
 		);
 

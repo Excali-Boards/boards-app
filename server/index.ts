@@ -8,7 +8,6 @@ import { remix } from 'remix-hono/handler';
 import { compress } from 'hono/compress';
 import { time } from '~/other/utils';
 import { logger } from 'hono/logger';
-import { csrf } from 'hono/csrf';
 import { cors } from 'hono/cors';
 import { config } from 'dotenv';
 import { Hono } from 'hono';
@@ -30,12 +29,7 @@ app.use(cors({
 	maxAge: 600,
 }));
 
-if (isProd) {
-	app.use(compress());
-	app.use(csrf({
-		origin: [configServer.baseUrl],
-	}));
-}
+if (isProd) app.use(compress());
 
 app.use('*', cacheMiddleware(time(1, 'h', 's')), serveStatic({ root: isProd ? './build/client' : './public' }));
 app.use('*', logger((m, ...rest) => LoggerModule('Server', m, 'blue', ...rest)));

@@ -103,13 +103,19 @@ export type ColabUser = {
 	avatarUrl: string | null;
 };
 
+export type StatsData = {
+	success: number;
+	failed: number;
+	total: number;
+};
+
 // For: socket.emit or io.to().emit, io.emit
 export type ServerToClientEvents = {
 	init: (data: ClientData) => unknown;
 	isSaved: () => unknown;
 	kick: () => unknown;
 
-	filesUpdated: () => unknown;
+	filesUpdated: (stats?: StatsData) => unknown;
 	preloadFiles: (files: string[]) => unknown;
 
 	followedBy: (data: string[]) => unknown;
