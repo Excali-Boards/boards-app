@@ -1,3 +1,3 @@
-import { WebDataManager } from '@excali-boards/boards-api-client';
+import { BoardsManager } from '@excali-boards/boards-api-client';
 
-export const apiClient = (url: string) => new WebDataManager(url);
+export const apiClient = (url: string) => new BoardsManager(url);

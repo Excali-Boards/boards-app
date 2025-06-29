@@ -1,9 +1,9 @@
 import { Outlet, isRouteErrorResponse, useLoaderData, useMatches, useRouteError } from '@remix-run/react';
 import { LoaderFunctionArgs, LinksFunction, MetaFunction } from '@remix-run/node';
 import { allowedPlatforms as allowedLoginPlatforms } from '~/utils/config.server';
+import { getCachedUser, UserResponse } from './utils/session.server';
 import { useCallback, useEffect, useState } from 'react';
 import { ChakraProvider, Flex } from '@chakra-ui/react';
-import { getCachedUser } from './utils/session.server';
 import { cssBundleHref } from '@remix-run/css-bundle';
 import { authenticator } from './utils/auth.server';
 import { RootContext } from '~/components/Context';
@@ -26,10 +26,14 @@ export const meta: MetaFunction = () => {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-	const user = await getCachedUser(request);
-	if (user?.status === 401) return authenticator.logout(request, {
-		redirectTo: '/',
-	});
+	let user: UserResponse;
+
+	try {
+		user = await getCachedUser(request);
+		if (user?.status === 401) throw new Error('Unauthorized.');
+	} catch {
+		return authenticator.logout(request, { redirectTo: '/' });
+	}
 
 	return {
 		user: user && 'data' in user ? user.data : null,
