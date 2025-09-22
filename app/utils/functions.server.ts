@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
-import { Platforms } from '@excali-boards/boards-api-client/prisma/generated';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { Platforms } from '@excali-boards/boards-api-client';
 import config from '~/utils/config.server';
 import * as pako from 'pako';
 
@@ -94,6 +94,6 @@ export function makeResponse(data: unknown, message: string): Response {
 	return new Response(getError(data, message), { status: getCode(data), statusText: data && typeof data === 'object' && 'errorName' in data ? data.errorName as string : undefined });
 }
 
-export function makeResObject<T>(data: T | null, message: string): T | { status: number; error: string; } {
-	return data || { status: getCode(data), error: getError(data, message) };
+export function makeResObject<T>(data: T | null, message: string | null): T | { status: number; error: string; } {
+	return data || { status: getCode(data), error: getError(data, message || 'An unknown error occurred.') };
 }

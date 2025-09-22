@@ -1,4 +1,5 @@
-import { Platforms } from '@excali-boards/boards-api-client/prisma/generated';
+import { Device } from '@excali-boards/boards-api-client/prisma/generated/client';
+import { Platforms } from '@excali-boards/boards-api-client';
 import { MicrosoftStrategy } from 'remix-auth-microsoft';
 import { sessionStorage } from '~/utils/storage.server';
 import { DiscordStrategy } from 'remix-auth-discord';
@@ -15,7 +16,7 @@ const zodUser = z.object({
 	email: z.string(),
 	displayName: z.string(),
 	avatarUrl: z.string().nullable(),
-	platform: z.nativeEnum(Platforms),
+	platform: z.enum(Platforms),
 });
 
 export const authenticator = new Authenticator<string | null>(sessionStorage, {
@@ -40,7 +41,7 @@ const discordStrategy = configServer.auth.discord ? new DiscordStrategy({
 	else return createSession({
 		...parsedUser.data,
 		avatarUrl: parsedUser.data.avatarUrl ? `https://cdn.discordapp.com/avatars/${profile.id}/${parsedUser.data.avatarUrl}.${parsedUser.data.avatarUrl.startsWith('a_') ? 'gif' : 'png'}` : null,
-	}, typeof context?.currentUserId === 'string' ? context.currentUserId : undefined);
+	}, context);
 }) : null;
 
 const googleStrategy = configServer.auth.google ? new GoogleStrategy({
@@ -59,7 +60,7 @@ const googleStrategy = configServer.auth.google ? new GoogleStrategy({
 	else return createSession({
 		...parsedUser.data,
 		avatarUrl: parsedUser.data.avatarUrl || null,
-	}, typeof context?.currentUserId === 'string' ? context.currentUserId : undefined);
+	}, context);
 }) : null;
 
 const githubStrategy = configServer.auth.github ? new GitHubStrategy({
@@ -68,9 +69,9 @@ const githubStrategy = configServer.auth.github ? new GitHubStrategy({
 	redirectURI: configServer.auth.github.redirectUri,
 }, async ({ profile, context }) => {
 	const parsedUser = zodUser.safeParse({
-		email: profile.emails?.[0].value,
+		email: profile.emails?.[0]?.value,
 		displayName: profile.displayName,
-		avatarUrl: profile.photos?.[0].value || null,
+		avatarUrl: profile.photos?.[0]?.value || null,
 		platform: 'GitHub' as Platforms,
 	});
 
@@ -78,7 +79,7 @@ const githubStrategy = configServer.auth.github ? new GitHubStrategy({
 	else return createSession({
 		...parsedUser.data,
 		avatarUrl: parsedUser.data.avatarUrl || null,
-	}, typeof context?.currentUserId === 'string' ? context.currentUserId : undefined);
+	}, context);
 }) : null;
 
 const microsoftStrategy = configServer.auth.microsoft ? new MicrosoftStrategy({
@@ -92,7 +93,7 @@ const microsoftStrategy = configServer.auth.microsoft ? new MicrosoftStrategy({
 	const parsedUser = zodUser.safeParse({
 		email: profile.emails?.[0].value,
 		displayName: profile.displayName || profile.name.givenName,
-		avatarUrl: profile.photos?.[0].value || null,
+		avatarUrl: profile.photos?.[0]?.value || null,
 		platform: 'Microsoft' as Platforms,
 	});
 
@@ -100,23 +101,25 @@ const microsoftStrategy = configServer.auth.microsoft ? new MicrosoftStrategy({
 	else return createSession({
 		...parsedUser.data,
 		avatarUrl: parsedUser.data.avatarUrl || null,
-	}, typeof context?.currentUserId === 'string' ? context.currentUserId : undefined);
+	}, context);
 }) : null;
 
-async function createSession(strategyData: AuthUser, currentUserId?: string) {
-	const DBUser = await api?.auth.authenticate({
+async function createSession(strategyData: AuthUser, extra?: Partial<Record<'ip' | 'currentUserId' | 'device', string>>) {
+	const DBUser = await api?.sessions.createSession({
 		auth: configServer.apiToken,
 		body: {
 			email: strategyData.email,
 			platform: strategyData.platform,
 			displayName: strategyData.displayName,
 			avatarUrl: strategyData.avatarUrl || null,
-			currentUserId: currentUserId || undefined,
+			currentUserId: 'currentUserId' in (extra || {}) ? extra?.currentUserId : undefined,
+			device: 'device' in (extra || {}) ? extra?.device as Device : undefined,
+			ip: 'ip' in (extra || {}) ? extra?.ip : undefined,
 		},
 	});
 
 	if (!DBUser || 'error' in DBUser) throw new CustomError('Current user not found.', 'CustomError');
-	return DBUser.data.email;
+	return DBUser.data.token;
 }
 
 if (microsoftStrategy) authenticator.use(microsoftStrategy);

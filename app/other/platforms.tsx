@@ -9,28 +9,28 @@ export function platformButtons(allowedPlatforms: string[]) {
 	return [
 		{
 			name: 'Google',
-			color: '#FC8181',
+			color: '#FD9B9B',
 			icon: GoogleIcon,
 			faIcon: (props: IconProps) => <Icon as={FaGoogle} {...props} />,
 			show: allowedPlatforms.includes('google'),
 		},
 		{
 			name: 'Microsoft',
-			color: '#68D391',
+			color: '#7FDCA6',
 			icon: MicrosoftIcon,
 			faIcon: (props: IconProps) => <Icon as={FaMicrosoft} {...props} />,
 			show: allowedPlatforms.includes('microsoft'),
 		},
 		{
 			name: 'GitHub',
-			color: '#718096',
+			color: '#A7AFBA',
 			icon: GitHubIcon,
 			faIcon: (props: IconProps) => <Icon as={FaGithub} {...props} />,
 			show: allowedPlatforms.includes('github'),
 		},
 		{
 			name: 'Discord',
-			color: '#6A7BF2',
+			color: '#8C96F4',
 			icon: DiscordIcon,
 			faIcon: (props: IconProps) => <Icon as={FaDiscord} {...props} />,
 			show: allowedPlatforms.includes('discord'),

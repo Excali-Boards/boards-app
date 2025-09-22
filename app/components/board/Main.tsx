@@ -367,7 +367,7 @@ export class Board extends Component<BoardProps, BoardState> {
 		return { loadedFiles, erroredFiles };
 	}
 
-	loadImageFilesWithElements = throttle(async (forceFetchFiles = false, elements?: OrderedExcalidrawElement[], stats?: StatsData) => {
+	loadImageFilesWithElements: ReturnType<typeof throttle> = throttle(async (forceFetchFiles = false, elements?: OrderedExcalidrawElement[], stats?: StatsData) => {
 		if (!this.state.excalidrawAPI) return;
 
 		if (stats) {
@@ -389,7 +389,7 @@ export class Board extends Component<BoardProps, BoardState> {
 		this.updateFiles(loadedFiles, erroredFiles);
 	}, 500);
 
-	loadImageFiles = throttle(async (fileIds: string[]) => {
+	loadImageFiles: ReturnType<typeof throttle> = throttle(async (fileIds: string[]) => {
 		if (!this.state.excalidrawAPI) return;
 
 		const { loadedFiles, erroredFiles } = await this.fetchImageFiles(fileIds);
@@ -600,7 +600,7 @@ export class Board extends Component<BoardProps, BoardState> {
 		}
 	};
 
-	updateUserPointer = throttle((payload: {
+	updateUserPointer: ReturnType<typeof throttle> = throttle((payload: {
 		pointer: { x: number; y: number; tool: 'pointer' | 'laser' };
 		pointersMap: Gesture['pointers'];
 		button: 'down' | 'up';
@@ -618,9 +618,9 @@ export class Board extends Component<BoardProps, BoardState> {
 		});
 	}, 33);
 
-	queueSave = throttle(() => this.sendSnapshot(), 10 * 1000, { leading: false });
+	queueSave: ReturnType<typeof throttle> = throttle(() => this.sendSnapshot(), 10 * 1000, { leading: false });
 
-	queueFileUpload = throttle(async () => {
+	queueFileUpload: ReturnType<typeof throttle> = throttle(async () => {
 		if (!this.state.excalidrawAPI) return;
 
 		const files = this.state.excalidrawAPI.getFiles();
@@ -633,7 +633,8 @@ export class Board extends Component<BoardProps, BoardState> {
 			if (isInitializedImageElement(element) && fileIds.has(element.fileId)) {
 				const tracked = this.trackedFiles.get(element.fileId);
 				if (!tracked || tracked.isDeleted) {
-					newFiles.push(files[element.fileId]);
+					const file = files[element.fileId];
+					if (file) newFiles.push(file);
 				}
 			}
 		}
@@ -644,7 +645,8 @@ export class Board extends Component<BoardProps, BoardState> {
 			if (!elementFileIds.has(fileId)) {
 				const tracked = this.trackedFiles.get(fileId);
 				if (tracked && !tracked.isDeleted) {
-					deletedFiles.push(files[fileId]);
+					const file = files[fileId];
+					if (file) deletedFiles.push(file);
 				}
 			}
 		}

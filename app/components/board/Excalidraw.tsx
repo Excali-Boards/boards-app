@@ -63,7 +63,7 @@ export const hashElementsVersion = (
 	let hash = 5381;
 
 	for (let i = 0; i < elements?.length || 0; i++) {
-		hash = (hash << 5) + hash + elements[i].versionNonce;
+		hash = (hash << 5) + hash + (elements[i]?.versionNonce || 0);
 	}
 
 	return hash >>> 0;

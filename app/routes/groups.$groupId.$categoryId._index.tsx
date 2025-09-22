@@ -1,43 +1,20 @@
-import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput } from '@chakra-ui/react';
+import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
-import { LoaderFunctionArgs, ActionFunctionArgs, MetaArgs } from '@remix-run/node';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import useFetcherResponse from '~/hooks/useFetcherResponse';
-import { themeColor, WebReturnType } from '~/other/types';
 import { SearchBar } from '~/components/layout/SearchBar';
-import ListOrGrid from '~/components/layout/ListOrGrid';
+import { canManage, validateParams } from '~/other/utils';
+import { NoticeCard } from '~/components/other/Notice';
+import CardList from '~/components/layout/CardList';
 import { useDebounced } from '~/hooks/useDebounced';
 import { authenticator } from '~/utils/auth.server';
+import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
 import { FaPlus, FaTools } from 'react-icons/fa';
-import { validateParams } from '~/other/utils';
-import { defaultMeta } from '~/other/keywords';
+import { WebReturnType } from '~/other/types';
 import { api } from '~/utils/web.server';
-
-export function meta({ data }: MetaArgs<typeof loader>) {
-	if (!data) return defaultMeta;
-
-	return [
-		{ charset: 'utf-8' },
-		{ name: 'viewport', content: 'width=device-width, initial-scale=1' },
-
-		{ title: `Boards - ${data.group.name} - ${data.category.name}` },
-		{ name: 'description', content: 'List of all boards that are currently available to you in this category.' },
-
-		{ property: 'og:site_name', content: 'Boards' },
-		{ property: 'og:title', content: `Boards - ${data.group.name} - ${data.category.name}` },
-		{ property: 'og:description', content: 'List of all boards that are currently available to you in this category.' },
-		{ property: 'og:image', content: '/banner.webp' },
-
-		{ name: 'twitter:title', content: `Boards - ${data.group.name} - ${data.category.name}` },
-		{ name: 'twitter:description', content: 'List of all boards that are currently available to you in this category.' },
-		{ name: 'twitter:card', content: 'summary_large_image' },
-		{ name: 'twitter:image', content: '/banner.webp' },
-
-		{ name: 'theme-color', content: themeColor },
-	];
-}
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const { groupId, categoryId } = validateParams(params, ['groupId', 'categoryId']);
@@ -45,10 +22,10 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const boardInfo = await api?.categories.getCategory({ auth: token, categoryId, groupId });
-	if (!boardInfo || 'error' in boardInfo) throw makeResponse(boardInfo, 'Failed to get category.');
+	const DBCategory = await api?.categories.getCategory({ auth: token, categoryId, groupId });
+	if (!DBCategory || 'error' in DBCategory) throw makeResponse(DBCategory, 'Failed to get category.');
 
-	return boardInfo.data;
+	return DBCategory.data;
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
@@ -64,37 +41,37 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 		case 'newBoard': {
 			const boardName = formData.get('boardName') as string;
 
-			const DBBoard = await api?.categories.createBoardInCategory({ auth: token, categoryId, groupId, body: { name: boardName } });
-			return makeResObject(DBBoard, 'Failed to create board.');
+			const result = await api?.categories.createBoardInCategory({ auth: token, categoryId, groupId, body: { name: boardName } });
+			return makeResObject(result, 'Failed to create board.');
 		}
 		case 'updateBoard': {
 			const boardId = formData.get('boardId') as string;
 			const boardName = formData.get('boardName') as string;
 			if (!boardId || !boardName) return { status: 400, error: 'Invalid board name.' };
 
-			const DBBoard = await api?.boards.updateBoard({ auth: token, boardId, groupId, categoryId, body: { name: boardName } });
-			return makeResObject(DBBoard, 'Failed to update board.');
+			const result = await api?.boards.updateBoard({ auth: token, boardId, groupId, categoryId, body: { name: boardName } });
+			return makeResObject(result, 'Failed to update board.');
 		}
 		case 'reorderBoards': {
 			const boards = (formData.get('boards') as string)?.split(',') || [];
 			if (!boards || boards.length && boards.some((board) => typeof board !== 'string')) return { status: 400, error: 'Invalid boards.' };
 
-			const DBReorderedBoards = await api?.categories.reorderBoardsInCategory({ auth: token, categoryId, groupId, body: boards });
-			return makeResObject(DBReorderedBoards, 'Failed to reorder boards.');
+			const result = await api?.categories.reorderBoardsInCategory({ auth: token, categoryId, groupId, body: boards });
+			return makeResObject(result, 'Failed to reorder boards.');
 		}
 		case 'deleteBoard': {
 			const boardId = formData.get('boardId') as string;
 			if (!boardId) return { status: 400, error: 'Invalid board id.' };
 
-			const DBDeleteBoard = await api?.boards.scheduleBoardDeletion({ auth: token, boardId, groupId, categoryId });
-			return makeResObject(DBDeleteBoard, 'Failed to delete board.');
+			const result = await api?.boards.scheduleBoardDeletion({ auth: token, boardId, groupId, categoryId });
+			return makeResObject(result, 'Failed to delete board.');
 		}
 		case 'cancelDeletion': {
 			const boardId = formData.get('boardId') as string;
 			if (!boardId) return { status: 400, error: 'Invalid board id.' };
 
-			const DBCancelDeletion = await api?.boards.cancelBoardDeletion({ auth: token, boardId, groupId, categoryId });
-			return makeResObject(DBCancelDeletion, 'Failed to cancel board deletion.');
+			const result = await api?.boards.cancelBoardDeletion({ auth: token, boardId, groupId, categoryId });
+			return makeResObject(result, 'Failed to cancel board deletion.');
 		}
 		default: {
 			return { status: 400, error: 'Invalid request.' };
@@ -103,12 +80,15 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 };
 
 export default function Boards() {
-	const { isAdmin, group, category, boards } = useLoaderData<typeof loader>();
+	const { group, category, boards } = useLoaderData<typeof loader>();
+	const { user, setCanInvite } = useContext(RootContext) || {};
+
 	const [modalOpen, setModalOpen] = useState<ModalOpen>(null);
 	const [boardId, setBoardId] = useState<string | null>(null);
 
 	const [tempBoards, setTempBoards] = useState<string[]>([]);
 	const [didShowAlert, setDidShowAlert] = useState(false);
+	const [revertKey, setRevertKey] = useState(0);
 	const [editorMode, setEditorMode] = useState(false);
 
 	const [search, setSearch] = useState('');
@@ -129,22 +109,14 @@ export default function Boards() {
 		setTempBoards([]);
 	}, [fetcher, tempBoards]);
 
-	useEffect(() => {
-		if (tempBoards.length > 0 && !didShowAlert) {
-			setDidShowAlert(true);
+	const canManageAnything = useMemo(() => boards.some((c) => c.accessLevel === 'admin'), [boards]);
+	useEffect(() => setCanInvite?.(canManageAnything), [canManageAnything, setCanInvite]);
 
-			toast({
-				title: 'You have unsaved changes.',
-				description: 'Dismiss this message to save your changes.',
-				status: 'warning',
-				duration: null,
-				isClosable: true,
-				position: 'bottom-right',
-				variant: 'subtle',
-				onCloseComplete: () => handleSave(),
-			});
+	useEffect(() => {
+		if (tempBoards.length > 0) {
+			setDidShowAlert(true);
 		}
-	}, [didShowAlert, handleSave, tempBoards, toast]);
+	}, [tempBoards]);
 
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }} id='a1'>
@@ -153,7 +125,7 @@ export default function Boards() {
 					name={`Boards in category: ${category.name}`}
 					description={'List of all boards that are currently available to you in this category.'}
 					goBackPath={`/groups/${group.id}`}
-					customButtons={isAdmin ? [{
+					customButtons={user?.isDev || canManage(category.accessLevel) ? [{
 						type: 'normal',
 						label: 'Manage boards.',
 						icon: <FaTools />,
@@ -174,31 +146,35 @@ export default function Boards() {
 
 				<SearchBar search={search} setSearch={setSearch} whatSearch={'boards'} id='boards' dividerMY={4} />
 
-				<ListOrGrid
+				<CardList
+					key={revertKey}
 					noWhat='boards'
-					onDelete={isAdmin && editorMode ? (index) => {
+					onDelete={editorMode ? (index) => {
 						setModalOpen('deleteBoard');
-						setBoardId(finalBoards[index].id);
+						setBoardId(finalBoards[index]!.id);
 					} : undefined}
-					onEdit={isAdmin && editorMode ? (index) => {
+					onEdit={editorMode ? (index) => {
 						setModalOpen('updateBoard');
-						setBoardId(finalBoards[index].id);
+						setBoardId(finalBoards[index]!.id);
 					} : undefined}
-					onReorder={isAdmin && editorMode ? (orderedIds) => {
+					onReorder={editorMode ? (orderedIds) => {
 						setTempBoards(orderedIds);
 					} : undefined}
-					onCancelDeletion={isAdmin && editorMode ? (index) => {
+					onCancelDeletion={editorMode ? (index) => {
 						const board = finalBoards[index];
-						if (!board.scheduledForDeletion) return;
+						if (!board?.scheduledForDeletion) return;
 
 						fetcher.submit({ type: 'cancelDeletion', boardId: board.id }, { method: 'post' });
 					} : undefined}
 					cards={finalBoards.map((b) => ({
 						id: b.id,
-						sizeBytes: b.sizeBytes,
+						editorMode,
+						canManageAnything,
+						sizeBytes: b.totalSizeBytes,
 						url: `/groups/${group.id}/${category.id}/${b.id}`,
 						name: b.name.charAt(0).toUpperCase() + b.name.slice(1),
 						isScheduledForDeletion: b.scheduledForDeletion ? new Date(b.scheduledForDeletion) : undefined,
+						permsUrl: (user?.isDev || b.accessLevel === 'admin') ? `/permissions/${group.id}/${category.id}/${b.id}` : undefined,
 					}))}
 				/>
 
@@ -209,6 +185,25 @@ export default function Boards() {
 					type={modalOpen || 'createBoard'}
 					onClose={() => setModalOpen(null)}
 					defaultName={finalBoards.find((g) => g.id === boardId)?.name || ''}
+				/>
+
+				<NoticeCard
+					isFloating={true}
+					useIconButtons={true}
+					isVisible={tempBoards.length > 0}
+					variant='warning'
+					message='Save your changes or cancel to revert.'
+					confirmText='Save Changes'
+					cancelText='Cancel'
+					onConfirm={() => {
+						handleSave();
+						setDidShowAlert(false);
+					}}
+					onCancel={() => {
+						setTempBoards([]);
+						setDidShowAlert(false);
+						setRevertKey(prev => prev + 1);
+					}}
 				/>
 			</Box>
 		</VStack>
@@ -253,7 +248,7 @@ export function ManageBoard({ isOpen, onClose, type, fetcher, defaultName, board
 											placeholder='Board Name'
 											defaultValue={defaultName || ''}
 											maxLength={50}
-											minLength={3}
+											minLength={1}
 											autoFocus
 										/>
 									</Box>
@@ -272,7 +267,7 @@ export function ManageBoard({ isOpen, onClose, type, fetcher, defaultName, board
 											placeholder='Board Name'
 											defaultValue={defaultName || ''}
 											maxLength={50}
-											minLength={3}
+											minLength={1}
 											autoFocus
 										/>
 									</Box>
@@ -291,14 +286,16 @@ export function ManageBoard({ isOpen, onClose, type, fetcher, defaultName, board
 					</ModalBody>
 					<ModalFooter display={'flex'} gap={1}>
 						<Button
+							flex={1}
 							colorScheme='gray'
 							onClick={onClose}
 						>
 							Cancel
 						</Button>
 						<Button
+							flex={1}
 							isLoading={fetcher.state === 'loading' || fetcher.state === 'submitting'}
-							colorScheme='red'
+							colorScheme={type === 'deleteBoard' ? 'red' : 'blue'}
 							type='submit'
 						>
 							{type.split(/(?=[A-Z])/).map((word) => word.charAt(0).toUpperCase() + word.slice(1))[0]}

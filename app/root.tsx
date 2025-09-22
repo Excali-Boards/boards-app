@@ -2,15 +2,14 @@ import { Outlet, isRouteErrorResponse, useLoaderData, useMatches, useRouteError 
 import { LoaderFunctionArgs, LinksFunction, MetaFunction } from '@remix-run/node';
 import { allowedPlatforms as allowedLoginPlatforms } from '~/utils/config.server';
 import { getCachedUser, UserResponse } from './utils/session.server';
-import { useCallback, useEffect, useState } from 'react';
 import { ChakraProvider, Flex } from '@chakra-ui/react';
 import { cssBundleHref } from '@remix-run/css-bundle';
+import { ColabUser, themeColor } from './other/types';
 import { authenticator } from './utils/auth.server';
 import { RootContext } from '~/components/Context';
-import { defaultMeta } from '~/other/keywords';
 import InfoComponent from '~/components/Info';
 import theme from '~/components/theme/base';
-import { ColabUser } from './other/types';
+import { useEffect, useState } from 'react';
 import Layout from '~/components/Layout';
 import isMobileDetect from 'is-mobile';
 import { Document } from '~/document';
@@ -22,7 +21,24 @@ export const links: LinksFunction = () => [
 ];
 
 export const meta: MetaFunction = () => {
-	return defaultMeta;
+	return [
+		{ charset: 'utf-8' },
+		{ name: 'viewport', content: 'width=device-width, initial-scale=1' },
+
+		{ title: 'Boards' },
+		{ name: 'description', content: 'A collaborative whiteboard application with real-time features.' },
+
+		{ property: 'og:title', content: 'Boards' },
+		{ property: 'og:description', content: 'A collaborative whiteboard application with real-time features.' },
+		{ property: 'og:image', content: '/banner.webp' },
+
+		{ name: 'twitter:title', content: 'Boards' },
+		{ name: 'twitter:description', content: 'A collaborative whiteboard application with real-time features.' },
+		{ name: 'twitter:card', content: 'summary_large_image' },
+		{ name: 'twitter:image', content: '/banner.webp' },
+
+		{ name: 'theme-color', content: themeColor },
+	];
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -49,30 +65,15 @@ export default function App() {
 	const { user, nullHeader, isMobile, allowedPlatforms } = useLoaderData<typeof loader>();
 
 	const [sideBarHeader, setSiteBarHeader] = useState<'header' | 'sidebar' | 'none'>('header');
-	const [sortType, setSortType] = useState<'grid' | 'list'>('list');
-	const [hideCollaborators, setHideCollaborators] = useState(false);
-
 	const [boardActiveCollaborators, setBoardActiveCollaborators] = useState<ColabUser[]>([]);
 	const [useOppositeColorForBoard, setUseOppositeColorForBoard] = useState(false);
-	const [isNavSticky, setIsNavStickyOriginal] = useState(true);
+	const [hideCollaborators, setHideCollaborators] = useState(false);
+	const [canInvite, setCanInvite] = useState(user?.isDev || false);
+	const [showAllBoards, setShowAllBoards] = useState(true);
 
 	const matches = useMatches();
 
-	const setIsNavSticky = useCallback((value: boolean) => {
-		localStorage.setItem('isNavSticky', value.toString());
-		setIsNavStickyOriginal(value);
-	}, []);
-
 	useEffect(() => matches.some((match) => nullHeader?.includes(match.id)) ? setSiteBarHeader(isMobile ? 'none' : 'sidebar') : setSiteBarHeader('header'), [isMobile, matches, nullHeader]);
-	useEffect(() => sortType ? localStorage.setItem('sortType', sortType) : undefined, [sortType]);
-
-	useEffect(() => {
-		setIsNavStickyOriginal(localStorage.getItem('isNavSticky') !== 'false');
-
-		const type = localStorage.getItem('sortType') as 'grid' | 'list';
-		if (['grid', 'list'].includes(type)) setSortType(type);
-		else setSortType('list');
-	}, []); // eslint-disable-line
 
 	return (
 		<Document>
@@ -82,15 +83,14 @@ export default function App() {
 					useOppositeColorForBoard, setUseOppositeColorForBoard,
 					hideCollaborators, setHideCollaborators,
 					sideBarHeader, setSiteBarHeader,
-					isNavSticky, setIsNavSticky,
-					sortType, setSortType,
+					showAllBoards, setShowAllBoards,
+					canInvite, setCanInvite,
 					allowedPlatforms,
 					user,
 				}}>
 					<Layout
 						user={user}
 						sideBarHeader={sideBarHeader}
-						isBoardsAdmin={user?.isDev || user?.isBoardsAdmin}
 					>
 						<Outlet />
 					</Layout>
@@ -106,7 +106,7 @@ export function ErrorBoundary() {
 	return (
 		<Document>
 			<ChakraProvider theme={theme}>
-				<Layout user={null} isError>
+				<Layout user={null}>
 					<Flex
 						alignItems={'center'}
 						justifyContent={'center'}

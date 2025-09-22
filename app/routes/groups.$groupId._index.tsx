@@ -1,43 +1,20 @@
-import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput } from '@chakra-ui/react';
+import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
-import { LoaderFunctionArgs, ActionFunctionArgs, MetaArgs } from '@remix-run/node';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import useFetcherResponse from '~/hooks/useFetcherResponse';
-import { themeColor, WebReturnType } from '~/other/types';
 import { SearchBar } from '~/components/layout/SearchBar';
-import ListOrGrid from '~/components/layout/ListOrGrid';
+import { canManage, validateParams } from '~/other/utils';
+import { NoticeCard } from '~/components/other/Notice';
+import CardList from '~/components/layout/CardList';
 import { useDebounced } from '~/hooks/useDebounced';
 import { authenticator } from '~/utils/auth.server';
+import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
 import { FaPlus, FaTools } from 'react-icons/fa';
-import { validateParams } from '~/other/utils';
-import { defaultMeta } from '~/other/keywords';
+import { WebReturnType } from '~/other/types';
 import { api } from '~/utils/web.server';
-
-export function meta({ data }: MetaArgs<typeof loader>) {
-	if (!data) return defaultMeta;
-
-	return [
-		{ charset: 'utf-8' },
-		{ name: 'viewport', content: 'width=device-width, initial-scale=1' },
-
-		{ title: `Boards - ${data.group.name}` },
-		{ name: 'description', content: 'List of all categories that are currently available to you in this group.' },
-
-		{ property: 'og:site_name', content: 'Boards' },
-		{ property: 'og:title', content: `Boards - ${data.group.name}` },
-		{ property: 'og:description', content: 'List of all categories that are currently available to you in this group.' },
-		{ property: 'og:image', content: '/banner.webp' },
-
-		{ name: 'twitter:title', content: `Boards - ${data.group.name}` },
-		{ name: 'twitter:description', content: 'List of all categories that are currently available to you in this group.' },
-		{ name: 'twitter:card', content: 'summary_large_image' },
-		{ name: 'twitter:image', content: '/banner.webp' },
-
-		{ name: 'theme-color', content: themeColor },
-	];
-}
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const { groupId } = validateParams(params, ['groupId']);
@@ -45,10 +22,10 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const groupInfo = await api?.groups.getGroup({ auth: token, groupId });
-	if (!groupInfo || 'error' in groupInfo) throw makeResponse(groupInfo, 'Failed to get group.');
+	const DBGroup = await api?.groups.getGroup({ auth: token, groupId });
+	if (!DBGroup || 'error' in DBGroup) throw makeResponse(DBGroup, 'Failed to get group.');
 
-	return groupInfo.data;
+	return DBGroup.data;
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
@@ -64,30 +41,30 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 		case 'newCategory': {
 			const categoryName = formData.get('categoryName') as string;
 
-			const DBCategory = await api?.groups.createCategoryInGroup({ auth: token, groupId, body: { name: categoryName } });
-			return makeResObject(DBCategory, 'Failed to create category.');
+			const result = await api?.groups.createCategoryInGroup({ auth: token, groupId, body: { name: categoryName } });
+			return makeResObject(result, 'Failed to create category.');
 		}
 		case 'updateCategory': {
 			const categoryId = formData.get('categoryId') as string;
 			const categoryName = formData.get('categoryName') as string;
 			if (!categoryId || !categoryName) return { status: 400, error: 'Invalid category name.' };
 
-			const DBCategory = await api?.categories.updateCategory({ auth: token, categoryId, groupId, body: { name: categoryName } });
-			return makeResObject(DBCategory, 'Failed to update category.');
+			const result = await api?.categories.updateCategory({ auth: token, categoryId, groupId, body: { name: categoryName } });
+			return makeResObject(result, 'Failed to update category.');
 		}
 		case 'reorderCategories': {
 			const categories = (formData.get('categories') as string)?.split(',') || [];
 			if (!categories || categories.length && categories.some((category) => typeof category !== 'string')) return { status: 400, error: 'Invalid categories.' };
 
-			const DBReorderedCategories = await api?.groups.reorderCategoriesInGroup({ auth: token, groupId, body: categories });
-			return makeResObject(DBReorderedCategories, 'Failed to reorder categories.');
+			const result = await api?.groups.reorderCategoriesInGroup({ auth: token, groupId, body: categories });
+			return makeResObject(result, 'Failed to reorder categories.');
 		}
 		case 'deleteCategory': {
 			const categoryId = formData.get('categoryId') as string;
 			if (!categoryId) return { status: 400, error: 'Invalid category id.' };
 
-			const DBDeleteCategory = await api?.categories.deleteCategory({ auth: token, categoryId, groupId });
-			return makeResObject(DBDeleteCategory, 'Failed to delete category.');
+			const result = await api?.categories.deleteCategory({ auth: token, categoryId, groupId });
+			return makeResObject(result, 'Failed to delete category.');
 		}
 		default: {
 			return { status: 400, error: 'Invalid request.' };
@@ -96,12 +73,15 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 };
 
 export default function Categories() {
-	const { isAdmin, group, categories } = useLoaderData<typeof loader>();
-	const [modalOpen, setModalOpen] = useState<ModalOpen>(null);
+	const { group, categories } = useLoaderData<typeof loader>();
+	const { user, setCanInvite } = useContext(RootContext) || {};
+
 	const [categoryId, setCategoryId] = useState<string | null>(null);
+	const [modalOpen, setModalOpen] = useState<ModalOpen>(null);
 
 	const [tempCategories, setTempCategories] = useState<string[]>([]);
 	const [didShowAlert, setDidShowAlert] = useState(false);
+	const [revertKey, setRevertKey] = useState(0); // Key to force CardList reset
 	const [editorMode, setEditorMode] = useState(false);
 
 	const [search, setSearch] = useState('');
@@ -122,22 +102,14 @@ export default function Categories() {
 		setTempCategories([]);
 	}, [fetcher, tempCategories]);
 
-	useEffect(() => {
-		if (tempCategories.length > 0 && !didShowAlert) {
-			setDidShowAlert(true);
+	const canManageAnything = useMemo(() => categories.some((c) => c.accessLevel === 'admin'), [categories]);
+	useEffect(() => setCanInvite?.(canManageAnything), [canManageAnything, setCanInvite]);
 
-			toast({
-				title: 'You have unsaved changes.',
-				description: 'Dismiss this message to save your changes.',
-				status: 'warning',
-				duration: null,
-				isClosable: true,
-				position: 'bottom-right',
-				variant: 'subtle',
-				onCloseComplete: () => handleSave(),
-			});
+	useEffect(() => {
+		if (tempCategories.length > 0) {
+			setDidShowAlert(true);
 		}
-	}, [didShowAlert, handleSave, tempCategories, toast]);
+	}, [tempCategories]);
 
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }} id='a1'>
@@ -146,7 +118,7 @@ export default function Categories() {
 					name={`Categories in group: ${group.name}`}
 					description={'List of all categories that are currently available to you in this group.'}
 					goBackPath='/groups'
-					customButtons={isAdmin ? [{
+					customButtons={user?.isDev || canManage(group.accessLevel) ? [{
 						type: 'normal',
 						label: 'Manage categories.',
 						icon: <FaTools />,
@@ -167,24 +139,28 @@ export default function Categories() {
 
 				<SearchBar search={search} setSearch={setSearch} whatSearch={'categories'} id='categories' dividerMY={4} />
 
-				<ListOrGrid
+				<CardList
+					key={revertKey} // Force remount when reverting
 					noWhat='categories'
-					onDelete={isAdmin && editorMode ? (index) => {
+					onDelete={editorMode ? (index) => {
 						setModalOpen('deleteCategory');
-						setCategoryId(finalCategories[index].id);
+						setCategoryId(finalCategories[index]!.id);
 					} : undefined}
-					onEdit={isAdmin && editorMode ? (index) => {
+					onEdit={editorMode ? (index) => {
 						setModalOpen('updateCategory');
-						setCategoryId(finalCategories[index].id);
+						setCategoryId(finalCategories[index]!.id);
 					} : undefined}
-					onReorder={isAdmin && editorMode ? (orderedIds) => {
+					onReorder={editorMode ? (orderedIds) => {
 						setTempCategories(orderedIds);
 					} : undefined}
 					cards={finalCategories.map((c) => ({
 						id: c.id,
-						sizeBytes: c.sizeBytes,
+						editorMode,
+						canManageAnything,
+						sizeBytes: c.totalSizeBytes,
 						isDeleteDisabled: c.boards > 0,
 						url: `/groups/${group.id}/${c.id}`,
+						permsUrl: (user?.isDev || c.accessLevel === 'admin') ? `/permissions/${group.id}/${c.id}` : undefined,
 						name: c.name.charAt(0).toUpperCase() + c.name.slice(1),
 					}))}
 				/>
@@ -196,6 +172,25 @@ export default function Categories() {
 					fetcher={fetcher}
 					defaultName={finalCategories.find((g) => g.id === categoryId)?.name || ''}
 					categoryId={categoryId || undefined}
+				/>
+
+				<NoticeCard
+					isFloating={true}
+					useIconButtons={true}
+					isVisible={tempCategories.length > 0}
+					variant='warning'
+					message='Save your changes or cancel to revert.'
+					confirmText='Save Changes'
+					cancelText='Cancel'
+					onConfirm={() => {
+						handleSave();
+						setDidShowAlert(false);
+					}}
+					onCancel={() => {
+						setTempCategories([]);
+						setDidShowAlert(false);
+						setRevertKey(prev => prev + 1);
+					}}
 				/>
 			</Box>
 		</VStack>
@@ -240,7 +235,7 @@ export function ManageCategory({ isOpen, onClose, type, fetcher, defaultName, ca
 											placeholder='Category Name'
 											defaultValue={defaultName || ''}
 											maxLength={50}
-											minLength={3}
+											minLength={1}
 											autoFocus
 										/>
 									</Box>
@@ -259,7 +254,7 @@ export function ManageCategory({ isOpen, onClose, type, fetcher, defaultName, ca
 											placeholder='Category Name'
 											defaultValue={defaultName || ''}
 											maxLength={50}
-											minLength={3}
+											minLength={1}
 											autoFocus
 										/>
 									</Box>
@@ -278,14 +273,16 @@ export function ManageCategory({ isOpen, onClose, type, fetcher, defaultName, ca
 					</ModalBody>
 					<ModalFooter display={'flex'} gap={1}>
 						<Button
+							flex={1}
 							colorScheme='gray'
 							onClick={onClose}
 						>
 							Cancel
 						</Button>
 						<Button
+							flex={1}
 							isLoading={fetcher.state === 'loading' || fetcher.state === 'submitting'}
-							colorScheme='red'
+							colorScheme={type === 'deleteCategory' ? 'red' : 'blue'}
 							type='submit'
 						>
 							{type.split(/(?=[A-Z])/).map((word) => word.charAt(0).toUpperCase() + word.slice(1))[0]}

@@ -1,3 +1,4 @@
+import { Platforms } from '@excali-boards/boards-api-client/prisma/generated/client';
 import { parseZodError } from '~/other/utils';
 import { z } from 'zod';
 
@@ -89,3 +90,12 @@ export const allowedPlatforms = [
 	...(config.auth.discord ? ['discord'] : []),
 	...(config.auth.microsoft ? ['microsoft'] : []),
 ] as AllowedPlatforms[];
+
+export function convertName(name: AllowedPlatforms): Platforms {
+	switch (name) {
+		case 'google': return 'Google';
+		case 'github': return 'GitHub';
+		case 'discord': return 'Discord';
+		case 'microsoft': return 'Microsoft';
+	}
+}

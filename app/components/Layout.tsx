@@ -1,12 +1,10 @@
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Avatar, Text, Button, Image, Flex, HStack, IconButton, useColorMode, Heading, Box, useBreakpointValue, Divider, Tooltip, Drawer, DrawerBody, DrawerCloseButton, DrawerContent, DrawerHeader, DrawerOverlay, useDisclosure, FlexProps, VStack, Center, useToast } from '@chakra-ui/react';
-import { FaArrowUp, FaCode, FaFolder, FaMoon, FaSun, FaUser, FaUserSlash } from 'react-icons/fa';
+import { FaArrowUp, FaCode, FaCogs, FaList, FaMoon, FaSun, FaUser, FaUsers, FaUserSlash } from 'react-icons/fa';
 import { Fragment, useCallback, useContext, useMemo, useState } from 'react';
 import { GetUsersOutput } from '@excali-boards/boards-api-client';
 import { Link, useFetcher, useLocation } from '@remix-run/react';
 import useFetcherResponse from '~/hooks/useFetcherResponse';
-import { VscActivateBreakpoints } from 'react-icons/vsc';
 import { ColabUser, WebReturnType } from '~/other/types';
-import { TbPinned, TbPinnedOff } from 'react-icons/tb';
 import { platformButtons } from '~/other/platforms';
 import { RootContext } from '~/components/Context';
 import { IoIosColorPalette } from 'react-icons/io';
@@ -20,15 +18,11 @@ export type LayoutProps = {
 	user: GetUsersOutput | null;
 	children: React.ReactNode;
 	sideBarHeader?: 'header' | 'sidebar' | 'none';
-	isError?: boolean;
-	isBoardsAdmin?: boolean;
 };
 
 export default function Layout({
 	user, children,
 	sideBarHeader = 'header',
-	isError,
-	isBoardsAdmin,
 }: LayoutProps) {
 	const [modalOpen, setModalOpen] = useState<'login' | null>(null);
 	const location = useLocation();
@@ -40,7 +34,7 @@ export default function Layout({
 			w='100%'
 		>
 			{sideBarHeader === 'header' ? (
-				<Header user={user} setModalOpen={setModalOpen} isError={isError} isBoardsAdmin={isBoardsAdmin} />
+				<Header user={user} setModalOpen={setModalOpen} />
 			) : sideBarHeader === 'sidebar' ? (
 				<Sidebar user={user} setModalOpen={setModalOpen} />
 			) : <></>}
@@ -62,20 +56,15 @@ export default function Layout({
 
 export type HeaderProps = {
 	user: GetUsersOutput | null;
-	isError?: boolean;
 	forceGoBack?: boolean;
-	isBoardsAdmin?: boolean;
 	setModalOpen: (value: 'login' | null) => void;
 };
 
 export function Header({
 	user,
-	isError,
 	forceGoBack,
 	setModalOpen,
-	isBoardsAdmin,
 }: HeaderProps) {
-	const { isNavSticky, setIsNavSticky } = useContext(RootContext) || {};
 	const showDrawer = useBreakpointValue({ base: true, lg: false });
 	const { toggleColorMode, colorMode } = useColorMode();
 	const { isOpen, onOpen, onClose } = useDisclosure();
@@ -86,9 +75,9 @@ export function Header({
 			w='100%'
 			alignItems={'center'}
 			flexDir={'column'}
-			pos={isNavSticky ? 'sticky' : 'relative'}
 			top={'0px'}
 			zIndex={99}
+			pos={'relative'}
 			bg={'transparent'}
 			backdropFilter={isScrolled ? 'blur(10px)' : 'none'}
 			transition={'all 0.2s ease-in-out'}
@@ -124,35 +113,21 @@ export function Header({
 						src={'/logo-tr.webp'}
 						alt={'logo'}
 						loading='lazy'
-						boxSize={10}
+						width={10}
 						rounded={'md'}
 						transition={'all 0.2s ease-in-out'}
 						_hover={{ transform: 'rotate(180deg) rotateY(180deg)' }}
 					/>
+
 					<Heading size='md' fontWeight={600}>
 						Boards
 					</Heading>
 				</HStack>
 
 				<HStack spacing={2}>
-					<NavbarButtons display={showDrawer ? 'none' : 'flex'} isBoardsAdmin={isBoardsAdmin} addProfile={!!user?.email} forceGoBack={forceGoBack} onClose={onClose} />
+					<NavbarButtons display={showDrawer ? 'none' : 'flex'} isDev={!!user?.isDev} addProfile={!!user?.email} forceGoBack={forceGoBack} onClose={onClose} />
 
 					<HStack spacing={2}>
-						{!isError && <IconButton
-							onClick={() => setIsNavSticky?.(!isNavSticky)}
-							variant={'ghost'}
-							rounded={'full'}
-							aria-label='Pin Navbar'
-							boxSize={10}
-							alignItems={'center'}
-							justifyContent={'center'}
-							display={'flex'}
-							fontSize={'xl'}
-							icon={isNavSticky ? <TbPinnedOff /> : <TbPinned />}
-							_hover={{ bg: 'alpha300' }}
-							bg={'alpha100'}
-						/>}
-
 						<IconButton
 							onClick={toggleColorMode}
 							variant={'ghost'}
@@ -243,7 +218,7 @@ export function Header({
 					<DrawerCloseButton />
 					<DrawerHeader>Menu</DrawerHeader>
 					<DrawerBody>
-						<NavbarButtons flexDir={'column'} isDrawer addProfile={!!user?.email} isBoardsAdmin={isBoardsAdmin} onClose={onClose} forceGoBack={forceGoBack} />
+						<NavbarButtons flexDir={'column'} isDev={!!user?.isDev} isDrawer addProfile={!!user?.email} onClose={onClose} forceGoBack={forceGoBack} />
 					</DrawerBody>
 				</DrawerContent>
 			</Drawer>
@@ -260,7 +235,7 @@ export function Sidebar({
 	user,
 	setModalOpen,
 }: SidebarProps) {
-	const { setUseOppositeColorForBoard, useOppositeColorForBoard, setHideCollaborators, hideCollaborators, boardActiveCollaborators } = useContext(RootContext) || {};
+	const { setUseOppositeColorForBoard, useOppositeColorForBoard, setHideCollaborators, hideCollaborators, boardActiveCollaborators = [] } = useContext(RootContext) || {};
 	const [kickModalOpen, setKickModalOpen] = useState(false);
 	const { toggleColorMode, colorMode } = useColorMode();
 
@@ -325,7 +300,7 @@ export function Sidebar({
 				gap={2}
 				mb={2}
 			>
-				{(user?.isDev || user?.isBoardsAdmin) && boardActiveCollaborators?.length && (
+				{user?.isDev && boardActiveCollaborators.length && (
 					<Tooltip
 						label='Kick collaborators'
 						aria-label='Kick collaborators'
@@ -448,7 +423,7 @@ export function Sidebar({
 
 			<KickUsersModal
 				isOpen={kickModalOpen}
-				currentUserId={user?.id || ''}
+				currentUserId={user?.userId || ''}
 				users={boardActiveCollaborators || []}
 				onClose={() => setKickModalOpen(false)}
 				onKick={(userId) => fetcher.submit({ type: 'kickUser', userId }, { method: 'post', action: location.pathname })}
@@ -529,29 +504,33 @@ export type NavButton = ({
 };
 
 export type NavbarButtonsProps = {
+	isDev?: boolean;
 	isDrawer?: boolean;
 	forceGoBack?: boolean;
 	addProfile?: boolean;
-	isBoardsAdmin?: boolean;
 	onClose?: () => void;
 } & FlexProps;
 
 export function NavbarButtons({
+	isDev,
 	isDrawer,
 	forceGoBack,
 	addProfile,
-	isBoardsAdmin,
 	onClose,
 	...props
 }: NavbarButtonsProps) {
+	const { canInvite, showAllBoards } = useContext(RootContext) || {};
+
 	const allItems = useMemo((): NavButton[] => {
 		const buttons: NavButton[] = [];
 
-		if (addProfile) buttons.push({ id: 2, name: 'All Boards', icon: <FaFolder />, to: '/all' });
-		if (isBoardsAdmin) buttons.unshift({ id: 2, name: 'Admin', icon: <VscActivateBreakpoints />, to: '/admin', dividerBelow: isDrawer });
+		if (isDev) buttons.push({ id: 2, name: 'Admin', icon: <FaCogs />, to: '/admin', dividerBelow: isDrawer });
+		if (canInvite) buttons.push({ id: 2, name: 'Invites', icon: <FaUsers />, to: '/invites' });
+		if (addProfile && showAllBoards) buttons.push({ id: 2, name: 'All Boards', icon: <FaList />, to: '/all' });
 		if (isDrawer && addProfile) buttons.unshift({ id: 2, name: 'Profile', icon: <FaUser />, to: '/profile', dividerBelow: isDrawer });
+
 		return buttons;
-	}, [addProfile, isBoardsAdmin, isDrawer]);
+	}, [addProfile, isDev, isDrawer, canInvite, showAllBoards]);
 
 	return (
 		<Flex gap={2} {...props}>
@@ -622,7 +601,7 @@ export function LoginModal({ isOpen, onClose, backTo }: LoginModalProps) {
 			<ModalOverlay />
 			<ModalContent bg={useColorMode().colorMode === 'dark' ? 'brand900' : 'white'} mx={2}>
 				<ModalHeader>Login</ModalHeader>
-				<ModalBody display={'flex'} flexDir={'column'} gap={2}>
+				<ModalBody>
 					<ModalCloseButton />
 					{allButtons.length ? allButtons.map((platform) => (
 						<LinkButton
@@ -648,10 +627,11 @@ export function LoginModal({ isOpen, onClose, backTo }: LoginModalProps) {
 				</ModalBody>
 				<ModalFooter display={'flex'} gap={1}>
 					<Button
+						flex={1}
 						colorScheme='gray'
 						onClick={onClose}
 					>
-						Cancel
+						Close
 					</Button>
 				</ModalFooter>
 			</ModalContent>
@@ -723,8 +703,9 @@ export function KickUsersModal({ users, isOpen, currentUserId, onClose, onKick }
 						</Center>
 					)}
 				</ModalBody>
-				<ModalFooter>
+				<ModalFooter display={'flex'} gap={1}>
 					<Button
+						flex={1}
 						colorScheme='gray'
 						onClick={onClose}
 					>

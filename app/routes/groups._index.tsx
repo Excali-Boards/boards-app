@@ -1,51 +1,30 @@
-import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput } from '@chakra-ui/react';
+import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
-import { LoaderFunctionArgs, ActionFunctionArgs, MetaArgs } from '@remix-run/node';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import useFetcherResponse from '~/hooks/useFetcherResponse';
-import { themeColor, WebReturnType } from '~/other/types';
 import { SearchBar } from '~/components/layout/SearchBar';
-import ListOrGrid from '~/components/layout/ListOrGrid';
+import { NoticeCard } from '~/components/other/Notice';
+import CardList from '~/components/layout/CardList';
 import { useDebounced } from '~/hooks/useDebounced';
 import { authenticator } from '~/utils/auth.server';
+import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
 import { FaPlus, FaTools } from 'react-icons/fa';
-import { defaultMeta } from '~/other/keywords';
+import { WebReturnType } from '~/other/types';
 import { api } from '~/utils/web.server';
-
-export function meta({ data }: MetaArgs<typeof loader>) {
-	if (!data) return defaultMeta;
-
-	return [
-		{ charset: 'utf-8' },
-		{ name: 'viewport', content: 'width=device-width, initial-scale=1' },
-
-		{ title: 'Boards - Groups' },
-		{ name: 'description', content: 'List of all groups that are currently available to you.' },
-
-		{ property: 'og:site_name', content: 'Boards' },
-		{ property: 'og:title', content: 'Boards - Groups' },
-		{ property: 'og:description', content: 'List of all groups that are currently available to you.' },
-		{ property: 'og:image', content: '/banner.webp' },
-
-		{ name: 'twitter:title', content: 'Boards - Groups' },
-		{ name: 'twitter:description', content: 'List of all groups that are currently available to you.' },
-		{ name: 'twitter:card', content: 'summary_large_image' },
-		{ name: 'twitter:image', content: '/banner.webp' },
-
-		{ name: 'theme-color', content: themeColor },
-	];
-}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const allGroups = await api?.groups.getGroups({ auth: token });
-	if (!allGroups || 'error' in allGroups) throw makeResponse(allGroups, 'Failed to get groups.');
+	const DBGroups = await api?.groups.getGroups({ auth: token });
+	if (!DBGroups || 'error' in DBGroups) throw makeResponse(DBGroups, 'Failed to get groups.');
 
-	return allGroups.data;
+	return {
+		groups: DBGroups.data,
+	};
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -59,30 +38,30 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 		case 'newGroup': {
 			const groupName = formData.get('groupName') as string;
 
-			const DBCategory = await api?.groups.createGroup({ auth: token, body: { name: groupName } });
-			return makeResObject(DBCategory, 'Failed to create group.');
+			const result = await api?.groups.createGroup({ auth: token, body: { name: groupName } });
+			return makeResObject(result, 'Failed to create group.');
 		}
 		case 'updateGroup': {
 			const groupId = formData.get('groupId') as string;
 			const groupName = formData.get('groupName') as string;
 			if (!groupId || !groupName) return { status: 400, error: 'Invalid group name.' };
 
-			const DBCategory = await api?.groups.updateGroup({ auth: token, groupId, body: { name: groupName } });
-			return makeResObject(DBCategory, 'Failed to update group.');
+			const result = await api?.groups.updateGroup({ auth: token, groupId, body: { name: groupName } });
+			return makeResObject(result, 'Failed to update group.');
 		}
 		case 'reorderGroups': {
 			const groups = (formData.get('groups') as string)?.split(',') || [];
 			if (!groups || groups.length && groups.some((category) => typeof category !== 'string')) return { status: 400, error: 'Invalid groups.' };
 
-			const DBReorderedGroups = await api?.groups.reorderGroups({ auth: token, body: groups });
-			return makeResObject(DBReorderedGroups, 'Failed to reorder groups.');
+			const result = await api?.groups.reorderGroups({ auth: token, body: groups });
+			return makeResObject(result, 'Failed to reorder groups.');
 		}
 		case 'deleteGroup': {
 			const groupId = formData.get('groupId') as string;
 			if (!groupId) return { status: 400, error: 'Invalid group id.' };
 
-			const DBDeleteGroup = await api?.groups.deleteGroup({ auth: token, groupId });
-			return makeResObject(DBDeleteGroup, 'Failed to delete group.');
+			const result = await api?.groups.deleteGroup({ auth: token, groupId });
+			return makeResObject(result, 'Failed to delete group.');
 		}
 		default: {
 			return { status: 400, error: 'Invalid request.' };
@@ -91,12 +70,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Groups() {
-	const { isAdmin, groups } = useLoaderData<typeof loader>();
+	const { user, setCanInvite, setShowAllBoards } = useContext(RootContext) || {};
+	const { groups } = useLoaderData<typeof loader>();
+
 	const [modalOpen, setModalOpen] = useState<ModalOpen>(null);
 	const [groupId, setGroupId] = useState<string | null>(null);
 
 	const [tempGroups, setTempGroups] = useState<string[]>([]);
 	const [didShowAlert, setDidShowAlert] = useState(false);
+	const [revertKey, setRevertKey] = useState(0);
 	const [editorMode, setEditorMode] = useState(false);
 
 	const [search, setSearch] = useState('');
@@ -117,22 +99,15 @@ export default function Groups() {
 		setTempGroups([]);
 	}, [fetcher, tempGroups]);
 
-	useEffect(() => {
-		if (tempGroups.length > 0 && !didShowAlert) {
-			setDidShowAlert(true);
+	const canManageAnything = useMemo(() => groups.some((c) => c.accessLevel === 'admin'), [groups]);
+	useEffect(() => setCanInvite?.(canManageAnything), [canManageAnything, setCanInvite]);
+	useEffect(() => setShowAllBoards?.(groups.length !== 0), [setShowAllBoards]);
 
-			toast({
-				title: 'You have unsaved changes.',
-				description: 'Dismiss this message to save your changes.',
-				status: 'warning',
-				duration: null,
-				isClosable: true,
-				position: 'bottom-right',
-				variant: 'subtle',
-				onCloseComplete: () => handleSave(),
-			});
+	useEffect(() => {
+		if (tempGroups.length > 0) {
+			setDidShowAlert(true);
 		}
-	}, [didShowAlert, handleSave, tempGroups, toast]);
+	}, [tempGroups]);
 
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }} id='a1'>
@@ -140,7 +115,7 @@ export default function Groups() {
 				<MenuBar
 					name={'Category Groups'}
 					description={'List of all groups that are currently available to you.'}
-					customButtons={isAdmin ? [{
+					customButtons={user?.isDev ? [{
 						type: 'normal',
 						label: 'Manage groups.',
 						icon: <FaTools />,
@@ -161,24 +136,28 @@ export default function Groups() {
 
 				<SearchBar search={search} setSearch={setSearch} whatSearch={'groups'} id='groups' dividerMY={4} />
 
-				<ListOrGrid
+				<CardList
+					key={revertKey}
 					noWhat='groups'
-					onDelete={isAdmin && editorMode ? (index) => {
+					onDelete={editorMode ? (index) => {
 						setModalOpen('deleteGroup');
-						setGroupId(finalGroups[index].id);
+						setGroupId(finalGroups[index]!.id);
 					} : undefined}
-					onEdit={isAdmin && editorMode ? (index) => {
+					onEdit={editorMode ? (index) => {
 						setModalOpen('updateGroup');
-						setGroupId(finalGroups[index].id);
+						setGroupId(finalGroups[index]!.id);
 					} : undefined}
-					onReorder={isAdmin && editorMode ? (orderedIds) => {
+					onReorder={editorMode ? (orderedIds) => {
 						setTempGroups(orderedIds);
 					} : undefined}
 					cards={finalGroups.map((g) => ({
 						id: g.id,
+						editorMode,
+						canManageAnything,
 						url: `/groups/${g.id}`,
 						sizeBytes: g.sizeBytes,
 						isDeleteDisabled: g.categories > 0,
+						permsUrl: (user?.isDev || g.accessLevel === 'admin') ? `/permissions/${g.id}` : undefined,
 						name: g.name.charAt(0).toUpperCase() + g.name.slice(1),
 					}))}
 				/>
@@ -190,6 +169,25 @@ export default function Groups() {
 					fetcher={fetcher}
 					defaultName={finalGroups.find((g) => g.id === groupId)?.name || ''}
 					groupId={groupId || undefined}
+				/>
+
+				<NoticeCard
+					isFloating={true}
+					useIconButtons={true}
+					isVisible={tempGroups.length > 0}
+					message='Save your changes or cancel to revert.'
+					variant='warning'
+					confirmText='Save Changes'
+					cancelText='Cancel'
+					onConfirm={() => {
+						handleSave();
+						setDidShowAlert(false);
+					}}
+					onCancel={() => {
+						setTempGroups([]);
+						setDidShowAlert(false);
+						setRevertKey(prev => prev + 1);
+					}}
 				/>
 			</Box>
 		</VStack>
@@ -234,7 +232,7 @@ export function ManageGroup({ isOpen, onClose, type, fetcher, defaultName, group
 											placeholder='Group Name'
 											defaultValue={defaultName || ''}
 											maxLength={50}
-											minLength={3}
+											minLength={1}
 											autoFocus
 										/>
 									</Box>
@@ -253,7 +251,7 @@ export function ManageGroup({ isOpen, onClose, type, fetcher, defaultName, group
 											placeholder='Group Name'
 											defaultValue={defaultName || ''}
 											maxLength={50}
-											minLength={3}
+											minLength={1}
 											autoFocus
 										/>
 									</Box>
@@ -272,14 +270,16 @@ export function ManageGroup({ isOpen, onClose, type, fetcher, defaultName, group
 					</ModalBody>
 					<ModalFooter display={'flex'} gap={1}>
 						<Button
+							flex={1}
 							colorScheme='gray'
 							onClick={onClose}
 						>
 							Cancel
 						</Button>
 						<Button
+							flex={1}
 							isLoading={fetcher.state === 'loading' || fetcher.state === 'submitting'}
-							colorScheme='red'
+							colorScheme={type === 'deleteGroup' ? 'red' : 'blue'}
 							type='submit'
 						>
 							{type.split(/(?=[A-Z])/).map((word) => word.charAt(0).toUpperCase() + word.slice(1))[0]}

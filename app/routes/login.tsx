@@ -1,7 +1,7 @@
+import { getCachedUser, parseUserAgent } from '~/utils/session.server';
 import { LoaderFunctionArgs, redirect } from '@remix-run/node';
 import { Container } from '~/components/layout/Container';
 import { allowedPlatforms } from '~/utils/config.server';
-import { getCachedUser } from '~/utils/session.server';
 import { platformButtons } from '~/other/platforms';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
@@ -10,7 +10,7 @@ import { LinkButton } from '~/components/Button';
 import { Box, VStack } from '@chakra-ui/react';
 import { useContext, useMemo } from 'react';
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const query = new URLSearchParams(request.url.split('?')[1]);
 
 	const token = await authenticator.isAuthenticated(request);
@@ -30,7 +30,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	backToCookie.backTo = backTo;
 
 	if (query.get('add') === 'true' && DBUser && 'data' in DBUser) {
-		backToCookie.currentUserId = DBUser.data.id;
+		backToCookie.currentUserId = DBUser.data.userId;
 		return await authenticator.logout(request, {
 			redirectTo: `/login?type=${type}&add=true&backTo=${backTo}`,
 			headers: { 'Set-Cookie': await loginInfo.serialize(backToCookie) },
@@ -41,9 +41,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		return await authenticator.authenticate(type, request, {
 			successRedirect: backTo,
 			failureRedirect: '/',
-			context: backToCookie.currentUserId ? {
-				currentUserId: backToCookie.currentUserId,
-			} : undefined,
+			context: {
+				currentUserId: 'currentUserId' in backToCookie ? backToCookie.currentUserId : undefined,
+				device: parseUserAgent(request.headers.get('user-agent')),
+				ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || request.headers.get('cf-connecting-ip') || undefined,
+			},
 		});
 	} catch (error) { // This is really ingenious way.
 		if (error instanceof Response && !error.redirected) {
@@ -56,7 +58,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 		throw error;
 	}
-}
+};
 
 export default function Login() {
 	const { allowedPlatforms = [] } = useContext(RootContext) || {};

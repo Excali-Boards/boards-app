@@ -1,10 +1,6 @@
 import { Avatar, Divider, Flex, HStack, IconButton, Text, Tooltip, useBreakpointValue } from '@chakra-ui/react';
-import { useCallback, useContext, useState } from 'react';
-import { MdOutlineDownloading } from 'react-icons/md';
-import { BsFillGrid3X3GapFill } from 'react-icons/bs';
-import { RootContext } from '~/components/Context';
 import { FaDeleteLeft } from 'react-icons/fa6';
-import { FaListUl } from 'react-icons/fa';
+import { useCallback, useState } from 'react';
 import { Link } from '@remix-run/react';
 
 export type CustomButton<T extends 'normal' | 'link'> = (T extends 'normal' ? {
@@ -27,23 +23,20 @@ export type MenuBarProps = {
 	name: string;
 	image?: string
 	goBackPath?: string;
+	goBackWindow?: boolean;
 	description?: string;
 	customButtons?: CustomButton<'normal' | 'link'>[];
-	customButtonsBeforeSort?: boolean;
-	hideSortButton?: boolean;
 };
 
 export default function MenuBar({
 	name,
 	image,
 	goBackPath,
+	goBackWindow,
 	description,
 	customButtons,
-	customButtonsBeforeSort = false,
-	hideSortButton = false,
 }: MenuBarProps) {
 	const showDivider = useBreakpointValue({ base: false, md: true });
-	const { sortType, setSortType } = useContext(RootContext) || {};
 	const [areLoading, setAreLoading] = useState<number[]>([]);
 
 	const CustomButtons = useCallback(() => {
@@ -138,60 +131,35 @@ export default function MenuBar({
 				flexDir={'row'}
 				gap={4}
 			>
-				{showDivider && <Divider orientation={'vertical'} color={'red'} height={'50px'}/>}
+				{showDivider && <Divider orientation={'vertical'} color={'red'} height={'50px'} />}
 
 				<HStack w={'100%'} spacing={2}>
 					<Tooltip
-						label={'Back.'}
-						aria-label={'Back.'}
-						placement={'top'}
-						hasArrow
-						rounded={'lg'}
-						closeOnClick={false}
-					>
-						<Link to={goBackPath || '/'}>
-							<IconButton
-								variant={'ghost'}
-								rounded={'full'}
-								bg={'alpha100'}
-								aria-label={'Back'}
-								boxSize={10}
-								alignItems={'center'}
-								justifyContent={'center'}
-								icon={<FaDeleteLeft />}
-								_hover={{ bg: 'alpha300' }}
-								_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-							/>
-						</Link>
-					</Tooltip>
-
-					{!!(customButtons?.length && customButtonsBeforeSort) && <CustomButtons />}
-
-					{sortType && setSortType && !hideSortButton && <Tooltip
-						label={`Switch to ${sortType === 'grid' ? 'list' : 'grid'} view.`}
-						aria-label={`Switch to ${sortType === 'grid' ? 'list' : 'grid'} view.`}
+						label={'Back'}
+						aria-label={'Back'}
 						placement={'top'}
 						hasArrow
 						rounded={'lg'}
 						closeOnClick={false}
 					>
 						<IconButton
-							onClick={() => setSortType(sortType === 'grid' ? 'list' : 'grid')}
+							as={goBackWindow ? undefined : Link}
+							onClick={goBackWindow ? () => window.history.back() : undefined}
+							to={!goBackWindow ? goBackPath || '/' : undefined}
 							variant={'ghost'}
 							rounded={'full'}
 							bg={'alpha100'}
-							aria-label={'Switch view'}
+							aria-label={'Back'}
 							boxSize={10}
 							alignItems={'center'}
 							justifyContent={'center'}
-							icon={sortType === 'grid' ? <FaListUl /> : sortType === 'list' ? <BsFillGrid3X3GapFill /> : <MdOutlineDownloading />}
+							icon={<FaDeleteLeft />}
 							_hover={{ bg: 'alpha300' }}
 							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-							isDisabled={!sortType}
 						/>
-					</Tooltip>}
+					</Tooltip>
 
-					{!!(customButtons?.length && !customButtonsBeforeSort) && <CustomButtons />}
+					{!!customButtons?.length && <CustomButtons />}
 				</HStack>
 			</Flex>
 		</Flex>

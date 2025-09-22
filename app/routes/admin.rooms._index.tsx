@@ -12,20 +12,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const roomsData = await api?.admin.getActiveRooms({ auth: token });
-	if (!roomsData || !('data' in roomsData)) throw new Response(null, { status: 500, statusText: 'Failed to fetch rooms data.' });
+	const DBRooms = await api?.admin.getActiveRooms({ auth: token });
+	if (!DBRooms || !('data' in DBRooms)) throw new Response(null, { status: 500, statusText: 'Failed to fetch rooms data.' });
 
-	const allGroups = await api?.groups.getAllSorted({ auth: token });
-	if (!allGroups || 'error' in allGroups) throw makeResponse(allGroups, 'Failed to get boards.');
+	const DBGroups = await api?.groups.getAllSorted({ auth: token });
+	if (!DBGroups || 'error' in DBGroups) throw makeResponse(DBGroups, 'Failed to get boards.');
 
-	const allBoards = allGroups.data.list.flatMap((group) => group.categories.flatMap((category) => category.boards.map((board) => ({
+	const allBoards = DBGroups.data.flatMap((group) => group.categories.flatMap((category) => category.boards.map((board) => ({
 		board: board,
 		group: group,
 		category: category,
 	}))));
 
 	return {
-		rooms: roomsData.data.map((room) => {
+		rooms: DBRooms.data.map((room) => {
 			const boardData = allBoards.find((b) => b.board.id === room.boardId);
 
 			return {
@@ -54,7 +54,6 @@ export default function AdminRooms() {
 					name={'Manage Rooms'}
 					description={'Manage live rooms and their settings.'}
 					goBackPath='/admin'
-					hideSortButton
 				/>
 
 				<Divider my={4} />

@@ -1,42 +1,46 @@
 import { Flex, Text, HStack, Divider, IconButton, FlexProps, useColorMode, Badge } from '@chakra-ui/react';
-import { FaLink, FaPen, FaSync, FaTrash, FaTrashRestore } from 'react-icons/fa';
+import { FaLink, FaPen, FaTrash, FaTrashRestore, FaUsers } from 'react-icons/fa';
 import { formatBytes, getCardDeletionTime } from '~/other/utils';
 import { IconLinkButton } from '~/components/Button';
-import { useContext, useState } from 'react';
-import { RootContext } from '../Context';
+import { useState } from 'react';
 
-export type CardProps = ({
+export type CardProps = {
 	id: string;
+	url: string;
 	name: string;
+
+	permsUrl?: string;
+	editorMode?: boolean;
+	canManageAnything?: boolean;
+
 	refresh?: boolean;
 	sizeBytes?: number;
 	isDeleteDisabled?: boolean;
 	isScheduledForDeletion?: Date;
+
 	onCancelDeletion?: () => void;
 	onDelete?: () => void;
 	onEdit?: () => void;
-}) & ({
-	url: string;
-} | {
-	onClick: () => void;
-});
+};
 
 export function Card({
+	url,
+	name,
 	refresh,
+	permsUrl,
 	sizeBytes,
+	editorMode,
 	isDeleteDisabled,
 	isScheduledForDeletion,
+	canManageAnything,
 	onCancelDeletion,
 	onDelete,
 	onEdit,
-	name,
-	...rest
 }: CardProps & FlexProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const { colorMode } = useColorMode();
 
 	const isDeletedSoon = getCardDeletionTime(isScheduledForDeletion || null, colorMode);
-	const { sortType } = useContext(RootContext) || { sortType: 'list' };
 
 	return (
 		<Flex
@@ -51,14 +55,12 @@ export function Card({
 			transition={'all 0.3s ease'}
 			justifyContent={'space-between'}
 			_hover={{ bg: isDeletedSoon.borderColor }}
-			flexDirection={sortType === 'list' ? 'row' : 'column'}
-			{...rest}
 		>
 			<Flex
-				alignItems={{ base: sortType === 'grid' ? 'center' : 'start', md: 'start' }}
-				textAlign={{ base: sortType === 'grid' ? 'center' : 'start', md: 'start' }}
-				justifyContent={'center'}
-				flexDir={'column'}
+				justifyContent='center'
+				alignItems='start'
+				textAlign='start'
+				flexDir='column'
 				flexGrow={1}
 			>
 				<Text fontSize={'2xl'} fontWeight={'bold'}>{name}</Text>
@@ -96,7 +98,8 @@ export function Card({
 				flexDir={'row'}
 				gap={4}
 			>
-				{sortType === 'list' && <Divider orientation={'vertical'} color={'red'} height={'50px'} />}
+				<Divider orientation={'vertical'} color={'red'} height={'50px'} />
+
 				<HStack spacing={2}>
 					{onCancelDeletion && isScheduledForDeletion && (
 						<IconButton
@@ -148,40 +151,40 @@ export function Card({
 						/>
 					)}
 
-					{'url' in rest ? (
+					{(permsUrl || canManageAnything) && editorMode && (
 						<IconLinkButton
-							to={rest.url}
+							to={permsUrl || '#'}
 							variant={'ghost'}
 							rounded={'full'}
 							bg={'alpha100'}
-							icon={<FaLink />}
-							aria-label={'Open'}
+							icon={<FaUsers />}
 							alignItems={'center'}
+							isDisabled={!permsUrl}
 							reloadDocument={refresh}
 							justifyContent={'center'}
 							_hover={{ bg: 'alpha300' }}
+							aria-label={'Manage Permissions'}
 							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
 							onClick={() => setIsLoading(true)}
 							isLoading={isLoading}
 						/>
-					) : 'onClick' in rest ? (
-						<IconButton
-							variant={'ghost'}
-							rounded={'full'}
-							bg={'alpha100'}
-							icon={<FaSync />}
-							aria-label={'Open'}
-							alignItems={'center'}
-							justifyContent={'center'}
-							_hover={{ bg: 'alpha300' }}
-							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-							isLoading={isLoading}
-							onClick={() => {
-								setIsLoading(true);
-								rest.onClick();
-							}}
-						/>
-					) : <></>}
+					)}
+
+					<IconLinkButton
+						to={url}
+						variant={'ghost'}
+						rounded={'full'}
+						bg={'alpha100'}
+						icon={<FaLink />}
+						aria-label={'Open'}
+						alignItems={'center'}
+						reloadDocument={refresh}
+						justifyContent={'center'}
+						_hover={{ bg: 'alpha300' }}
+						_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+						onClick={() => setIsLoading(true)}
+						isLoading={isLoading}
+					/>
 				</HStack>
 			</Flex>
 		</Flex>
@@ -192,9 +195,7 @@ export type NoCardProps = {
 	noWhat: string;
 };
 
-export function NoCard({
-	noWhat,
-}: NoCardProps) {
+export function NoCard({ noWhat }: NoCardProps) {
 	return (
 		<Flex
 			p={4}

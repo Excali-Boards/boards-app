@@ -1,4 +1,4 @@
-import { ActionFunctionArgs, LoaderFunctionArgs, MetaArgs } from '@remix-run/node';
+import { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { useBreakpointValue, useColorMode } from '@chakra-ui/react';
 import { Board as BoardComponent } from '~/components/board/Main';
@@ -7,34 +7,8 @@ import { RootContext } from '~/components/Context';
 import configServer from '~/utils/config.server';
 import { useLoaderData } from '@remix-run/react';
 import { validateParams } from '~/other/utils';
-import { defaultMeta } from '~/other/keywords';
 import { useContext, useEffect } from 'react';
-import { themeColor } from '~/other/types';
 import { api } from '~/utils/web.server';
-
-export function meta({ data }: MetaArgs<typeof loader>) {
-	if (!data) return defaultMeta;
-
-	return [
-		{ charset: 'utf-8' },
-		{ name: 'viewport', content: 'width=device-width, initial-scale=1' },
-
-		{ title: `Boards - ${data.category.name} - ${data.board.name}` },
-		{ name: 'description', content: `Board ${data.board.name} in the ${data.category.name} category.` },
-
-		{ property: 'og:site_name', content: 'Boards' },
-		{ property: 'og:title', content: `Boards - ${data.category.name} - ${data.board.name}` },
-		{ property: 'og:description', content: `Board ${data.board.name} in the ${data.category.name} category.` },
-		{ property: 'og:image', content: '/banner.webp' },
-
-		{ name: 'twitter:title', content: `Boards - ${data.category.name} - ${data.board.name}` },
-		{ name: 'twitter:description', content: `Board ${data.board.name} in the ${data.category.name} category.` },
-		{ name: 'twitter:card', content: 'summary_large_image' },
-		{ name: 'twitter:image', content: '/banner.webp' },
-
-		{ name: 'theme-color', content: themeColor },
-	];
-}
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const { boardId, groupId, categoryId } = validateParams(params, ['boardId', 'groupId', 'categoryId']);
@@ -42,13 +16,13 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const boardInfo = await api?.boards.getBoard({ auth: token, boardId, groupId, categoryId });
-	if (!boardInfo || 'error' in boardInfo) throw makeResponse(boardInfo, 'Failed to get board.');
+	const DBBoard = await api?.boards.getBoard({ auth: token, boardId, groupId, categoryId });
+	if (!DBBoard || 'error' in DBBoard) throw makeResponse(DBBoard, 'Failed to get board.');
 
 	return {
-		...boardInfo.data,
+		...DBBoard.data,
 		webUrl: configServer.baseUrl,
-		currentUrl: configServer.baseUrl + `/groups/${boardInfo.data.group.id}/${boardInfo.data.category.id}/${boardInfo.data.board.id}`,
+		currentUrl: configServer.baseUrl + `/groups/${DBBoard.data.group.id}/${DBBoard.data.category.id}/${DBBoard.data.board.id}`,
 		socketUrl: configServer.apiUrl,
 		s3Bucket: configServer.s3Bucket,
 		s3Url: configServer.s3Url,
@@ -68,8 +42,8 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 		case 'kickUser': {
 			const userId = formData.get('userId') as string;
 
-			const isKicked = await api?.boards.kickUserFromRoom({ auth: token, categoryId, groupId, userId, boardId });
-			return makeResObject(isKicked, 'Failed to kick user from board.');
+			const result = await api?.boards.kickUserFromRoom({ auth: token, categoryId, groupId, userId, boardId });
+			return makeResObject(result, 'Failed to kick user from board.');
 		}
 		default: {
 			return { status: 400, error: 'Invalid request.' };
@@ -78,7 +52,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 };
 
 export default function Board() {
-	const { socketUrl, board, isAdmin, category, group, webUrl, currentUrl,s3Url, s3Bucket } = useLoaderData<typeof loader>();
+	const { socketUrl, board, category, group, webUrl, currentUrl, s3Url, s3Bucket } = useLoaderData<typeof loader>();
 	const { useOppositeColorForBoard, hideCollaborators, user, setBoardActiveCollaborators } = useContext(RootContext) || {};
 	const isMobile = useBreakpointValue({ base: true, md: false });
 	const { colorMode } = useColorMode();
@@ -89,11 +63,11 @@ export default function Board() {
 
 	return (
 		<BoardComponent
-			updateCollaborators={setBoardActiveCollaborators || (() => {})}
+			updateCollaborators={setBoardActiveCollaborators || (() => { })}
 			useOppositeColorForBoard={useOppositeColorForBoard || false}
-			canEdit={isAdmin || board.accessLevel === 'Write'}
 			hideCollaborators={hideCollaborators || false}
 			name={`${category.name} - ${board.name}`}
+			canEdit={board.accessLevel !== 'read'}
 			isMobile={isMobile || false}
 			categoryId={category.id}
 			currentUrl={currentUrl}

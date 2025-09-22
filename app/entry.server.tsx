@@ -1,10 +1,10 @@
-import createEmotionCache from '~/context/createEmotionCache';
-import { renderToPipeableStream } from 'react-dom/server';
-import { ServerStyleContext } from '~/context/context';
+import createEmotionServer from '@emotion/server/create-instance';
+import createEmotionCache from './context/createEmotionCache';
+import { ServerStyleContext } from './context/context';
 import type { EntryContext } from '@remix-run/node';
+import { renderToString } from 'react-dom/server';
 import { RemixServer } from '@remix-run/react';
 import { CacheProvider } from '@emotion/react';
-import { PassThrough } from 'stream';
 
 export default function handleRequest(
 	request: Request,
@@ -12,61 +12,31 @@ export default function handleRequest(
 	responseHeaders: Headers,
 	remixContext: EntryContext,
 ) {
-	return new Promise((resolve, reject) => {
-		const stream = new PassThrough();
-		const cache = createEmotionCache();
-		let didError = false;
+	const cache = createEmotionCache();
+	const { extractCriticalToChunks } = createEmotionServer(cache);
 
-		const { pipe, abort } = renderToPipeableStream(
-			<ServerStyleContext.Provider value={null}>
-				<CacheProvider value={cache}>
-					<RemixServer context={remixContext} url={request.url} />
-				</CacheProvider>
-			</ServerStyleContext.Provider>,
-			{
-				onShellReady() {
-					const readableStream = new ReadableStream({
-						start(controller) {
-							stream.on('data', (chunk) => {
-								controller.enqueue(new TextEncoder().encode(chunk));
-							});
+	const html = renderToString(
+		<ServerStyleContext.Provider value={null}>
+			<CacheProvider value={cache}>
+				<RemixServer context={remixContext} url={request.url} />
+			</CacheProvider>
+		</ServerStyleContext.Provider>,
+	);
 
-							stream.on('end', () => {
-								controller.close();
-							});
+	const chunks = extractCriticalToChunks(html);
 
-							stream.on('error', (err) => {
-								console.error(err);
-								controller.error(err);
-							});
-						},
-					});
+	const markup = renderToString(
+		<ServerStyleContext.Provider value={chunks.styles}>
+			<CacheProvider value={cache}>
+				<RemixServer context={remixContext} url={request.url} />
+			</CacheProvider>
+		</ServerStyleContext.Provider>,
+	);
 
-					responseHeaders.set('Content-Security-Policy', "frame-ancestors 'none'; img-src * data: blob:");
-					responseHeaders.set('X-Content-Type-Options', 'nosniff');
-					responseHeaders.set('Referrer-Policy', 'no-referrer');
-					responseHeaders.set('Content-Type', 'text/html');
-					responseHeaders.set('X-Frame-Options', 'DENY');
+	responseHeaders.set('Content-Type', 'text/html');
 
-					resolve(
-						new Response(readableStream, {
-							status: didError ? 500 : responseStatusCode,
-							headers: responseHeaders,
-						}),
-					);
-
-					pipe(stream);
-				},
-				onShellError(err) {
-					reject(err);
-				},
-				onError(err) {
-					didError = true;
-					console.error(err);
-				},
-			},
-		);
-
-		setTimeout(abort, 5000);
+	return new Response(`<!DOCTYPE html>${markup}`, {
+		status: responseStatusCode,
+		headers: responseHeaders,
 	});
 }

@@ -15,11 +15,11 @@ export type RootContextType = null | {
 	useOppositeColorForBoard: boolean;
 	setUseOppositeColorForBoard: (value: boolean) => void;
 
-	isNavSticky: boolean;
-	setIsNavSticky: (value: boolean) => void;
+	canInvite: boolean;
+	setCanInvite: (value: boolean) => void;
 
-	sortType: 'grid' | 'list';
-	setSortType: (type: 'grid' | 'list') => void;
+	showAllBoards?: boolean;
+	setShowAllBoards?: (value: boolean) => void;
 
 	allowedPlatforms: string[];
 	user: GetUsersOutput | null;

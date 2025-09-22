@@ -54,7 +54,6 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			'~': '/app',
-			'.prisma/client/index-browser': './node_modules/.prisma/client/index-browser.js',
 		},
 	},
 	optimizeDeps: {

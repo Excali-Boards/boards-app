@@ -1,5 +1,6 @@
 import type { BinaryFileData, Collaborator, SocketId } from '@excalidraw/excalidraw/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { GetAllSortedOutput } from '@excali-boards/boards-api-client';
 import CustomMap from '~/utils/map.server';
 
 export type Simplify<T> = {
@@ -27,13 +28,13 @@ declare global {
 }
 
 export type BackendRooms = {
-    boardId: string;
-    collaborators: {
-        id: string;
-        username: string;
-        avatarUrl: string;
-    }[];
-    elements: number;
+	boardId: string;
+	collaborators: {
+		id: string;
+		username: string;
+		avatarUrl: string;
+	}[];
+	elements: number;
 }[];
 
 export type RoomData = {
@@ -107,6 +108,19 @@ export type StatsData = {
 	success: number;
 	failed: number;
 	total: number;
+};
+
+// Other.
+export type FindConflictsProps = {
+	allData: GetAllSortedOutput;
+
+	selectedGroups: string[];
+	selectedCategories: string[];
+	selectedBoards: string[];
+
+	groupRole: string | null;
+	categoryRole: string | null;
+	boardRole: string | null;
 };
 
 // For: socket.emit or io.to().emit, io.emit

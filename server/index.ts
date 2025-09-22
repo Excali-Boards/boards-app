@@ -7,7 +7,6 @@ import { createMiddleware } from 'hono/factory';
 import { remix } from 'remix-hono/handler';
 import { compress } from 'hono/compress';
 import { time } from '~/other/utils';
-import { logger } from 'hono/logger';
 import { cors } from 'hono/cors';
 import { config } from 'dotenv';
 import { Hono } from 'hono';
@@ -24,15 +23,16 @@ app.use(cors({
 		configServer.baseUrl,
 		'http://localhost:3000',
 	],
+	maxAge: 86400,
+	credentials: true,
 	allowMethods: ['GET', 'HEAD', 'PUT', 'POST', 'DELETE', 'PATCH'],
 	allowHeaders: ['Authorization', 'Content-Type'],
-	maxAge: 600,
 }));
 
 if (isProd) app.use(compress());
 
 app.use('*', cacheMiddleware(time(1, 'h', 's')), serveStatic({ root: isProd ? './build/client' : './public' }));
-app.use('*', logger((m, ...rest) => LoggerModule('Server', m, 'blue', ...rest)));
+// app.use('*', logger((m, ...rest) => LoggerModule('Server', m, 'blue', ...rest)));
 
 const viteDevServer = isProd
 	? undefined

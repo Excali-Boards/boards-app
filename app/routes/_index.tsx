@@ -7,10 +7,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) return redirect('/login');
 
-	const allGroups = await api?.groups.getGroups({ auth: token });
-	if (!allGroups || 'error' in allGroups) throw makeResponse(allGroups, 'Failed to get groups.');
+	const DBGroups = await api?.groups.getGroups({ auth: token });
+	if (!DBGroups || 'error' in DBGroups) throw makeResponse(DBGroups, 'Failed to get groups.');
 
-	const defaultGroup = allGroups?.data.groups.find((group) => group.isDefault);
+	const defaultGroup = DBGroups.data.find((group) => group.isDefault);
 	if (!defaultGroup) return redirect('/groups');
 
 	return redirect(`/groups/${defaultGroup.id}`);

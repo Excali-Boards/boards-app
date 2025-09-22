@@ -1,9 +1,10 @@
 import { AllowedPlatforms, allowedPlatforms } from '~/utils/config.server';
 import { LoaderFunctionArgs, redirect } from '@remix-run/node';
+import { parseUserAgent } from '~/utils/session.server';
 import { authenticator } from '~/utils/auth.server';
 import { loginInfo } from '~/utils/storage.server';
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const { type } = params as { type: AllowedPlatforms; };
 	if (!type || !allowedPlatforms.some((p) => p.toLowerCase() === type.toLowerCase())) return redirect('/login');
 
@@ -16,16 +17,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 	const check = await authenticator.isAuthenticated(request);
 	if (check) return redirect(backTo);
 
-	const addToUser = backToCookie.currentUserId;
+	const addToUser = 'currentUserId' in backToCookie ? backToCookie.currentUserId : undefined;
 	if (addToUser) backToCookie.currentUserId = undefined;
 
 	try {
 		return await authenticator.authenticate(type, request, {
 			successRedirect: backTo,
 			failureRedirect: '/login',
-			context: addToUser ? {
+			context: {
 				currentUserId: addToUser,
-			} : undefined,
+				device: parseUserAgent(request.headers.get('user-agent')),
+				ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || request.headers.get('cf-connecting-ip') || undefined,
+			},
 		});
 	} catch (error) { // This is really ingenious way.
 		if (error instanceof Response && !error.redirected) {
@@ -38,7 +41,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 		throw error;
 	}
-}
+};
 
 export default function Callback() {
 	return <div>Redirecting..</div>;

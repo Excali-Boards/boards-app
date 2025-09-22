@@ -6,8 +6,9 @@ export type SelectProps<Option, IsMulti extends boolean, Group extends GroupBase
 	defaultValue?: PropsValue<Option>;
 	options: OptionsOrGroups<Option, Group>;
 	isMulti?: IsMulti;
+	closeMenuOnSelect?: boolean;
 	onChange?: (e: OnChangeValue<Option, IsMulti>) => void;
-} & Omit<React.ComponentProps<typeof ChakraSelect>, 'placeholder' | 'defaultValue' | 'options' | 'onChange' | 'isMulti' | 'chakraStyles'>;
+} & Omit<React.ComponentProps<typeof ChakraSelect>, 'placeholder' | 'defaultValue' | 'options' | 'onChange' | 'isMulti' | 'closeMenuOnSelect' | 'chakraStyles'>;
 
 export default function Select<
 	Option = unknown,
@@ -18,6 +19,7 @@ export default function Select<
 	defaultValue,
 	options,
 	isMulti,
+	closeMenuOnSelect,
 	onChange,
 	...props
 }: SelectProps<Option, IsMulti, Group>) {
@@ -30,8 +32,9 @@ export default function Select<
 			defaultValue={defaultValue}
 			placeholder={placeholder}
 			isMulti={isMulti}
+			closeMenuOnSelect={closeMenuOnSelect ?? !isMulti}
 			options={options}
-			onChange={(e) => onChange?.(e as OnChangeValue<Option, IsMulti>)}
+			onChange={onChange as never}
 			selectedOptionStyle='check'
 			chakraStyles={{
 				container: (styles) => ({

@@ -1,9 +1,9 @@
 import { ExcalidrawElement, InitializedExcalidrawImageElement, ExcalidrawImageElement } from '@excalidraw/excalidraw/element/types';
+import { AccessLevel, SimplePermissionHierarchy } from '@excali-boards/boards-api-client';
+import { bgColor, FindConflictsProps, TimeUnits } from '~/other/types';
 import { ResolvablePromise } from '@excalidraw/excalidraw/utils';
-import { bgColor, TimeUnits } from '~/other/types';
-import { TypedResponse } from '@remix-run/node';
 import { ColorMode } from '@chakra-ui/react';
-import { ZodError, ZodIssue } from 'zod';
+import { z, ZodError } from 'zod';
 
 export function getBackground(colorMode: ColorMode): string {
 	return colorMode === 'light' ? 'white' : bgColor;
@@ -30,7 +30,7 @@ export function getBaseDomainClient(urlString: string) {
 }
 
 export function formatBytes(bytes: number): string {
-	if (bytes < 1024) return `${bytes} B`;
+	if (bytes < 1024) return `${bytes} Bytes`;
 	else if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
 	else if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 	else return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
@@ -74,7 +74,7 @@ export function getCardDeletionTime(date: Date | null, colorMode: ColorMode) {
 export function parseZodError(error: ZodError) {
 	const errors: string[] = [];
 
-	const formatSchemaPath = (path: (string | number)[]) => {
+	const formatSchemaPath = (path: PropertyKey[]) => {
 		return !path.length ? 'Schema' : `Schema.${path.join('.')}`;
 	};
 
@@ -86,24 +86,19 @@ export function parseZodError(error: ZodError) {
 		return typeof value === 'string' ? value : JSON.stringify(value);
 	};
 
-	const parseZodIssue = (issue: ZodIssue) => {
+	const parseZodIssue = (issue: z.core.$ZodIssue) => {
 		switch (issue.code) {
 			case 'invalid_type': return `${formatSchemaPath(issue.path)} must be a ${issue.expected} (invalid_type)`;
-			case 'invalid_literal': return `${formatSchemaPath(issue.path)} must be a ${makeSureItsString(issue.expected)} (invalid_literal)`;
-			case 'custom': return `${formatSchemaPath(issue.path)} ${firstLetterToLowerCase(issue.message)} (custom)`;
+			case 'too_big': return `${formatSchemaPath(issue.path)} must be at most ${issue.maximum}${issue.inclusive ? '' : ' (exclusive)'} (too_big)`;
+			case 'too_small': return `${formatSchemaPath(issue.path)} must be at least ${issue.minimum}${issue.inclusive ? '' : ' (exclusive)'} (too_small)`;
+			case 'invalid_format': return `${formatSchemaPath(issue.path)} must be a valid ${issue.format} (invalid_format)`;
+			case 'not_multiple_of': return `${formatSchemaPath(issue.path)} must be a multiple of ${issue.divisor} (not_multiple_of)`;
+			case 'unrecognized_keys': return `${formatSchemaPath(issue.path)} has unrecognized keys: ${issue.keys.map((key) => `'${key}'`).join(', ')} (unrecognized_keys)`;
 			case 'invalid_union': return `${formatSchemaPath(issue.path)} ${firstLetterToLowerCase(issue.message)} (invalid_union)`;
-			case 'invalid_union_discriminator': return `${formatSchemaPath(issue.path)} ${firstLetterToLowerCase(issue.message)} (invalid_union_discriminator)`;
-			case 'invalid_enum_value': return `${formatSchemaPath(issue.path)} ${firstLetterToLowerCase(issue.message)} (invalid_enum_value)`;
-			case 'unrecognized_keys': return `${formatSchemaPath(issue.path)} ${firstLetterToLowerCase(issue.message)} (unrecognized_keys)`;
-			case 'invalid_arguments': return `${formatSchemaPath(issue.path)} ${firstLetterToLowerCase(issue.message)} (invalid_arguments)`;
-			case 'invalid_return_type': return `${formatSchemaPath(issue.path)} ${firstLetterToLowerCase(issue.message)} (invalid_return_type)`;
-			case 'invalid_date': return `${formatSchemaPath(issue.path)} ${firstLetterToLowerCase(issue.message)} (invalid_date)`;
-			case 'invalid_string': return `${formatSchemaPath(issue.path)} ${firstLetterToLowerCase(issue.message)} (invalid_string)`;
-			case 'too_small': return `${formatSchemaPath(issue.path)} ${firstLetterToLowerCase(issue.message)} (too_small)`;
-			case 'too_big': return `${formatSchemaPath(issue.path)} ${firstLetterToLowerCase(issue.message)} (too_big)`;
-			case 'invalid_intersection_types': return `${formatSchemaPath(issue.path)} ${firstLetterToLowerCase(issue.message)} (invalid_intersection_types)`;
-			case 'not_multiple_of': return `${formatSchemaPath(issue.path)} ${firstLetterToLowerCase(issue.message)} (not_multiple_of)`;
-			case 'not_finite': return `${formatSchemaPath(issue.path)} ${firstLetterToLowerCase(issue.message)} (not_finite)`;
+			case 'invalid_key': return `${formatSchemaPath(issue.path)} has an invalid key: ${makeSureItsString(issue.message)} (invalid_key)`;
+			case 'invalid_element': return `${formatSchemaPath(issue.path)} has an invalid element: ${firstLetterToLowerCase(issue.message)} (invalid_element)`;
+			case 'invalid_value': return `${formatSchemaPath(issue.path)} has an invalid value: ${firstLetterToLowerCase(issue.message)} (invalid_value)`;
+			case 'custom': return `${formatSchemaPath(issue.path)} ${firstLetterToLowerCase(issue.message)} (custom)`;
 			default: return `Schema has an unknown error (JSON: ${JSON.stringify(issue)})`;
 		}
 	};
@@ -160,21 +155,92 @@ export function formatTime(t: number | Date, from: TimeUnits = 'ms', short?: boo
 	return timeParts.filter(Boolean).join(' ').trim();
 }
 
-export function validateParams<T extends string[], J extends boolean = false>(params: Record<string, string | undefined>, requiredParams: T, json = false): J extends false ? Record<T[number], string> : Record<T[number], string> | TypedResponse<{ error: string; status: number; }> {
+export function validateParams<T extends string>(params: Record<string, string | undefined>, requiredParams: T[]): Record<T, string> {
 	const validatedParams = {} as Record<T[number], string>;
 
 	for (const param of requiredParams) {
-		if (!params[param]) {
-			if (json) return { error: `Missing ${param}.`, status: 400 } as unknown as J extends false ? Record<T[number], string> : Record<T[number], string> | TypedResponse<{ error: string; status: number; }>;
-			else throw new Response(`${param} not found.`, { status: 400 });
-		}
-
+		if (!params[param]) throw new Response(`${param} not found.`, { status: 400 });
 		validatedParams[param as T[number]] = params[param]!;
 	}
 
 	return validatedParams;
 }
 
+export function canRead(role: AccessLevel) {
+	return role === 'read';
+}
+
+export function canManage(role: AccessLevel) {
+	return role === 'manage';
+}
+
+export function canInvite(role: AccessLevel) {
+	return role === 'admin';
+}
+
+export function firstToUpperCase<T extends string>(str: T): Capitalize<T> {
+	return (str.charAt(0).toUpperCase() + str.slice(1)) as Capitalize<T>;
+}
+
+export function getRandomColorScheme(key: string): string {
+	const colorSchemes = ['red', 'orange', 'yellow', 'green', 'teal', 'blue', 'cyan', 'purple', 'pink'];
+	const hash = Array.from(key).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+	return colorSchemes[hash % colorSchemes.length]!;
+}
+
+export function getLevel(role: string | null): number {
+	if (!role) return 0;
+	return SimplePermissionHierarchy[role] ?? 0;
+}
+
+export function findConflicts({ allData, selectedGroups, selectedCategories, selectedBoards, groupRole, categoryRole, boardRole }: FindConflictsProps) {
+	const conflicts: { type: 'category' | 'board'; name: string; reason: string; }[] = [];
+
+	const groupLevel = groupRole ? getLevel(groupRole) : 0;
+	const categoryLevel = categoryRole ? getLevel(categoryRole) : 0;
+	const boardLevel = boardRole ? getLevel(boardRole) : 0;
+
+	for (const group of allData) {
+		if (groupRole && selectedGroups.includes(group.id) && groupLevel > 0) {
+			for (const category of group.categories) {
+				if (categoryRole && selectedCategories.includes(category.id) && getLevel(categoryRole) <= groupLevel) {
+					conflicts.push({
+						type: 'category',
+						name: `${group.name} → ${category.name}`,
+						reason: `Already covered by "${groupRole}" on group "${group.name}"`,
+					});
+				}
+
+				for (const board of category.boards) {
+					if (boardRole && selectedBoards.includes(board.id) && boardLevel <= groupLevel) {
+						conflicts.push({
+							type: 'board',
+							name: `${group.name} → ${category.name} → ${board.name}`,
+							reason: `Already covered by "${boardRole}" on group "${group.name}"`,
+						});
+					}
+				}
+			}
+		}
+
+		for (const category of group.categories) {
+			if (categoryRole && selectedCategories.includes(category.id) && categoryLevel > 0) {
+				for (const board of category.boards) {
+					if (boardRole && selectedBoards.includes(board.id) && boardLevel <= categoryLevel) {
+						conflicts.push({
+							type: 'board',
+							name: `${group.name} → ${category.name} → ${board.name}`,
+							reason: `Already covered by "${categoryRole}" on category "${category.name}"`,
+						});
+					}
+				}
+			}
+		}
+	}
+
+	return conflicts;
+}
+// Excalidraw.
 export const throttleRAF = <T extends unknown[]>(
 	fn: (...args: T) => void,
 	opts?: { trailing?: boolean },
@@ -250,14 +316,10 @@ export const resolvablePromise = <T,>() => {
 	return promise as ResolvablePromise<T>;
 };
 
-export const isInitializedImageElement = (
-	element: ExcalidrawElement | null,
-): element is InitializedExcalidrawImageElement => {
+export const isInitializedImageElement = (element: ExcalidrawElement | null): element is InitializedExcalidrawImageElement => {
 	return !!element && element.type === 'image' && !!element.fileId;
 };
 
-export const isImageElement = (
-	element: ExcalidrawElement | null,
-): element is ExcalidrawImageElement => {
+export const isImageElement = (element: ExcalidrawElement | null): element is ExcalidrawImageElement => {
 	return !!element && element.type === 'image';
 };

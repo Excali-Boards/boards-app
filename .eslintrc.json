@@ -61,12 +61,13 @@
         "jsx-a11y"
     ],
     "rules": {
+        "react/prop-types": "off",
         "react/react-in-jsx-scope": "off",
         "react/jsx-uses-react": "off",
         "jsx-a11y/no-autofocus": "off",
         "@typescript-eslint/no-unused-vars": "warn",
         "@typescript-eslint/no-namespace": "off",
-        "react/prop-types": "off",
+        "@typescript-eslint/no-empty-object-type": "off",
         "brace-style": [
             "error",
             "1tbs",

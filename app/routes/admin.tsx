@@ -9,7 +9,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const DBUser = await getCachedUser(request);
 
 	if (!DBUser || !token || 'error' in DBUser) throw makeResponse(DBUser, 'You are not authorized to view this page.');
-	else if (!DBUser.data.isBoardsAdmin && !DBUser.data.isDev) throw makeResponse(null, 'You are not authorized to view this page.');
+	else if (!DBUser.data.isDev) throw makeResponse(null, 'You are not authorized to view this page.');
 
 	return { authorized: true };
 };
