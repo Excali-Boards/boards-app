@@ -1,5 +1,5 @@
 import { Button, Container, Text, VStack, Badge, Divider, HStack, useToast, Icon, Spinner, Flex, Avatar } from '@chakra-ui/react';
-import { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from '@remix-run/node';
+import { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction, redirect } from '@remix-run/node';
 import { Form, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { UseInviteOutput } from '@excali-boards/boards-api-client';
@@ -48,7 +48,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const { code } = validateParams(params, ['code']);
 
 	const token = await authenticator.isAuthenticated(request);
-	if (!token) throw makeResponse(null, 'You must be logged in to accept invites.');
+	if (!token) return redirect(`/login?backTo=${encodeURIComponent(request.url)}`);
 
 	const inviteDetails = await api?.invites.getInviteDetails({ auth: token, code });
 	if (!inviteDetails || 'error' in inviteDetails) throw makeResponse(inviteDetails, 'Failed to fetch invite details.');
@@ -60,7 +60,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 	const { code } = validateParams(params, ['code']);
 
 	const token = await authenticator.isAuthenticated(request);
-	if (!token) throw makeResponse(null, 'You must be logged in to accept invites.');
+	if (!token) return redirect(`/login?backTo=${encodeURIComponent(request.url)}`);
 
 	const result = await api?.invites.useInvite({ auth: token, code });
 	if (!result || 'error' in result) return makeResObject(result, 'Failed to accept invite.');
