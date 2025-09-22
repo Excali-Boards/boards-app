@@ -138,7 +138,7 @@ export function GrantPermissionsModal({ isOpen, onClose, allData, canSelectGroup
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} isCentered size='3xl'>
 			<ModalOverlay />
-			<ModalContent bg={colorMode === 'dark' ? 'brand900' : 'white'} mx={2}>
+			<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
 				<ModalHeader>Grant Permissions</ModalHeader>
 				<ModalCloseButton />
 				<ModalBody>

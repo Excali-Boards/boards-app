@@ -140,7 +140,7 @@ export function CreateInviteModal({ isOpen, onClose, allData, canSelectGroups, c
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} isCentered size='3xl'>
 			<ModalOverlay />
-			<ModalContent bg={colorMode === 'dark' ? 'brand900' : 'white'} mx={2}>
+			<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
 				<ModalHeader>Create New Invite</ModalHeader>
 				<ModalCloseButton />
 				<ModalBody>

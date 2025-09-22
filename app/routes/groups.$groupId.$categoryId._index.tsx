@@ -223,10 +223,12 @@ export type ManageBoardProps = {
 };
 
 export function ManageBoard({ isOpen, onClose, type, fetcher, defaultName, boardId }: ManageBoardProps) {
+	const { colorMode } = useColorMode();
+
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} size='lg' isCentered>
 			<ModalOverlay />
-			<ModalContent bg={useColorMode().colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
+			<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
 				<fetcher.Form method={'post'}>
 					<ModalHeader>
 						{type.split(/(?=[A-Z])/).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}

@@ -592,6 +592,8 @@ export function LoginModal({ isOpen, onClose, backTo }: LoginModalProps) {
 	const { allowedPlatforms = [] } = useContext(RootContext) || {};
 	const allButtons = useMemo(() => platformButtons(allowedPlatforms), [allowedPlatforms]);
 
+	const { colorMode } = useColorMode();
+
 	return (
 		<Modal
 			isOpen={isOpen}
@@ -599,7 +601,7 @@ export function LoginModal({ isOpen, onClose, backTo }: LoginModalProps) {
 			isCentered
 		>
 			<ModalOverlay />
-			<ModalContent bg={useColorMode().colorMode === 'dark' ? 'brand900' : 'white'} mx={2}>
+			<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
 				<ModalHeader>Login</ModalHeader>
 				<ModalBody>
 					<ModalCloseButton />
@@ -648,10 +650,12 @@ export type KickUsersModalProps = {
 };
 
 export function KickUsersModal({ users, isOpen, currentUserId, onClose, onKick }: KickUsersModalProps) {
+	const { colorMode } = useColorMode();
+
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} isCentered>
 			<ModalOverlay />
-			<ModalContent bg={useColorMode().colorMode === 'dark' ? 'brand900' : 'white'} mx={2}>
+			<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
 				<ModalHeader>Kick Users</ModalHeader>
 				<ModalBody>
 					{users.length ? (

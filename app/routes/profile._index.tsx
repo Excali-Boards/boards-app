@@ -319,6 +319,8 @@ export function UpdateUserModal({ isOpen, onClose, currentMainPlatform, linkedPl
 	const [mainPlatform, setMainPlatform] = useState<Platforms>(currentMainPlatform);
 	const [mainGroup, setMainGroup] = useState<string | null>(currentMainGroupId);
 
+	const { colorMode } = useColorMode();
+
 	const submitForm = useCallback(() => {
 		const userData: UserInput = {};
 		if (mainPlatform !== currentMainPlatform) userData.platform = mainPlatform;
@@ -335,7 +337,7 @@ export function UpdateUserModal({ isOpen, onClose, currentMainPlatform, linkedPl
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} isCentered size='lg'>
 			<ModalOverlay />
-			<ModalContent bg={useColorMode().colorMode === 'dark' ? 'gray900' : 'white'} mx={2}>
+			<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
 				<ModalHeader>Account Settings</ModalHeader>
 				<ModalCloseButton />
 				<ModalBody>
