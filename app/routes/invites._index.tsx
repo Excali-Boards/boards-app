@@ -99,12 +99,14 @@ export default function InvitesPage() {
 						tooltip: 'Grant permissions to a user.',
 						icon: <FaAddressCard />,
 						onClick: () => setIsPermissionModalOpen(true),
+						isDisabled: !(user?.isDev || options.canSelectGroups || options.canSelectCategories || options.canSelectBoards),
 					}, {
 						type: 'normal',
 						label: 'Create Invite',
 						icon: <FaUserPlus />,
 						onClick: () => setIsInviteModalOpen(true),
 						tooltip: 'Create new invite.',
+						isDisabled: !(user?.isDev || options.canSelectGroups || options.canSelectCategories || options.canSelectBoards),
 					}]}
 				/>
 

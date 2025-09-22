@@ -146,12 +146,11 @@ export default function Profile() {
 							</Flex>
 
 							<Flex flexDir={'column'} gap={2} justifyContent='flex-end'>
-								<Tooltip label='Change main platform.' aria-label='Change main platform'>
+								<Tooltip label='Change main platform or main group.'>
 									<IconButton
 										aria-label={'Change'}
 										icon={<GrConfigure size={20} />}
 										onClick={() => setModalShown('change')}
-										isDisabled={user.loginMethods.length < 1}
 									/>
 								</Tooltip>
 							</Flex>
@@ -359,6 +358,7 @@ export function UpdateUserModal({ isOpen, onClose, currentMainPlatform, linkedPl
 								placeholder='Select main platform..'
 								options={linkedPlatforms}
 								onChange={(e) => setMainPlatform(e as Platforms)}
+								isDisabled={linkedPlatforms.length < 2}
 							/>
 						</FormControl>
 

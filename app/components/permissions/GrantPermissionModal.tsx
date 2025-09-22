@@ -13,9 +13,9 @@ export type GrantPermissionsModalProps = {
 	onClose: () => void;
 	allData: GetAllSortedOutput;
 
-	canSelectGroups?: boolean;
-	canSelectCategories?: boolean;
-	canSelectBoards?: boolean;
+	canSelectGroups: boolean;
+	canSelectCategories: boolean;
+	canSelectBoards: boolean;
 };
 
 export const LowerRoles = [
@@ -29,7 +29,7 @@ export const HigherRoles = [
 	{ value: 'Admin', label: 'Admin (users/invites)' },
 ];
 
-export function GrantPermissionsModal({ isOpen, onClose, allData, canSelectGroups = true, canSelectCategories = true, canSelectBoards = true }: GrantPermissionsModalProps) {
+export function GrantPermissionsModal({ isOpen, onClose, allData, canSelectGroups, canSelectCategories, canSelectBoards }: GrantPermissionsModalProps) {
 	const { colorMode } = useColorMode();
 
 	const fetcher = useFetcher<WebReturnType<string>>();
@@ -129,8 +129,11 @@ export function GrantPermissionsModal({ isOpen, onClose, allData, canSelectGroup
 			(selectedCategories.length > 0 ? categoryRole : true) &&
 			(selectedBoards.length > 0 ? boardRole : true);
 
+		const canManage = canSelectBoards || canSelectCategories || canSelectGroups;
+		if (!canManage) return false;
+
 		return Boolean(hasRoles) && conflicts.length === 0;
-	}, [selectedGroups, selectedCategories, selectedBoards, groupRole, categoryRole, boardRole, conflicts]);
+	}, [selectedGroups, selectedCategories, selectedBoards, groupRole, categoryRole, boardRole, conflicts, canSelectBoards, canSelectCategories, canSelectGroups]);
 
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} isCentered size='3xl'>
