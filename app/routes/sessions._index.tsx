@@ -91,9 +91,7 @@ export default function Sessions() {
 				<Divider my={4} />
 
 				<VStack spacing={3} w='100%'>
-					{sessions.length === 0 ? (
-						<NoSessionCard noWhat='active sessions' />
-					) : (
+					{sessions.length ? (
 						sessions.map((session) => (
 							<SessionCard
 								key={session.tokenPreview}
@@ -107,6 +105,8 @@ export default function Sessions() {
 								onDelete={() => setConfirmModal({ type: 'single', token: session.dbId })}
 							/>
 						))
+					) : (
+						<NoSessionCard noWhat='active sessions' />
 					)}
 				</VStack>
 			</Box>

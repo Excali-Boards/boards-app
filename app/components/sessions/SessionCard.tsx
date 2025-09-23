@@ -1,7 +1,7 @@
+import { Flex, Text, HStack, VStack, IconButton, FlexProps, Badge, useBreakpointValue } from '@chakra-ui/react';
 import { FaDesktop, FaGlobe, FaMobileAlt, FaQuestionCircle, FaTabletAlt, FaTrash } from 'react-icons/fa';
-import { Flex, Text, HStack, Divider, IconButton, FlexProps, Badge } from '@chakra-ui/react';
 import { Device } from '@excali-boards/boards-api-client/prisma/generated/client';
-import { useCallback } from 'react';
+import { Fragment, useCallback } from 'react';
 
 export type SessionCardProps = {
 	tokenPreview: string;
@@ -24,6 +24,11 @@ export function SessionCard({
 	isCurrent,
 	onDelete,
 }: SessionCardProps & FlexProps) {
+	const isMobile = useBreakpointValue({ base: true, md: false });
+	const cardPadding = useBreakpointValue({ base: 4, md: 6 });
+	const tokenTextSize = useBreakpointValue({ base: 'xl', md: '2xl' });
+	const buttonSize = useBreakpointValue({ base: 'md', md: 'md' });
+
 	const formatRelativeTime = (date: Date | string) => {
 		const now = new Date();
 		const then = new Date(date);
@@ -54,7 +59,6 @@ export function SessionCard({
 	const DeviceIcon = useCallback(() => {
 		if (!device) return <FaGlobe />;
 
-
 		switch (device) {
 			case 'Desktop': return <FaDesktop />;
 			case 'Mobile': return <FaMobileAlt />;
@@ -66,80 +70,164 @@ export function SessionCard({
 
 	return (
 		<Flex
-			gap={4}
+			gap={isMobile ? 3 : 4}
 			w={'100%'}
-			py={4} px={6}
+			py={cardPadding}
+			px={cardPadding}
 			rounded={'lg'}
 			height={'100%'}
 			alignItems={'center'}
 			bg={isExpired ? 'red.50' : 'alpha100'}
 			wordBreak={'break-word'}
 			transition={'all 0.3s ease'}
+			flexDirection={'row'}
 			justifyContent={'space-between'}
 			_hover={{ bg: isExpired ? 'red.100' : 'alpha200' }}
 		>
-			<Flex
-				justifyContent='center'
-				alignItems='start'
-				textAlign='start'
-				flexDir='column'
-				flexGrow={1}
-			>
-				<HStack spacing={3} align='center'>
+			{isMobile ? (
+				<Fragment>
 					<DeviceIcon />
-					<Text fontSize={'2xl'} fontWeight={'bold'}>
-						{tokenPreview}
-					</Text>
-					<Text fontSize='sm' color='gray.400'>
-						{location}
-					</Text>
-				</HStack>
 
-				<HStack spacing={2} mt={1}>
-					<Text fontSize='sm' color='gray.500'>
-						Created {formatRelativeTime(createdAt)} • Last active {formatRelativeTime(lastUsed)}
-					</Text>
-					<Text fontSize='sm' color='gray.500'>
-						• {isExpired ? 'Expired' : formatExpiresIn(expiresAt)}
-					</Text>
-				</HStack>
-			</Flex>
+					<VStack spacing={2} align='stretch' flex={1} minW={0}>
+						<HStack spacing={2} justify='space-between' align='center' w='100%'>
+							<Text
+								fontSize={tokenTextSize}
+								fontWeight={'bold'}
+								overflow='hidden'
+								textOverflow='ellipsis'
+								whiteSpace='nowrap'
+								flex={1}
+							>
+								{tokenPreview}
+							</Text>
 
-			{isCurrent && (
-				<Badge
-					px={2} py={1}
-					fontWeight={'bold'}
-					borderRadius={'full'}
-					textTransform={'none'}
-					color={'white'}
-					bg='blue.300'
-				>
-					Current Session
-				</Badge>
-			)}
+							<HStack spacing={1} flexShrink={0}>
+								{isCurrent && (
+									<Badge
+										px={2} py={1}
+										fontWeight={'bold'}
+										borderRadius={'full'}
+										textTransform={'none'}
+										color={'white'}
+										bg='blue.300'
+										fontSize='xs'
+									>
+										Current
+									</Badge>
+								)}
 
-			{isExpired && (
-				<Badge
-					px={2} py={1}
-					color={'white'}
-					bg={'red.500'}
-					fontWeight={'bold'}
-					borderRadius={'full'}
-					textTransform={'none'}
-				>
-					Expired
-				</Badge>
-			)}
+								{isExpired && (
+									<Badge
+										px={2} py={1}
+										color={'white'}
+										bg={'red.500'}
+										fontWeight={'bold'}
+										borderRadius={'full'}
+										textTransform={'none'}
+										fontSize='xs'
+									>
+										Expired
+									</Badge>
+								)}
+							</HStack>
+						</HStack>
 
-			<Flex
-				alignItems={'center'}
-				justifyContent={'center'}
-				flexDir={'row'}
-				gap={4}
-			>
-				<Divider orientation={'vertical'} color={'red'} height={'50px'} />
+						<HStack spacing={2} justify='space-between' align='center' w='100%'>
+							<VStack spacing={2} align='flex-start' flex={1}>
+								{location && (
+									<Text fontSize='sm' color='gray.400'>
+										{location}
+									</Text>
+								)}
 
-				<HStack spacing={2}>
+								<Flex flexDirection={'column'}>
+									<Text fontSize='sm' color='gray.500'>
+										Created {formatRelativeTime(createdAt)}
+									</Text>
+									<Text fontSize='sm' color='gray.500'>
+										Last active {formatRelativeTime(lastUsed)}
+									</Text>
+								</Flex>
+							</VStack>
+
+							{onDelete && (
+								<IconButton
+									onClick={onDelete}
+									variant={'ghost'}
+									rounded={'full'}
+									bg={'alpha100'}
+									icon={<FaTrash />}
+									colorScheme='gray'
+									size={buttonSize}
+									aria-label={'Delete session'}
+									flexShrink={0}
+									_hover={{ bg: 'alpha300' }}
+									_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+								/>
+							)}
+						</HStack>
+					</VStack>
+				</Fragment>
+			) : (
+				<Fragment>
+					<Flex
+						justifyContent='flex-start'
+						alignItems='flex-start'
+						textAlign='start'
+						flexDir='column'
+						flexGrow={1}
+						minW={0}
+					>
+						<HStack spacing={3} align='center'>
+							<DeviceIcon />
+							<Text fontSize={'2xl'} fontWeight={'bold'}>
+								{tokenPreview}
+							</Text>
+							{location && (
+								<Text fontSize='sm' color='gray.400'>
+									{location}
+								</Text>
+							)}
+						</HStack>
+
+						<HStack spacing={2}>
+							<Text fontSize='sm' color='gray.500'>
+								Created {formatRelativeTime(createdAt)} • Last active {formatRelativeTime(lastUsed)}
+							</Text>
+							<Text fontSize='sm' color='gray.500'>
+								• {isExpired ? 'Expired' : formatExpiresIn(expiresAt)}
+							</Text>
+						</HStack>
+					</Flex>
+
+					<HStack spacing={2}>
+						{isCurrent && (
+							<Badge
+								px={2} py={1}
+								fontWeight={'bold'}
+								borderRadius={'full'}
+								textTransform={'none'}
+								color={'white'}
+								bg='blue.300'
+							>
+								Current Session
+							</Badge>
+						)}
+
+						{isExpired && (
+							<Badge
+								px={2} py={1}
+								color={'white'}
+								bg={'red.500'}
+								fontWeight={'bold'}
+								borderRadius={'full'}
+								textTransform={'none'}
+							>
+								Expired
+							</Badge>
+						)}
+					</HStack>
+
 					{onDelete && (
 						<IconButton
 							onClick={onDelete}
@@ -148,15 +236,14 @@ export function SessionCard({
 							bg={'alpha100'}
 							icon={<FaTrash />}
 							colorScheme='gray'
+							size={buttonSize}
 							aria-label={'Delete session'}
-							alignItems={'center'}
-							justifyContent={'center'}
 							_hover={{ bg: 'alpha300' }}
 							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
 						/>
 					)}
-				</HStack>
-			</Flex>
+				</Fragment>
+			)}
 		</Flex>
 	);
 }
@@ -168,9 +255,12 @@ export type NoSessionCardProps = {
 export function NoSessionCard({
 	noWhat,
 }: NoSessionCardProps) {
+	const textSize = useBreakpointValue({ base: 'xl', md: '2xl' });
+	const padding = useBreakpointValue({ base: 6, md: 4 });
+
 	return (
 		<Flex
-			p={4}
+			p={padding}
 			w={'100%'}
 			rounded={'lg'}
 			bg={'alpha100'}
@@ -178,7 +268,9 @@ export function NoSessionCard({
 			justifyContent={'center'}
 			transition={'all 0.3s ease'}
 		>
-			<Text fontSize={'2xl'} fontWeight={'bold'}>No {noWhat}.</Text>
+			<Text fontSize={textSize} fontWeight={'bold'} textAlign='center'>
+				No {noWhat}.
+			</Text>
 		</Flex>
 	);
 }

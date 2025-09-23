@@ -194,12 +194,27 @@ export default function Profile() {
 				<Divider my={4} />
 
 				<Container>
-					<Flex gap={2} flexDir={{ base: 'column', md: 'row' }} width='100%' justifyContent='space-between'>
-						<Button leftIcon={<FaTrash />} onClick={() => setModalShown('delete')} colorScheme='red' flex={1}>
+					<Flex
+						gap={2}
+						width='100%'
+						justifyContent='space-between'
+						flexDir={{ base: 'column-reverse', md: 'row' }}
+						alignItems={{ base: 'stretch', md: 'center' }}
+					>
+						<Button
+							width='100%'
+							leftIcon={<FaTrash />}
+							onClick={() => setModalShown('delete')}
+							colorScheme='red'
+						>
 							Delete Account
 						</Button>
 
-						<Button leftIcon={<FiLogOut />} onClick={() => setModalShown('logout')} flex={1}>
+						<Button
+							width='100%'
+							leftIcon={<FiLogOut />}
+							onClick={() => setModalShown('logout')}
+						>
 							Logout
 						</Button>
 					</Flex>
@@ -336,6 +351,10 @@ export function UpdateUserModal({ isOpen, onClose, currentMainPlatform, linkedPl
 		fetcher.submit({ type: 'updateUser', userData: JSON.stringify(userData) }, { method: 'post' });
 	}, [mainGroup, mainPlatform, fetcher, currentMainGroupId, currentMainPlatform, onClose]);
 
+	const groupOptions = useMemo(() => {
+		return [{ value: 'none', label: 'None' }, ...groups.map((g) => ({ value: g.id, label: g.name }))];
+	}, [groups]);
+
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} isCentered size='lg'>
 			<ModalOverlay />
@@ -383,9 +402,9 @@ export function UpdateUserModal({ isOpen, onClose, currentMainPlatform, linkedPl
 								name='mainGroup'
 								colorScheme='brand'
 								placeholder='Select main group..'
-								options={[{ value: 'none', label: 'None' }, ...groups.map((g) => ({ value: g.id, label: g.name }))]}
-								value={mainGroup || 'none'}
+								defaultValue={groupOptions.find((g) => g.value === (currentMainGroupId || 'none'))}
 								onChange={(e) => setMainGroup(e?.value === 'none' ? null : e?.value || null)}
+								options={groupOptions}
 							/>
 						</FormControl>
 					</VStack>

@@ -1,5 +1,5 @@
-import { VStack, Box, Flex, Text, Avatar, HStack } from '@chakra-ui/react';
 import { makeResponse, securityUtils } from '~/utils/functions.server';
+import { VStack, Box, Flex, Text, Avatar } from '@chakra-ui/react';
 import { SearchBar } from '~/components/layout/SearchBar';
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { useDebounced } from '~/hooks/useDebounced';
@@ -65,19 +65,40 @@ export default function AdminUsers() {
 							alignItems={'center'}
 							wordBreak={'break-word'}
 						>
-							<Avatar size={'lg'} name={user.displayName} src={user.avatarUrl || '/logo.webp'} />
+							<Avatar
+								size={{ base: 'md', md: 'lg' }}
+								name={user.displayName}
+								src={user.avatarUrl || '/logo.webp'}
+							/>
 
 							<Flex
 								justifyContent={'center'}
 								alignItems={'start'}
 								flexDir={'column'}
 							>
-								<Text fontSize={'2xl'} fontWeight={'bold'}>{user.displayName}</Text>
+								<Text
+									fontSize={{ base: 'lg', md: '2xl' }}
+									fontWeight={'bold'}
+								>
+									{user.displayName}
+								</Text>
 
-								<HStack spacing={2} alignItems={'start'}>
-									<Text fontSize={'lg'} fontWeight={'bold'} color={'gray.500'}>({user.userId})</Text>
-									<Text fontSize={'lg'} fontWeight={'bold'} color={'gray.500'}>({user.decryptedEmail})</Text>
-								</HStack>
+								<Flex gap={{ base: 0, md: 2 }} alignItems={'start'} flexDir={{ base: 'column', md: 'row' }}>
+									<Text
+										fontSize={{ base: 'sm', md: 'lg' }}
+										fontWeight={'bold'}
+										color={'gray.500'}
+									>
+										({user.userId})
+									</Text>
+									<Text
+										fontSize={{ base: 'sm', md: 'lg' }}
+										fontWeight={'bold'}
+										color={'gray.500'}
+									>
+										({user.decryptedEmail})
+									</Text>
+								</Flex>
 							</Flex>
 						</Flex>
 					)) : (

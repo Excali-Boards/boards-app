@@ -1,4 +1,4 @@
-import { Flex, Text, HStack, Divider, IconButton, FlexProps, Badge, useToast, useDisclosure } from '@chakra-ui/react';
+import { Flex, Text, HStack, VStack, IconButton, FlexProps, Badge, useToast, useDisclosure, useBreakpointValue } from '@chakra-ui/react';
 import { FaTrash, FaCopy, FaEye } from 'react-icons/fa';
 import { ConfirmModal } from '../other/ConfirmModal';
 import { useCallback } from 'react';
@@ -34,6 +34,12 @@ export function InviteCard({
 	const toast = useToast();
 	const { isOpen: isConfirmOpen, onOpen: onConfirmOpen, onClose: onConfirmClose } = useDisclosure();
 
+	const isMobile = useBreakpointValue({ base: true, md: false });
+	const cardPadding = useBreakpointValue({ base: 4, md: 6 });
+	const cardDirection = useBreakpointValue({ base: 'column', md: 'row' }) as 'column' | 'row';
+	const codeTextSize = useBreakpointValue({ base: 'xl', md: '2xl' });
+	const buttonSize = useBreakpointValue({ base: 'md', md: 'md' });
+
 	const copyInviteLink = useCallback(() => {
 		navigator.clipboard.writeText(`${window.location.origin}/invites/${code}`);
 		toast({
@@ -59,76 +65,91 @@ export function InviteCard({
 
 	return (
 		<Flex
-			gap={4}
+			gap={isMobile ? 2 : 3}
 			w={'100%'}
-			py={4} px={6}
+			py={cardPadding}
+			px={cardPadding}
 			rounded={'lg'}
 			height={'100%'}
-			alignItems={'center'}
+			alignItems={isMobile ? 'stretch' : 'center'}
 			bg={isExpired || isMaxUsed ? 'red.50' : 'alpha100'}
 			wordBreak={'break-word'}
 			transition={'all 0.3s ease'}
+			flexDirection={cardDirection}
 			justifyContent={'space-between'}
 			_hover={{ bg: isExpired || isMaxUsed ? 'red.100' : 'alpha200' }}
 		>
 			<Flex
-				justifyContent='center'
-				alignItems='start'
+				justifyContent='flex-start'
+				alignItems='flex-start'
 				textAlign='start'
 				flexDir='column'
 				flexGrow={1}
+				minW={0}
 			>
-				<HStack spacing={3} align='center'>
-					<Text fontSize={'2xl'} fontWeight={'bold'}>
-						{code}
-					</Text>
-				</HStack>
-
-				<HStack spacing={2} mt={1}>
-					{expiresAt && (
-						<Text fontSize='sm' color='gray.500'>
-							{isExpired ? 'Expired' : formatExpiresIn(new Date(expiresAt))}
+				<VStack spacing={1} align='stretch' w='100%'>
+					<HStack spacing={3} align='center' justify='space-between' w='100%'>
+						<Text
+							fontSize={codeTextSize}
+							fontWeight={'bold'}
+							overflow='hidden'
+							textOverflow='ellipsis'
+							whiteSpace='nowrap'
+							maxW={isMobile ? '60%' : 'none'}
+						>
+							{code}
 						</Text>
-					)}
-					<Text fontSize='sm' color='gray.500'>
-						• {uses}/{maxUses} uses
-					</Text>
-				</HStack>
+
+						<HStack spacing={2} flexShrink={0}>
+							{(isExpired || isMaxUsed) && (
+								<Badge
+									px={2} py={1}
+									color={'white'}
+									bg={'red.500'}
+									fontWeight={'bold'}
+									borderRadius={'full'}
+									textTransform={'none'}
+									fontSize={isMobile ? 'xs' : 'sm'}
+								>
+									Inactive
+								</Badge>
+							)}
+
+							<Badge
+								px={2} py={1}
+								color={'white'}
+								bg={'alpha500'}
+								fontWeight={'bold'}
+								borderRadius={'full'}
+								textTransform={'none'}
+								fontSize={isMobile ? 'xs' : 'sm'}
+							>
+								{role}
+							</Badge>
+						</HStack>
+					</HStack>
+
+					<HStack spacing={2} flexWrap='wrap'>
+						{expiresAt && (
+							<Text fontSize='sm' color='gray.500'>
+								{isExpired ? 'Expired' : formatExpiresIn(new Date(expiresAt))}
+							</Text>
+						)}
+						<Text fontSize='sm' color='gray.500'>
+							• {uses}/{maxUses} uses
+						</Text>
+					</HStack>
+				</VStack>
 			</Flex>
-
-			{(isExpired || isMaxUsed) && (
-				<Badge
-					px={2} py={1}
-					color={'white'}
-					bg={'red.500'}
-					fontWeight={'bold'}
-					borderRadius={'full'}
-					textTransform={'none'}
-				>
-					Inactive
-				</Badge>
-			)}
-
-			<Badge
-				px={2} py={1}
-				color={'white'}
-				bg={'alpha500'}
-				fontWeight={'bold'}
-				borderRadius={'full'}
-				textTransform={'none'}
-			>
-				{role}
-			</Badge>
 
 			<Flex
 				alignItems={'center'}
-				justifyContent={'center'}
-				flexDir={'row'}
-				gap={4}
+				justifyContent={isMobile ? 'center' : 'flex-end'}
+				gap={2}
+				mt={isMobile ? 2 : 0}
+				w={isMobile ? '100%' : 'auto'}
 			>
-				<Divider orientation={'vertical'} color={'red'} height={'50px'} />
-
-				<HStack spacing={2}>
+				<HStack spacing={1} w={isMobile ? '100%' : 'auto'} justify={isMobile ? 'center' : 'flex-start'}>
 					{onDelete && canManage && (
 						<IconButton
 							onClick={onConfirmOpen}
@@ -137,6 +158,7 @@ export function InviteCard({
 							bg={'alpha100'}
 							icon={<FaTrash />}
 							colorScheme='gray'
+							size={buttonSize}
 							aria-label={'Delete invite'}
 							alignItems={'center'}
 							justifyContent={'center'}
@@ -152,6 +174,7 @@ export function InviteCard({
 						bg={'alpha100'}
 						icon={<FaEye />}
 						colorScheme='gray'
+						size={buttonSize}
 						aria-label={'View invite details'}
 						alignItems={'center'}
 						justifyContent={'center'}
@@ -166,6 +189,7 @@ export function InviteCard({
 						bg={'alpha100'}
 						icon={<FaCopy />}
 						colorScheme='gray'
+						size={buttonSize}
 						aria-label={'Copy invite link'}
 						alignItems={'center'}
 						justifyContent={'center'}
@@ -198,9 +222,12 @@ export type NoInviteCardProps = {
 export function NoInviteCard({
 	noWhat,
 }: NoInviteCardProps) {
+	const textSize = useBreakpointValue({ base: 'xl', md: '2xl' });
+	const padding = useBreakpointValue({ base: 6, md: 4 });
+
 	return (
 		<Flex
-			p={4}
+			p={padding}
 			w={'100%'}
 			rounded={'lg'}
 			bg={'alpha100'}
@@ -208,7 +235,9 @@ export function NoInviteCard({
 			justifyContent={'center'}
 			transition={'all 0.3s ease'}
 		>
-			<Text fontSize={'2xl'} fontWeight={'bold'}>No {noWhat}.</Text>
+			<Text fontSize={textSize} fontWeight={'bold'} textAlign='center'>
+				No {noWhat}.
+			</Text>
 		</Flex>
 	);
 }
