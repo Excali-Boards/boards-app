@@ -11,6 +11,7 @@ import { ConfirmModal } from '~/components/other/ConfirmModal';
 import { UserInput } from '@excali-boards/boards-api-client';
 import useFetcherResponse from '~/hooks/useFetcherResponse';
 import { Container } from '~/components/layout/Container';
+import { clearUserCache } from '~/utils/session.server';
 import { platformButtons } from '~/other/platforms';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
@@ -65,6 +66,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 			const userData = JSON.parse(formData.get('userData') as string);
 			const result = await api?.users.updateUser({ auth: token, body: userData });
 
+			if (result?.status === 200) await clearUserCache(token);
 			return makeResObject(result, 'Failed to update user.');
 		}
 		case 'deleteAccount': {

@@ -29,6 +29,13 @@ export async function getCachedUser(request: Request): Promise<UserResponse> {
 	return result;
 }
 
+export async function clearUserCache(requestOrToken: Request | string): Promise<void> {
+	const token = typeof requestOrToken === 'string' ? requestOrToken : await authenticator.isAuthenticated(requestOrToken);
+	if (!token) return;
+
+	userCache.delete(token);
+}
+
 export function parseUserAgent(uaString: string | null): Device {
 	if (!uaString) return 'Other';
 
