@@ -1,7 +1,7 @@
-import { Flex, Text, HStack, VStack, IconButton, FlexProps, Badge, useToast, useDisclosure, useBreakpointValue } from '@chakra-ui/react';
+import { Flex, Text, HStack, VStack, IconButton, FlexProps, Badge, useToast, useDisclosure, useBreakpointValue, Divider } from '@chakra-ui/react';
 import { FaTrash, FaCopy, FaEye } from 'react-icons/fa';
 import { ConfirmModal } from '../other/ConfirmModal';
-import { useCallback } from 'react';
+import { Fragment, useCallback } from 'react';
 
 export type InputType = {
 	value: string;
@@ -63,6 +63,36 @@ export function InviteCard({
 		return `Expires in ${diffDays} days`;
 	};
 
+	const badges = (
+		<HStack spacing={2} flexShrink={0}>
+			{(isExpired || isMaxUsed) && (
+				<Badge
+					px={2} py={1}
+					color={'white'}
+					bg={'red.500'}
+					fontWeight={'bold'}
+					borderRadius={'full'}
+					textTransform={'none'}
+					fontSize={isMobile ? 'xs' : 'sm'}
+				>
+					Inactive
+				</Badge>
+			)}
+
+			<Badge
+				px={2} py={1}
+				color={'white'}
+				bg={'alpha500'}
+				fontWeight={'bold'}
+				borderRadius={'full'}
+				textTransform={'none'}
+				fontSize={isMobile ? 'xs' : 'sm'}
+			>
+				{role}
+			</Badge>
+		</HStack>
+	);
+
 	return (
 		<Flex
 			gap={isMobile ? 2 : 3}
@@ -100,33 +130,7 @@ export function InviteCard({
 							{code}
 						</Text>
 
-						<HStack spacing={2} flexShrink={0}>
-							{(isExpired || isMaxUsed) && (
-								<Badge
-									px={2} py={1}
-									color={'white'}
-									bg={'red.500'}
-									fontWeight={'bold'}
-									borderRadius={'full'}
-									textTransform={'none'}
-									fontSize={isMobile ? 'xs' : 'sm'}
-								>
-									Inactive
-								</Badge>
-							)}
-
-							<Badge
-								px={2} py={1}
-								color={'white'}
-								bg={'alpha500'}
-								fontWeight={'bold'}
-								borderRadius={'full'}
-								textTransform={'none'}
-								fontSize={isMobile ? 'xs' : 'sm'}
-							>
-								{role}
-							</Badge>
-						</HStack>
+						{isMobile && badges}
 					</HStack>
 
 					<HStack spacing={2} flexWrap='wrap'>
@@ -135,6 +139,7 @@ export function InviteCard({
 								{isExpired ? 'Expired' : formatExpiresIn(new Date(expiresAt))}
 							</Text>
 						)}
+
 						<Text fontSize='sm' color='gray.500'>
 							• {uses}/{maxUses} uses
 						</Text>
@@ -149,6 +154,14 @@ export function InviteCard({
 				mt={isMobile ? 2 : 0}
 				w={isMobile ? '100%' : 'auto'}
 			>
+				{!isMobile && (
+					<Fragment>
+						{badges}
+
+						<Divider orientation='vertical' height={'50px'} mx={2} />
+					</Fragment>
+				)}
+
 				<HStack spacing={1} w={isMobile ? '100%' : 'auto'} justify={isMobile ? 'center' : 'flex-start'}>
 					{onDelete && canManage && (
 						<IconButton
