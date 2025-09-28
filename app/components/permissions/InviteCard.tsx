@@ -147,12 +147,12 @@ export function InviteCard({
 
 					<HStack spacing={2} flexWrap='wrap'>
 						{expiresAt && (
-							<Text fontSize='sm' color='gray.500'>
+							<Text fontSize='md' color={'gray.500'}>
 								{isExpired ? 'Expired' : formatExpiresIn(new Date(expiresAt))}
 							</Text>
 						)}
 
-						<Text fontSize='sm' color='gray.500'>
+						<Text fontSize='md' color={'gray.500'}>
 							• {uses}/{maxUses} uses
 						</Text>
 					</HStack>
