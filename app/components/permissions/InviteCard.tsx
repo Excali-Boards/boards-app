@@ -86,10 +86,8 @@ export function InviteCard({
 					px={2} py={1}
 					color={'white'}
 					bg={'red.500'}
-					fontWeight={'bold'}
 					borderRadius={'full'}
 					textTransform={'none'}
-					fontSize={isMobile ? 'xs' : 'sm'}
 				>
 					Inactive
 				</Badge>
@@ -99,10 +97,8 @@ export function InviteCard({
 				px={2} py={1}
 				color={'white'}
 				bg={'alpha500'}
-				fontWeight={'bold'}
 				borderRadius={'full'}
 				textTransform={'none'}
-				fontSize={isMobile ? 'xs' : 'sm'}
 			>
 				{role}
 			</Badge>

@@ -107,7 +107,6 @@ export default function All() {
 																				{board.scheduledForDeletion && (
 																					<Badge
 																						px={2} py={1}
-																						fontWeight={'bold'}
 																						borderRadius={'full'}
 																						textTransform={'none'}
 																						bg={isDeletedSoon.borderColor}
@@ -119,7 +118,6 @@ export default function All() {
 
 																				<Badge
 																					px={2} py={1}
-																					fontWeight={'bold'}
 																					borderRadius={'full'}
 																					textTransform={'none'}
 																					bg={colorMode === 'light' ? 'alpha500' : 'alpha600'}

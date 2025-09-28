@@ -94,7 +94,6 @@ export function UserCard({
 				<Badge
 					px={2} py={1}
 					color={'white'}
-					fontWeight={'bold'}
 					borderRadius={'full'}
 					textTransform={'none'}
 					bg={getRoleColor(role)}
@@ -105,11 +104,9 @@ export function UserCard({
 				<Badge
 					px={2} py={1}
 					color={'white'}
-					fontWeight={'bold'}
 					borderRadius={'full'}
 					textTransform={'none'}
 					bg={getGrantTypeColor(grantType)}
-					size={'sm'}
 				>
 					{getGrantTypeLabel(grantType)}
 				</Badge>

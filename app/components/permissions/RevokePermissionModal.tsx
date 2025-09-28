@@ -79,7 +79,7 @@ export function RevokePermissionModal({
 									<VStack align='start' spacing={1}>
 										<HStack>
 											<Text fontWeight='bold'>{permission.role}</Text>
-											<Badge bg='green.500' color='white'>Direct</Badge>
+											<Badge px={2} bg='green.400' color='white' borderRadius={'full'}>Direct</Badge>
 										</HStack>
 										<Text fontSize='sm' color='gray.500'>
 											Direct permission on this {getResourceLabel(permission.type).toLowerCase()}.
@@ -107,7 +107,7 @@ export function RevokePermissionModal({
 									<VStack align='start' spacing={1}>
 										<HStack>
 											<Text fontWeight='bold'>{permission.role}</Text>
-											<Badge bg='orange.500' color='white'>Inherited</Badge>
+											<Badge px={2} bg='purple.400' color='white' borderRadius={'full'}>Inherited</Badge>
 										</HStack>
 										<Text fontSize='sm' color='gray.500'>
 											Permission inherited from {permission.basedOnResourceName}.

@@ -105,12 +105,10 @@ export function SessionCard({
 								{isCurrent && (
 									<Badge
 										px={2} py={1}
-										fontWeight={'bold'}
 										borderRadius={'full'}
 										textTransform={'none'}
 										color={'white'}
 										bg='blue.300'
-										fontSize='xs'
 									>
 										Current
 									</Badge>
@@ -121,10 +119,8 @@ export function SessionCard({
 										px={2} py={1}
 										color={'white'}
 										bg={'red.500'}
-										fontWeight={'bold'}
 										borderRadius={'full'}
 										textTransform={'none'}
-										fontSize='xs'
 									>
 										Expired
 									</Badge>
@@ -204,7 +200,6 @@ export function SessionCard({
 						{isCurrent && (
 							<Badge
 								px={2} py={1}
-								fontWeight={'bold'}
 								borderRadius={'full'}
 								textTransform={'none'}
 								color={'white'}
@@ -219,7 +214,6 @@ export function SessionCard({
 								px={2} py={1}
 								color={'white'}
 								bg={'red.500'}
-								fontWeight={'bold'}
 								borderRadius={'full'}
 								textTransform={'none'}
 							>

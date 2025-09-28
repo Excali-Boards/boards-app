@@ -69,7 +69,6 @@ export function Card({
 			{isScheduledForDeletion && (
 				<Badge
 					px={2} py={1}
-					fontWeight={'bold'}
 					borderRadius={'full'}
 					textTransform={'none'}
 					bg={isDeletedSoon.borderColor}
@@ -84,7 +83,6 @@ export function Card({
 					px={2} py={1}
 					color={'white'}
 					bg={'alpha500'}
-					fontWeight={'bold'}
 					borderRadius={'full'}
 					textTransform={'none'}
 				>
