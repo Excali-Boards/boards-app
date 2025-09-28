@@ -1,6 +1,7 @@
-import { Flex, Text, HStack, VStack, IconButton, FlexProps, Badge, useToast, useDisclosure, useBreakpointValue, Divider } from '@chakra-ui/react';
+import { Flex, Text, HStack, VStack, IconButton, FlexProps, Badge, useToast, useDisclosure, useBreakpointValue, Divider, Tooltip } from '@chakra-ui/react';
 import { FaTrash, FaCopy, FaEye } from 'react-icons/fa';
 import { ConfirmModal } from '../other/ConfirmModal';
+import { IoMdCloudUpload } from 'react-icons/io';
 import { Fragment, useCallback } from 'react';
 
 export type InputType = {
@@ -17,6 +18,7 @@ export type InviteCardProps = {
 	expiresAt: Date | null;
 
 	canManage?: boolean;
+	onRenew?: () => void;
 	onDelete?: () => void;
 	onDetails: () => void;
 };
@@ -28,6 +30,7 @@ export function InviteCard({
 	maxUses,
 	expiresAt,
 	canManage,
+	onRenew,
 	onDelete,
 	onDetails,
 }: InviteCardProps & FlexProps) {
@@ -55,12 +58,25 @@ export function InviteCard({
 
 	const formatExpiresIn = (date: Date) => {
 		const now = new Date();
-		const diffMs = date.getTime() - now.getTime();
-		const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+		const diff = date.getTime() - now.getTime();
 
-		if (diffDays <= 0) return 'Expired';
-		if (diffDays === 1) return 'Expires in 1 day';
-		return `Expires in ${diffDays} days`;
+		if (diff <= 0) return 'Expired';
+
+		const seconds = Math.floor(diff / 1000);
+		const minutes = Math.floor(seconds / 60);
+		const hours = Math.floor(minutes / 60);
+		const days = Math.floor(hours / 24);
+		const weeks = Math.floor(days / 7);
+		const months = Math.floor(days / 30);
+		const years = Math.floor(days / 365);
+
+		if (years > 0) return `Expires in ${years} year${years > 1 ? 's' : ''}${months % 12 > 0 ? `, ${months % 12} month${months % 12 > 1 ? 's' : ''}` : ''}${days % 30 > 0 ? `, ${days % 30} day${days % 30 > 1 ? 's' : ''}` : ''}`;
+		if (months > 0) return `Expires in ${months} month${months > 1 ? 's' : ''}${days % 30 > 0 ? `, ${days % 30} day${days % 30 > 1 ? 's' : ''}` : ''}${hours % 24 > 0 ? `, ${hours % 24} hour${hours % 24 > 1 ? 's' : ''}` : ''}`;
+		if (weeks > 0) return `Expires in ${weeks} week${weeks > 1 ? 's' : ''}${days % 7 > 0 ? `, ${days % 7} day${days % 7 > 1 ? 's' : ''}` : ''}${hours % 24 > 0 ? `, ${hours % 24} hour${hours % 24 > 1 ? 's' : ''}` : ''}`;
+		if (days > 0) return `Expires in ${days} day${days > 1 ? 's' : ''}${hours % 24 > 0 ? `, ${hours % 24} hour${hours % 24 > 1 ? 's' : ''}` : ''}${minutes % 60 > 0 ? `, ${minutes % 60} minute${minutes % 60 > 1 ? 's' : ''}` : ''}`;
+		if (hours > 0) return `Expires in ${hours} hour${hours > 1 ? 's' : ''}${minutes % 60 > 0 ? `, ${minutes % 60} minute${minutes % 60 > 1 ? 's' : ''}` : ''}${seconds % 60 > 0 ? `, ${seconds % 60} second${seconds % 60 > 1 ? 's' : ''}` : ''}`;
+		if (minutes > 0) return `Expires in ${minutes} minute${minutes > 1 ? 's' : ''}${seconds % 60 > 0 ? `, ${seconds % 60} second${seconds % 60 > 1 ? 's' : ''}` : ''}`;
+		return `Expires in ${seconds} second${seconds !== 1 ? 's' : ''}`;
 	};
 
 	const badges = (
@@ -180,20 +196,41 @@ export function InviteCard({
 						/>
 					)}
 
-					<IconButton
-						onClick={onDetails}
-						variant={'ghost'}
-						rounded={'full'}
-						bg={'alpha100'}
-						icon={<FaEye />}
-						colorScheme='gray'
-						size={buttonSize}
-						aria-label={'View invite details'}
-						alignItems={'center'}
-						justifyContent={'center'}
-						_hover={{ bg: 'alpha300' }}
-						_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-					/>
+					<Tooltip label='View details'>
+						<IconButton
+							onClick={onDetails}
+							variant={'ghost'}
+							rounded={'full'}
+							bg={'alpha100'}
+							icon={<FaEye />}
+							colorScheme='gray'
+							size={buttonSize}
+							aria-label={'View invite details'}
+							alignItems={'center'}
+							justifyContent={'center'}
+							_hover={{ bg: 'alpha300' }}
+							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+						/>
+					</Tooltip>
+
+					{onRenew && canManage && (
+						<Tooltip label='Renew invite'>
+							<IconButton
+								onClick={onRenew}
+								variant={'ghost'}
+								rounded={'full'}
+								bg={'alpha100'}
+								icon={<IoMdCloudUpload />}
+								colorScheme='gray'
+								size={buttonSize}
+								aria-label={'Renew invite'}
+								alignItems={'center'}
+								justifyContent={'center'}
+								_hover={{ bg: 'alpha300' }}
+								_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+							/>
+						</Tooltip>
+					)}
 
 					<IconButton
 						onClick={copyInviteLink}

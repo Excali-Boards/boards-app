@@ -1,15 +1,13 @@
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Avatar, Text, Button, Image, Flex, HStack, IconButton, useColorMode, Heading, Box, useBreakpointValue, Divider, Tooltip, Drawer, DrawerBody, DrawerCloseButton, DrawerContent, DrawerHeader, DrawerOverlay, useDisclosure, FlexProps, VStack, Center, useToast } from '@chakra-ui/react';
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, Avatar, Text, Button, Image, Flex, HStack, IconButton, useColorMode, Heading, Box, useBreakpointValue, Divider, Tooltip, Drawer, DrawerBody, DrawerCloseButton, DrawerContent, DrawerHeader, DrawerOverlay, useDisclosure, FlexProps, VStack, Center } from '@chakra-ui/react';
 import { FaArrowUp, FaCode, FaCogs, FaList, FaMoon, FaSun, FaUser, FaUsers, FaUserSlash } from 'react-icons/fa';
 import { Fragment, useCallback, useContext, useMemo, useState } from 'react';
 import { GetUsersOutput } from '@excali-boards/boards-api-client';
 import { Link, useFetcher, useLocation } from '@remix-run/react';
-import useFetcherResponse from '~/hooks/useFetcherResponse';
+import { IconLinkButton, LinkButton } from '~/components/Button';
 import { ColabUser, WebReturnType } from '~/other/types';
-import { platformButtons } from '~/other/platforms';
 import { RootContext } from '~/components/Context';
 import { IoIosColorPalette } from 'react-icons/io';
 import { FiLogIn, FiUsers } from 'react-icons/fi';
-import { LinkButton } from '~/components/Button';
 import { useScroll } from '~/hooks/useScroll';
 import { MdPrivacyTip } from 'react-icons/md';
 import { IoMenu } from 'react-icons/io5';
@@ -24,32 +22,19 @@ export default function Layout({
 	user, children,
 	sideBarHeader = 'header',
 }: LayoutProps) {
-	const [modalOpen, setModalOpen] = useState<'login' | null>(null);
-	const location = useLocation();
-
 	return (
 		<Flex
 			flexDir={sideBarHeader === 'header' ? 'column' : 'row'}
 			minH={'100vh'}
 			w='100%'
 		>
-			{sideBarHeader === 'header' ? (
-				<Header user={user} setModalOpen={setModalOpen} />
-			) : sideBarHeader === 'sidebar' ? (
-				<Sidebar user={user} setModalOpen={setModalOpen} />
-			) : <></>}
+			{sideBarHeader === 'header' ? (<Header user={user} />) : sideBarHeader === 'sidebar' ? (<Sidebar user={user} />) : <></>}
 
 			<Box flex={1} w='100%'>
 				{children}
 			</Box>
 
 			{sideBarHeader === 'header' && <Footer mt={24} />}
-
-			<LoginModal
-				isOpen={modalOpen === 'login'}
-				onClose={() => setModalOpen(null)}
-				backTo={location.pathname}
-			/>
 		</Flex>
 	);
 }
@@ -57,14 +42,9 @@ export default function Layout({
 export type HeaderProps = {
 	user: GetUsersOutput | null;
 	forceGoBack?: boolean;
-	setModalOpen: (value: 'login' | null) => void;
 };
 
-export function Header({
-	user,
-	forceGoBack,
-	setModalOpen,
-}: HeaderProps) {
+export function Header({ user, forceGoBack }: HeaderProps) {
 	const showDrawer = useBreakpointValue({ base: true, lg: false });
 	const { toggleColorMode, colorMode } = useColorMode();
 	const { isOpen, onOpen, onClose } = useDisclosure();
@@ -193,7 +173,8 @@ export function Header({
 									_hover={{ bg: 'alpha300' }}
 								/>
 
-								<IconButton
+								<IconLinkButton
+									to={'/login'}
 									aria-label='Login'
 									icon={<FiLogIn />}
 									variant={'ghost'}
@@ -204,7 +185,6 @@ export function Header({
 									justifyContent={'center'}
 									display={'flex'}
 									_hover={{ bg: 'alpha300' }}
-									onClick={() => setModalOpen('login')}
 								/>
 							</Fragment>
 						)}
@@ -228,22 +208,15 @@ export function Header({
 
 export type SidebarProps = {
 	user: GetUsersOutput | null;
-	setModalOpen: (value: 'login' | null) => void;
 };
 
-export function Sidebar({
-	user,
-	setModalOpen,
-}: SidebarProps) {
+export function Sidebar({ user }: SidebarProps) {
 	const { setUseOppositeColorForBoard, useOppositeColorForBoard, setHideCollaborators, hideCollaborators, boardActiveCollaborators = [] } = useContext(RootContext) || {};
 	const [kickModalOpen, setKickModalOpen] = useState(false);
 	const { toggleColorMode, colorMode } = useColorMode();
 
 	const fetcher = useFetcher<WebReturnType<string>>();
 	const location = useLocation();
-	const toast = useToast();
-
-	useFetcherResponse(fetcher, toast, () => setModalOpen(null));
 
 	return (
 		<Flex
@@ -406,7 +379,8 @@ export function Sidebar({
 						/>
 					</LinkButton>
 				) : (
-					<IconButton
+					<IconLinkButton
+						to={'/login'}
 						variant={'ghost'}
 						rounded={'full'}
 						aria-label='Login'
@@ -416,7 +390,6 @@ export function Sidebar({
 						display={'flex'}
 						icon={<FiLogIn />}
 						_hover={{ bg: 'alpha300' }}
-						onClick={() => setModalOpen('login')}
 					/>
 				)}
 			</Flex>
@@ -579,65 +552,6 @@ export function NavbarButtons({
 				}
 			})}
 		</Flex>
-	);
-}
-
-export type LoginModalProps = {
-	isOpen: boolean;
-	onClose: () => void;
-	backTo?: string;
-};
-
-export function LoginModal({ isOpen, onClose, backTo }: LoginModalProps) {
-	const { allowedPlatforms = [] } = useContext(RootContext) || {};
-	const allButtons = useMemo(() => platformButtons(allowedPlatforms), [allowedPlatforms]);
-
-	const { colorMode } = useColorMode();
-
-	return (
-		<Modal
-			isOpen={isOpen}
-			onClose={() => onClose()}
-			isCentered
-		>
-			<ModalOverlay />
-			<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
-				<ModalHeader>Login</ModalHeader>
-				<ModalBody>
-					<ModalCloseButton />
-					{allButtons.length ? allButtons.map((platform) => (
-						<LinkButton
-							to={'/login?type=' + platform.name.toLowerCase() + (backTo ? `&backTo=${backTo}` : '')}
-							id={`login-button-${platform.name}`}
-							rounded={12}
-							key={platform.name}
-							bgColor={platform.color}
-							leftIcon={platform.icon({ boxSize: 6 })}
-							justifyContent='flex-start'
-							variant='solid'
-							pl={'25%'}
-							size='lg'
-							w='100%'
-						>
-							Continue with {platform.name}
-						</LinkButton>
-					)) : (
-						<Box>
-							No platforms enabled.
-						</Box>
-					)}
-				</ModalBody>
-				<ModalFooter display={'flex'} gap={1}>
-					<Button
-						flex={1}
-						colorScheme='gray'
-						onClick={onClose}
-					>
-						Close
-					</Button>
-				</ModalFooter>
-			</ModalContent>
-		</Modal>
 	);
 }
 

@@ -34,7 +34,7 @@
 		"@emotion/cache": "11.14.0",
 		"@emotion/react": "11.14.0",
 		"@emotion/server": "^11.11.0",
-		"@excali-boards/boards-api-client": "1.1.1",
+		"@excali-boards/boards-api-client": "1.1.4",
 		"@excalidraw/excalidraw": "0.18.0",
 		"@hono/node-server": "1.19.3",
 		"@loadable/component": "5.16.7",

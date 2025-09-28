@@ -1,7 +1,7 @@
-import { Flex, Text, HStack, Divider, IconButton, FlexProps, Badge, Avatar, useDisclosure } from '@chakra-ui/react';
+import { Flex, Text, HStack, Divider, IconButton, FlexProps, Badge, Avatar } from '@chakra-ui/react';
 import { UserRole } from '@excali-boards/boards-api-client';
-import { ConfirmModal } from '../other/ConfirmModal';
 import { FaTrash } from 'react-icons/fa';
+import { useCallback } from 'react';
 
 export type UserCardProps = {
 	id: string;
@@ -10,6 +10,7 @@ export type UserCardProps = {
 	avatar?: string;
 
 	role: UserRole;
+	grantType: 'explicit' | 'implicit';
 	basedOnType?: string | null;
 
 	canManage?: boolean;
@@ -21,13 +22,11 @@ export function UserCard({
 	username,
 	avatar,
 	role,
-	basedOnType,
+	grantType,
 	canManage,
 	onRevoke,
 }: UserCardProps & FlexProps) {
-	const { isOpen: isConfirmOpen, onOpen: onConfirmOpen, onClose: onConfirmClose } = useDisclosure();
-
-	const getRoleColor = (role: UserRole) => {
+	const getRoleColor = useCallback((role: UserRole) => {
 		switch (role) {
 			case 'BoardViewer':
 			case 'CategoryViewer':
@@ -46,7 +45,15 @@ export function UserCard({
 			default:
 				return 'gray.300';
 		}
-	};
+	}, []);
+
+	const getGrantTypeColor = useCallback((grantType: 'explicit' | 'implicit') => {
+		return grantType === 'explicit' ? 'green.300' : 'purple.300';
+	}, []);
+
+	const getGrantTypeLabel = useCallback((grantType: 'explicit' | 'implicit') => {
+		return grantType === 'explicit' ? 'Direct' : 'Inherited';
+	}, []);
 
 	return (
 		<Flex
@@ -83,16 +90,30 @@ export function UserCard({
 				</HStack>
 			</Flex>
 
-			<Badge
-				px={2} py={1}
-				color={'white'}
-				fontWeight={'bold'}
-				borderRadius={'full'}
-				textTransform={'none'}
-				bg={getRoleColor(role)}
-			>
-				{role}
-			</Badge>
+			<HStack spacing={2}>
+				<Badge
+					px={2} py={1}
+					color={'white'}
+					fontWeight={'bold'}
+					borderRadius={'full'}
+					textTransform={'none'}
+					bg={getRoleColor(role)}
+				>
+					{role}
+				</Badge>
+
+				<Badge
+					px={2} py={1}
+					color={'white'}
+					fontWeight={'bold'}
+					borderRadius={'full'}
+					textTransform={'none'}
+					bg={getGrantTypeColor(grantType)}
+					size={'sm'}
+				>
+					{getGrantTypeLabel(grantType)}
+				</Badge>
+			</HStack>
 
 			<Flex
 				alignItems={'center'}
@@ -105,7 +126,7 @@ export function UserCard({
 				<HStack spacing={2}>
 					{onRevoke && canManage && (
 						<IconButton
-							onClick={onConfirmOpen}
+							onClick={onRevoke}
 							variant={'ghost'}
 							rounded={'full'}
 							bg={'alpha100'}
@@ -119,19 +140,6 @@ export function UserCard({
 					)}
 				</HStack>
 			</Flex>
-
-			<ConfirmModal
-				isOpen={isConfirmOpen}
-				onClose={onConfirmClose}
-				onConfirm={() => {
-					onRevoke?.();
-					onConfirmClose();
-				}}
-				title='Revoke Access'
-				message={`Are you sure you want to revoke this user's access?${basedOnType ? `\nThis will revoke their access to the ${basedOnType} parent too.` : ''}\nThis action cannot be undone.`}
-				confirmText='Revoke'
-				colorScheme='red'
-			/>
 		</Flex>
 	);
 }

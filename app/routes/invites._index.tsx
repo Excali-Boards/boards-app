@@ -68,6 +68,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 			const result = await api?.invites.revokeInvite({ auth: token, code: inviteCode });
 			return makeResObject(result, 'Failed to delete invite.');
 		}
+		case 'renewInvite': {
+			const inviteCode = formData.get('inviteCode') as string;
+			if (!inviteCode) return { status: 400, error: 'Invalid invite code.' };
+
+			const result = await api?.invites.renewInvite({ auth: token, code: inviteCode });
+			if (result?.status !== 200) return makeResObject(result, 'Failed to renew invite.');
+			return makeResObject({ status: result.status, data: 'Invite renewed successfully.' }, null);
+		}
 		default: {
 			return { status: 400, error: 'Invalid request.' };
 		}
@@ -115,6 +123,7 @@ export default function InvitesPage() {
 				<ResourceInvites
 					invites={invites}
 					canManage={true}
+					showRenew={true}
 				/>
 
 				<CreateInviteModal

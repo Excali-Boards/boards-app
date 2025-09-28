@@ -12,9 +12,10 @@ import Select from '../Select';
 export type ResourceInvitesProps = {
 	invites: Jsonify<InviteData>[];
 	canManage: boolean;
+	showRenew?: boolean;
 };
 
-export function ResourceInvites({ invites, canManage }: ResourceInvitesProps) {
+export function ResourceInvites({ invites, canManage, showRenew }: ResourceInvitesProps) {
 	const fetcher = useFetcher<WebReturnType<string>>();
 	const toast = useToast();
 
@@ -25,6 +26,13 @@ export function ResourceInvites({ invites, canManage }: ResourceInvitesProps) {
 	const handleDeleteInvite = useCallback((inviteCode: string) => {
 		const formData = new FormData();
 		formData.append('type', 'deleteInvite');
+		formData.append('inviteCode', inviteCode);
+		fetcher.submit(formData, { method: 'post' });
+	}, [fetcher]);
+
+	const handleRenewInvite = useCallback((inviteCode: string) => {
+		const formData = new FormData();
+		formData.append('type', 'renewInvite');
 		formData.append('inviteCode', inviteCode);
 		fetcher.submit(formData, { method: 'post' });
 	}, [fetcher]);
@@ -51,6 +59,7 @@ export function ResourceInvites({ invites, canManage }: ResourceInvitesProps) {
 						maxUses={invite.maxUses || 0}
 						expiresAt={invite.expiresAt ? new Date(invite.expiresAt) : null}
 						canManage={canManage}
+						onRenew={showRenew ? () => handleRenewInvite(invite.code) : undefined}
 						onDelete={() => handleDeleteInvite(invite.code)}
 						onDetails={() => setTargetInvite(invite)}
 					/>
