@@ -94,22 +94,28 @@ export type ResourceInviteDetailsPropsModal = {
 export function ResourceInviteDetailsModal({ invite, isOpen, onClose }: ResourceInviteDetailsPropsModal) {
 	const { colorMode } = useColorMode();
 
-	const getExpiresIn = useCallback((date: Date | string | null) => {
-		if (!date) return 'Never';
-		if (typeof date === 'string') date = new Date(date);
-
+	const formatExpiresIn = (date: Date) => {
 		const now = new Date();
-		const diffMs = date.getTime() - now.getTime();
-		const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-		const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-		const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+		const diff = date.getTime() - now.getTime();
 
-		if (diffMs <= 0) return 'Expired';
-		if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? 's' : ''}${diffHours > 0 ? `, ${diffHours} hour${diffHours > 1 ? 's' : ''}` : ''}`;
-		if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? 's' : ''}${diffMinutes > 0 ? `, ${diffMinutes} minute${diffMinutes > 1 ? 's' : ''}` : ''}`;
-		if (diffMinutes > 0) return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''}`;
-		return 'less than a minute';
-	}, []);
+		if (diff <= 0) return 'Expired';
+
+		const seconds = Math.floor(diff / 1000);
+		const minutes = Math.floor(seconds / 60);
+		const hours = Math.floor(minutes / 60);
+		const days = Math.floor(hours / 24);
+		const weeks = Math.floor(days / 7);
+		const months = Math.floor(days / 30);
+		const years = Math.floor(days / 365);
+
+		if (years > 0) return `${years} year${years > 1 ? 's' : ''}${months % 12 > 0 ? `, ${months % 12} month${months % 12 > 1 ? 's' : ''}` : ''}${days % 30 > 0 ? `, ${days % 30} day${days % 30 > 1 ? 's' : ''}` : ''}`;
+		if (months > 0) return `${months} month${months > 1 ? 's' : ''}${days % 30 > 0 ? `, ${days % 30} day${days % 30 > 1 ? 's' : ''}` : ''}${hours % 24 > 0 ? `, ${hours % 24} hour${hours % 24 > 1 ? 's' : ''}` : ''}`;
+		if (weeks > 0) return `${weeks} week${weeks > 1 ? 's' : ''}${days % 7 > 0 ? `, ${days % 7} day${days % 7 > 1 ? 's' : ''}` : ''}${hours % 24 > 0 ? `, ${hours % 24} hour${hours % 24 > 1 ? 's' : ''}` : ''}`;
+		if (days > 0) return `${days} day${days > 1 ? 's' : ''}${hours % 24 > 0 ? `, ${hours % 24} hour${hours % 24 > 1 ? 's' : ''}` : ''}${minutes % 60 > 0 ? `, ${minutes % 60} minute${minutes % 60 > 1 ? 's' : ''}` : ''}`;
+		if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''}${minutes % 60 > 0 ? `, ${minutes % 60} minute${minutes % 60 > 1 ? 's' : ''}` : ''}${seconds % 60 > 0 ? `, ${seconds % 60} second${seconds % 60 > 1 ? 's' : ''}` : ''}`;
+		if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''}${seconds % 60 > 0 ? `, ${seconds % 60} second${seconds % 60 > 1 ? 's' : ''}` : ''}`;
+		return `${seconds} second${seconds !== 1 ? 's' : ''}`;
+	};
 
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} isCentered size='3xl'>
@@ -225,9 +231,10 @@ export function ResourceInviteDetailsModal({ invite, isOpen, onClose }: Resource
 								<FormLabel fontSize='sm' fontWeight='semibold'>
 									Expires in
 								</FormLabel>
-								<NumberInput isReadOnly value={getExpiresIn(invite.expiresAt)}>
-									<NumberInputField />
-								</NumberInput>
+								<Input
+									isReadOnly
+									value={formatExpiresIn(new Date(invite.expiresAt))}
+								/>
 							</FormControl>
 						</Flex>
 					</VStack>
