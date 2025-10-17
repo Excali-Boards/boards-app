@@ -3,8 +3,8 @@ import { CalendarEvent } from '~/routes/groups.$groupId.calendar._index';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { FetcherWithComponents } from '@remix-run/react';
 import 'react-datepicker/dist/react-datepicker.css';
+import { DatePicker } from 'react-datepicker';
 import { calendarColors } from '~/other/vars';
-import DatePicker from 'react-datepicker';
 import Select from '~/components/Select';
 
 export type ModalOpen = 'createEvent' | 'updateEvent' | 'viewEvent' | 'viewHoliday' | null;

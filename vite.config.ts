@@ -10,6 +10,17 @@ import esbuild from 'esbuild';
 config();
 installGlobals();
 
+const tldrawPackages = [
+	'tldraw',
+	'@tldraw/state',
+	'@tldraw/store',
+	'@tldraw/sync',
+	'@tldraw/sync-core',
+	'@tldraw/tlschema',
+	'@tldraw/utils',
+	'@tldraw/validate',
+];
+
 export default defineConfig({
 	mode: process.env.NODE_ENV,
 	server: {
@@ -40,14 +51,7 @@ export default defineConfig({
 					entryPoints: ['server/index.ts'],
 					external: [
 						'./build/server/*',
-						'tldraw',
-						'@tldraw/state',
-						'@tldraw/store',
-						'@tldraw/sync',
-						'@tldraw/sync-core',
-						'@tldraw/tlschema',
-						'@tldraw/utils',
-						'@tldraw/validate',
+						...tldrawPackages,
 						'react-datepicker',
 					],
 					packages: 'external',
@@ -68,30 +72,12 @@ export default defineConfig({
 		},
 	},
 	optimizeDeps: {
-		include: ['@excalidraw/excalidraw', '@loadable/component', 'temporal-polyfill'],
-		exclude: [
-			'tldraw',
-			'@tldraw/state',
-			'@tldraw/store',
-			'@tldraw/sync',
-			'@tldraw/sync-core',
-			'@tldraw/tlschema',
-			'@tldraw/utils',
-			'@tldraw/validate',
-		],
+		include: ['@excalidraw/excalidraw', '@loadable/component', 'temporal-polyfill', 'react-datepicker'],
+		exclude: tldrawPackages,
 	},
 	ssr: {
-		external: [
-			'tldraw',
-			'@tldraw/state',
-			'@tldraw/store',
-			'@tldraw/sync',
-			'@tldraw/sync-core',
-			'@tldraw/tlschema',
-			'@tldraw/utils',
-			'@tldraw/validate',
-		],
-		noExternal: ['@excalidraw/excalidraw', '@loadable/component', 'crypto'],
+		external: tldrawPackages,
+		noExternal: ['@excalidraw/excalidraw', '@loadable/component', 'crypto', 'react-datepicker'],
 	},
 	define: {
 		'process.env.IS_PREACT': JSON.stringify('true'),
