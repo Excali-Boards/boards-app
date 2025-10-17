@@ -48,6 +48,7 @@ export default defineConfig({
 						'@tldraw/tlschema',
 						'@tldraw/utils',
 						'@tldraw/validate',
+						'react-datepicker',
 					],
 					packages: 'external',
 					logLevel: 'info',
