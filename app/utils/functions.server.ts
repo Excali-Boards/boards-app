@@ -87,7 +87,7 @@ export function getCode(data: unknown): number {
 	if (typeof data === 'object' && data && 'status' in data) return getCode(data.status);
 	if (typeof data === 'object' && data && 'code' in data) return getCode(data.code);
 	if (typeof data === 'number') return data;
-	return 500;
+	return 400;
 }
 
 export function makeResponse(data: unknown, message: string): Response {

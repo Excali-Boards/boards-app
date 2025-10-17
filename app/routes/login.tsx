@@ -14,7 +14,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const query = new URLSearchParams(request.url.split('?')[1]);
 
 	const token = await authenticator.isAuthenticated(request);
-	const DBUser = await getCachedUser(request);
+	const DBUser = (await getCachedUser(request))?.data;
 
 	const type = query.get('type') as string | undefined;
 	if (!type || !allowedPlatforms.some((p) => p.toLowerCase() === type.toLowerCase())) {

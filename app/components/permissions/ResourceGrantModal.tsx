@@ -1,7 +1,7 @@
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, FormControl, FormLabel, useColorMode, Input, useToast } from '@chakra-ui/react';
+import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { ResourceType } from '@excali-boards/boards-api-client';
 import { HigherRoles, LowerRoles } from './CreateInviteModal';
-import useFetcherResponse from '~/hooks/useFetcherResponse';
 import { WebReturnType } from '~/other/types';
 import { useFetcher } from '@remix-run/react';
 import { useCallback, useState } from 'react';

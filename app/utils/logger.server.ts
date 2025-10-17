@@ -58,7 +58,7 @@ export default function LoggerModule(logType: string, input: string, color: keyo
 
 // Error.
 export class CustomError extends Error {
-	constructor(name: string, message: string) {
+	constructor (name: string, message: string) {
 		super(message);
 		this.name = name;
 	}

@@ -5,7 +5,7 @@ export type Key = {
 	special?: ('ctrl' | 'shift' | 'alt')[];
 } | string;
 
-export default function useHotkeys(keys: Key[], callback: (k: Key) => void, dontIf?: boolean) {
+export function useHotkeys(keys: Key[], callback: (k: Key) => void, dontIf?: boolean) {
 	return useEventListener('keydown', (event) => {
 		if (dontIf) return;
 

@@ -6,12 +6,12 @@ import { Outlet } from '@remix-run/react';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
-	const DBUser = await getCachedUser(request);
+	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	if (!DBUser || !token || 'error' in DBUser) throw makeResponse(DBUser, 'You are not authorized to view this page.');
-	else if (!DBUser.data.isDev) throw makeResponse(null, 'You are not authorized to view this page.');
+	const DBUser = (await getCachedUser(request))?.data;
+	if (!DBUser || 'error' in DBUser) throw makeResponse(DBUser, 'Failed to get user data.');
 
-	return { authorized: true };
+	return { authorized: DBUser.data.isDev };
 };
 
 export default function Admin() {

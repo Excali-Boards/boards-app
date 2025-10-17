@@ -1,5 +1,4 @@
-import { GetUsersOutput } from '@excali-boards/boards-api-client';
-import { ColabUser } from '~/other/types';
+import { CollabUser, GetUsersOutput } from '@excali-boards/boards-api-client';
 import { createContext } from 'react';
 
 export type RootContextType = null | {
@@ -9,8 +8,8 @@ export type RootContextType = null | {
 	hideCollaborators: boolean;
 	setHideCollaborators: (value: boolean) => void;
 
-	boardActiveCollaborators: ColabUser[];
-	setBoardActiveCollaborators: (users: ColabUser[]) => void;
+	boardActiveCollaborators: CollabUser[];
+	setBoardActiveCollaborators: (users: CollabUser[]) => void;
 
 	useOppositeColorForBoard: boolean;
 	setUseOppositeColorForBoard: (value: boolean) => void;
@@ -23,6 +22,7 @@ export type RootContextType = null | {
 
 	allowedPlatforms: string[];
 	user: GetUsersOutput | null;
+	token: string | null;
 };
 
 export const RootContext = createContext<RootContextType>(null);

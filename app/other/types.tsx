@@ -1,7 +1,7 @@
-import type { BinaryFileData, Collaborator, SocketId } from '@excalidraw/excalidraw/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { GetAllSortedOutput } from '@excali-boards/boards-api-client';
-import CustomMap from '~/utils/map.server';
+import type { Collaborator } from '@excalidraw/excalidraw/types';
+import { RoomSnapshot } from '@tldraw/sync';
 
 export type Simplify<T> = {
 	[K in keyof T]: T[K];
@@ -37,17 +37,11 @@ export type BackendRooms = {
 	elements: number;
 }[];
 
-export type RoomData = {
-	boardId: string;
-
-	files: string[];
-	elements: ExcalidrawElement[];
-	collaborators: CustomMap<SocketId, NoNestedReadonly<Collaborator>>;
-};
-
 export type ClientData = {
 	elements: ExcalidrawElement[];
-};
+} | {
+	snapshot: RoomSnapshot | null;
+}
 
 export type SceneBroadcastData = {
 	elements: ExcalidrawElement[];
@@ -95,13 +89,13 @@ export type SnapshotData = SceneBroadcastData;
 export type ActionType = 'add' | 'remove';
 export type FileActionData<T extends ActionType> = {
 	action: T;
-	files: T extends 'add' ? BinaryFileData[] : string[];
+	files: T extends 'add' ? UploadFile[] : string[];
 };
 
-export type ColabUser = {
-	userId: string;
-	username: string;
-	avatarUrl: string | null;
+export type UploadFile = {
+	id: string;
+	mimeType: string;
+	data: string | File | ArrayBuffer | Uint8Array | Buffer;
 };
 
 export type StatsData = {
@@ -129,23 +123,28 @@ export type ServerToClientEvents = {
 	isSaved: () => unknown;
 	kick: () => unknown;
 
+	// Board.
+	tldraw: (data: string) => unknown;
+
+	// Excalidraw.
 	filesUpdated: (stats?: StatsData) => unknown;
 	preloadFiles: (files: string[]) => unknown;
-
 	followedBy: (data: string[]) => unknown;
 	setCollaborators: (collaborators: Collaborator[]) => unknown;
 	broadcastScene: (data: SceneBroadcastData) => unknown;
 	collaboratorPointerUpdate: (data: CollaboratorPointer) => unknown;
 	relayVisibleSceneBounds: (data: BoundsData<'socketId'>) => unknown;
 	sendSnapshot: (data: SnapshotData) => unknown;
-}
+};
 
 // For: socket.on
 export type ClientToServerEvents = {
+	tldraw: (data: string) => unknown;
+
+	// Excalidraw.
 	sendSnapshot: (data: SnapshotData) => unknown;
 	broadcastScene: (data: SceneBroadcastData) => unknown;
 	collaboratorPointerUpdate: (data: CollaboratorPointer) => unknown;
 	userFollow: (data: OnUserFollowedPayload) => unknown;
 	relayVisibleSceneBounds: (data: BoundsData<'roomId'>) => unknown;
-	fileAction: <T extends ActionType>(data: FileActionData<T>) => unknown;
-}
+};

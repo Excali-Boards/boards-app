@@ -2,7 +2,7 @@ import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody,
 import { GetAllSortedOutput } from '@excali-boards/boards-api-client';
 import { getRandomColorScheme, findConflicts } from '~/other/utils';
 import { Fragment, useCallback, useMemo, useState } from 'react';
-import useFetcherResponse from '~/hooks/useFetcherResponse';
+import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { WebReturnType } from '~/other/types';
 import { useFetcher } from '@remix-run/react';
 import Select from '~/components/Select';

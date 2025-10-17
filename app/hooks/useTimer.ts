@@ -1,11 +1,11 @@
+import { useInterval } from '~/hooks/useInterval';
 import { useState, useCallback } from 'react';
-import useInterval from '~/hooks/useInterval';
 
-type UseTimerProps = {
-    durationInMinutes: number;
-    warnTimeSeconds: number;
-    onEnd?: () => void;
-    onWarn?: () => void;
+export type UseTimerProps = {
+	durationInMinutes: number;
+	warnTimeSeconds: number;
+	onEnd?: () => void;
+	onWarn?: () => void;
 }
 
 export function useTimer({ durationInMinutes, warnTimeSeconds, onEnd, onWarn }: UseTimerProps) {

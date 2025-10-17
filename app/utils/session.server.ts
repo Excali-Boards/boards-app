@@ -4,29 +4,35 @@ import { authenticator } from '~/utils/auth.server';
 import { api } from '~/utils/web.server';
 import { UAParser } from 'ua-parser-js';
 
-export type UserResponse = WebResponse<GetUsersOutput> | undefined;
+export type UserResponse = WebResponse<GetUsersOutput>;
 const userCache = new Map<string, { data: UserResponse; expiry: number }>();
 
 const userAgentParser = new UAParser('user-agent');
 
-export async function getCachedUser(request: Request): Promise<UserResponse> {
+export type CachedResponse = {
+	data: UserResponse;
+	token: string;
+} | undefined;
+
+export async function getCachedUser(request: Request): Promise<CachedResponse> {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) return;
 
 	const now = Date.now();
 	const cached = userCache.get(token);
 
-	if (cached && cached.expiry > now) return cached.data;
+	if (cached && cached.expiry > now) return { data: cached.data, token };
 	if (cached) userCache.delete(token);
 
 	const result = await api?.users.getCurrentUser({ auth: token });
+	if (!result) return;
 
 	userCache.set(token, {
 		data: result,
 		expiry: now + 5 * 60 * 1000,
 	});
 
-	return result;
+	return { data: result, token };
 }
 
 export async function clearUserCache(requestOrToken: Request | string): Promise<void> {

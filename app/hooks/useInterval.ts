@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-export default function useInterval<T extends () => void>(callback: T, delay: number | null) {
+export function useInterval<T extends () => void>(callback: T, delay: number | null) {
 	const callbacRef = useRef<T>();
 
 	useEffect(() => {
@@ -8,7 +8,7 @@ export default function useInterval<T extends () => void>(callback: T, delay: nu
 	});
 
 	useEffect(() => {
-		if (!delay) return () => {};
+		if (!delay) return () => { };
 
 		const interval = setInterval(() => callbacRef.current && callbacRef.current(), delay);
 

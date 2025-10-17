@@ -1,15 +1,16 @@
 import { Outlet, isRouteErrorResponse, useLoaderData, useMatches, useRouteError } from '@remix-run/react';
 import { LoaderFunctionArgs, LinksFunction, MetaFunction } from '@remix-run/node';
 import { allowedPlatforms as allowedLoginPlatforms } from '~/utils/config.server';
-import { getCachedUser, UserResponse } from './utils/session.server';
+import { CachedResponse, getCachedUser } from './utils/session.server';
+import { CollabUser } from '@excali-boards/boards-api-client';
 import { ChakraProvider, Flex } from '@chakra-ui/react';
 import { cssBundleHref } from '@remix-run/css-bundle';
-import { ColabUser, themeColor } from './other/types';
 import { authenticator } from './utils/auth.server';
 import { RootContext } from '~/components/Context';
 import InfoComponent from '~/components/Info';
 import theme from '~/components/theme/base';
 import { useEffect, useState } from 'react';
+import { themeColor } from './other/types';
 import Layout from '~/components/Layout';
 import isMobileDetect from 'is-mobile';
 import { Document } from '~/document';
@@ -42,30 +43,32 @@ export const meta: MetaFunction = () => {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-	let user: UserResponse;
+	let data: CachedResponse;
 
 	try {
-		user = await getCachedUser(request);
-		if (user?.status === 401) throw new Error('Unauthorized.');
+		data = await getCachedUser(request);
+		if (data?.data?.status === 401) throw new Error('Unauthorized.');
 	} catch {
 		return authenticator.logout(request, { redirectTo: '/' });
 	}
 
 	return {
-		user: user && 'data' in user ? user.data : null,
+		token: data?.token || null,
+		user: data?.data && 'data' in data.data ? data.data.data : null,
 		isMobile: isMobileDetect({ ua: request.headers.get('user-agent') || '' }),
 		allowedPlatforms: allowedLoginPlatforms,
 		nullHeader: [
 			'routes/groups.$groupId.$categoryId.$boardId._index',
+			'routes/groups.$groupId.calendar._index',
 		],
 	};
 };
 
 export default function App() {
-	const { user, nullHeader, isMobile, allowedPlatforms } = useLoaderData<typeof loader>();
+	const { user, token, nullHeader, isMobile, allowedPlatforms } = useLoaderData<typeof loader>();
 
 	const [sideBarHeader, setSiteBarHeader] = useState<'header' | 'sidebar' | 'none'>('header');
-	const [boardActiveCollaborators, setBoardActiveCollaborators] = useState<ColabUser[]>([]);
+	const [boardActiveCollaborators, setBoardActiveCollaborators] = useState<CollabUser[]>([]);
 	const [useOppositeColorForBoard, setUseOppositeColorForBoard] = useState(false);
 	const [hideCollaborators, setHideCollaborators] = useState(false);
 	const [canInvite, setCanInvite] = useState(user?.isDev || false);
@@ -73,7 +76,10 @@ export default function App() {
 
 	const matches = useMatches();
 
-	useEffect(() => matches.some((match) => nullHeader?.includes(match.id)) ? setSiteBarHeader(isMobile ? 'none' : 'sidebar') : setSiteBarHeader('header'), [isMobile, matches, nullHeader]);
+	useEffect(() => {
+		if (matches.some((match) => nullHeader?.includes(match.id))) setSiteBarHeader(isMobile ? 'none' : 'sidebar');
+		else setSiteBarHeader('header');
+	}, [isMobile, matches, nullHeader]);
 
 	return (
 		<Document>
@@ -86,6 +92,7 @@ export default function App() {
 					showAllBoards, setShowAllBoards,
 					canInvite, setCanInvite,
 					allowedPlatforms,
+					token,
 					user,
 				}}>
 					<Layout

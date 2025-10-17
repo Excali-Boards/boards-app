@@ -1,9 +1,10 @@
 import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
+import { BoardType } from '@excali-boards/boards-api-client/prisma/generated/client';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
-import useFetcherResponse from '~/hooks/useFetcherResponse';
+import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { SearchBar } from '~/components/layout/SearchBar';
 import { canManage, validateParams } from '~/other/utils';
 import { NoticeCard } from '~/components/other/Notice';
@@ -14,6 +15,7 @@ import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
 import { FaPlus, FaTools } from 'react-icons/fa';
 import { WebReturnType } from '~/other/types';
+import Select from '~/components/Select';
 import { api } from '~/utils/web.server';
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
@@ -40,8 +42,9 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 	switch (type) {
 		case 'newBoard': {
 			const boardName = formData.get('boardName') as string;
+			const boardType = formData.get('boardType') as BoardType;
 
-			const result = await api?.categories.createBoardInCategory({ auth: token, categoryId, groupId, body: { name: boardName } });
+			const result = await api?.categories.createBoardInCategory({ auth: token, categoryId, groupId, body: { name: boardName, type: boardType } });
 			return makeResObject(result, 'Failed to create board.');
 		}
 		case 'updateBoard': {
@@ -86,10 +89,10 @@ export default function Boards() {
 	const [modalOpen, setModalOpen] = useState<ModalOpen>(null);
 	const [boardId, setBoardId] = useState<string | null>(null);
 
-	const [tempBoards, setTempBoards] = useState<string[]>([]);
-	const [didShowAlert, setDidShowAlert] = useState(false);
+	const [_, setDidShowAlert] = useState(false);
 	const [revertKey, setRevertKey] = useState(0);
 	const [editorMode, setEditorMode] = useState(false);
+	const [tempBoards, setTempBoards] = useState<string[]>([]);
 
 	const [search, setSearch] = useState('');
 	const dbcSearch = useDebounced(search, [search], 300);
@@ -113,9 +116,7 @@ export default function Boards() {
 	useEffect(() => setCanInvite?.(canManageAnything), [canManageAnything, setCanInvite]);
 
 	useEffect(() => {
-		if (tempBoards.length > 0) {
-			setDidShowAlert(true);
-		}
+		if (tempBoards.length > 0) setDidShowAlert(true);
 	}, [tempBoards]);
 
 	return (
@@ -252,6 +253,15 @@ export function ManageBoard({ isOpen, onClose, type, fetcher, defaultName, board
 											maxLength={50}
 											minLength={1}
 											autoFocus
+										/>
+									</Box>
+									<Box flex={1}>
+										<Select
+											id='boardType'
+											name='boardType'
+											placeholder='Board Type'
+											options={['Excalidraw', 'Tldraw'].map((type) => ({ label: type, value: type }))}
+											defaultValue={{ label: 'Excalidraw', value: 'Excalidraw' }}
 										/>
 									</Box>
 								</>

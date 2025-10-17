@@ -1,0 +1,140 @@
+/* hide scrollbar */
+.sx__view-container {
+	scrollbar-width: none;
+
+	&::-webkit-scrollbar {
+		display: none;
+	}
+}
+
+.sx__calendar {
+	height: 100% !important;
+	border: none !important;
+	border-radius: 0 !important;
+}
+
+.sx__header,
+.sx__header-content,
+.sx__calendar-header {
+	display: none !important;
+}
+
+.sx__month-grid-day.is-leading-or-trailing {
+	opacity: 0.4 !important;
+	background-color: #f5f5f5 !important;
+	color: #999999 !important;
+}
+
+.is-dark .sx__month-grid-day.is-leading-or-trailing {
+	opacity: 0.4 !important;
+	background-color: #141414 !important;
+	color: #555555 !important;
+}
+
+.sx__calendar-event[data-event-type='holiday'] {
+	cursor: default !important;
+	pointer-events: none !important;
+}
+
+.sx__calendar-event[data-event-type='holiday']:hover {
+	transform: none !important;
+	box-shadow: none !important;
+}
+
+.sx__calendar-event {
+	width: 100% !important;
+	margin: 0 !important;
+	padding: 2px 4px !important;
+	box-sizing: border-box !important;
+}
+
+.sx__week-grid__date,
+.sx__week-grid__date-axis,
+.sx__thursday,
+.sx__week-grid__date--is-today {
+	z-index: 1 !important;
+}
+
+[data-calendar-view-menu] {
+	z-index: 10 !important;
+}
+
+:root {
+	--sx-color-primary: #6966db;
+	--sx-color-on-primary: #ffffff;
+	--sx-color-primary-container: #EAF3FA;
+	--sx-color-on-primary-container: #0A1A29;
+
+	--sx-color-secondary: #6334CB;
+	--sx-color-on-secondary: #ffffff;
+	--sx-color-secondary-container: #EFEBFA;
+	--sx-color-on-secondary-container: #140A29;
+
+	--sx-color-tertiary: #3EC1BE;
+	--sx-color-on-tertiary: #ffffff;
+	--sx-color-tertiary-container: #ECF9F8;
+	--sx-color-on-tertiary-container: #0C2726;
+
+	--sx-color-surface: #F0F2F4;
+	--sx-color-surface-dim: #D6DAE1;
+	--sx-color-surface-bright: #ffffff;
+	--sx-color-on-surface: #121314;
+	--sx-color-surface-container: #F0F2F4;
+	--sx-color-surface-container-low: #ffffff;
+	--sx-color-surface-container-high: #D6DAE1;
+
+	--sx-color-background: #ffffff;
+	--sx-color-on-background: #121314;
+
+	--sx-color-outline: #8793A6;
+	--sx-color-outline-variant: #BCC3CD;
+
+	--sx-color-shadow: #000000;
+	--sx-color-surface-tint: #3182CE;
+	--sx-color-neutral: #8793A6;
+	--sx-color-neutral-variant: #BCC3CD;
+
+	--sx-internal-color-gray-ripple-background: #D6DAE1;
+	--sx-internal-color-light-gray: #F0F2F4;
+	--sx-internal-color-text: #121314;
+}
+
+.is-dark {
+	--sx-color-primary: #6966db;
+	--sx-color-on-primary: #ffffff;
+	--sx-color-primary-container: #1D4E7C;
+	--sx-color-on-primary-container: #EAF3FA;
+
+	--sx-color-secondary: #9B7DDE;
+	--sx-color-on-secondary: #ffffff;
+	--sx-color-secondary-container: #3B1F7A;
+	--sx-color-on-secondary-container: #EFEBFA;
+
+	--sx-color-tertiary: #61CCCA;
+	--sx-color-on-tertiary: #ffffff;
+	--sx-color-tertiary-container: #257472;
+	--sx-color-on-tertiary-container: #ECF9F8;
+
+	--sx-color-surface: #1a1a1a;
+	--sx-color-surface-dim: #121314;
+	--sx-color-surface-bright: #414A58;
+	--sx-color-on-surface: #F0F2F4;
+	--sx-color-surface-container: #1a1a1a;
+	--sx-color-surface-container-low: #121314;
+	--sx-color-surface-container-high: #414A58;
+
+	--sx-color-background: #1a1a1a;
+	--sx-color-on-background: #F0F2F4;
+
+	--sx-color-outline: #576375;
+	--sx-color-outline-variant: #414A58;
+
+	--sx-color-shadow: #000000;
+	--sx-color-surface-tint: #5698D7;
+	--sx-color-neutral: #576375;
+	--sx-color-neutral-variant: #414A58;
+
+	--sx-internal-color-gray-ripple-background: #414A58;
+	--sx-internal-color-light-gray: #1a1a1a;
+	--sx-internal-color-text: #F0F2F4;
+}

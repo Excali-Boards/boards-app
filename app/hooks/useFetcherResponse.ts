@@ -3,7 +3,7 @@ import { CreateToastFnReturn } from '@chakra-ui/react';
 import { WebReturnType } from '~/other/types';
 import { useEffect } from 'react';
 
-export default function useFetcherResponse<T extends object, R extends string>(
+export function useFetcherResponse<T extends object, R extends string>(
 	fetcher: FetcherWithComponents<WebReturnType<R> & T>,
 	toast: CreateToastFnReturn,
 	onSuccess?: (data: { status: 200; data: string; } & T) => void,

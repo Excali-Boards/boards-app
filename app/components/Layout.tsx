@@ -1,13 +1,13 @@
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, Avatar, Text, Button, Image, Flex, HStack, IconButton, useColorMode, Heading, Box, useBreakpointValue, Divider, Tooltip, Drawer, DrawerBody, DrawerCloseButton, DrawerContent, DrawerHeader, DrawerOverlay, useDisclosure, FlexProps, VStack, Center } from '@chakra-ui/react';
 import { FaArrowUp, FaCode, FaCogs, FaList, FaMoon, FaSun, FaUser, FaUsers, FaUserSlash } from 'react-icons/fa';
+import { CollabUser, GetUsersOutput } from '@excali-boards/boards-api-client';
 import { Fragment, useCallback, useContext, useMemo, useState } from 'react';
-import { GetUsersOutput } from '@excali-boards/boards-api-client';
 import { Link, useFetcher, useLocation } from '@remix-run/react';
 import { IconLinkButton, LinkButton } from '~/components/Button';
-import { ColabUser, WebReturnType } from '~/other/types';
 import { RootContext } from '~/components/Context';
 import { IoIosColorPalette } from 'react-icons/io';
 import { FiLogIn, FiUsers } from 'react-icons/fi';
+import { WebReturnType } from '~/other/types';
 import { useScroll } from '~/hooks/useScroll';
 import { MdPrivacyTip } from 'react-icons/md';
 import { IoMenu } from 'react-icons/io5';
@@ -264,16 +264,16 @@ export function Sidebar({ user }: SidebarProps) {
 			</Flex>
 
 			<Flex
+				flex={1}
 				w={'100%'}
-				h={60}
 				alignItems={'center'}
-				justifyContent={'center'}
-				bg={'transparent'}
+				justifyContent={'flex-end'}
 				flexDir={'column'}
+				bg={'transparent'}
 				gap={2}
 				mb={2}
 			>
-				{user?.isDev && boardActiveCollaborators.length && (
+				{user?.isDev && !!boardActiveCollaborators.length && (
 					<Tooltip
 						label='Kick collaborators'
 						aria-label='Kick collaborators'
@@ -556,7 +556,7 @@ export function NavbarButtons({
 }
 
 export type KickUsersModalProps = {
-	users: ColabUser[];
+	users: CollabUser[];
 	currentUserId: string;
 	isOpen: boolean;
 	onClose: () => void;
@@ -576,7 +576,7 @@ export function KickUsersModal({ users, isOpen, currentUserId, onClose, onKick }
 						<VStack spacing={3} align='stretch'>
 							{users.map((user) => (
 								<Flex
-									key={user.userId}
+									key={user.id}
 									align='center'
 									justify='space-between'
 									p={3}
@@ -601,8 +601,8 @@ export function KickUsersModal({ users, isOpen, currentUserId, onClose, onKick }
 										colorScheme='red'
 										variant='outline'
 										size='sm'
-										isDisabled={user.userId === currentUserId}
-										onClick={() => onKick(user.userId)}
+										isDisabled={user.id === currentUserId}
+										onClick={() => onKick(user.id)}
 										_disabled={{
 											opacity: 0.5,
 											cursor: 'not-allowed',

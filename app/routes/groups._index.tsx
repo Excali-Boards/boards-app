@@ -3,7 +3,7 @@ import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/rea
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
-import useFetcherResponse from '~/hooks/useFetcherResponse';
+import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { SearchBar } from '~/components/layout/SearchBar';
 import { NoticeCard } from '~/components/other/Notice';
 import CardList from '~/components/layout/CardList';

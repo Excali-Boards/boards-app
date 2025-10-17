@@ -1,328 +1,754 @@
-import type { ExcalidrawElement, ExcalidrawElementType, ExcalidrawFreeDrawElement, ExcalidrawLinearElement, OrderedExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import type { AppState, ElementOrToolType, NormalizedZoomValue, PointerCoords, Zoom } from '@excalidraw/excalidraw/types';
-import type { ReconciledExcalidrawElement } from '@excalidraw/excalidraw/data/reconcile';
-import type { ElementUpdate } from '@excalidraw/excalidraw/element/mutateElement';
-import type { SceneBounds } from '@excalidraw/excalidraw/element/bounds';
-import type { MakeBrand } from '@excalidraw/excalidraw/utility-types';
-import loadable from '@loadable/component';
-import { memo } from 'react';
+import { Excalidraw, getSceneVersion, getVisibleSceneBounds, isSyncableElement, newElementWith, reconcileElements, WelcomeScreen, zoomToFitBounds } from '~/components/board/Imports';
+import { AppState, BinaryFileData, Collaborator, DataURL, ExcalidrawInitialDataState, Gesture, SocketId } from '@excalidraw/excalidraw/types';
+import { FileId, InitializedExcalidrawImageElement, OrderedExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { ClientData, ClientToServerEvents, SceneBroadcastData, ServerToClientEvents, StatsData } from '~/other/types';
+import { CollabUser, BoardsManager } from '@excali-boards/boards-api-client';
+import { isInitializedImageElement, throttleRAF } from '~/other/utils';
+import { BoardExcalidrawState, BoardProps } from './types';
+import { Box, Flex, Spinner } from '@chakra-ui/react';
+import msgPack from 'socket.io-msgpack-parser';
+import { io, Socket } from 'socket.io-client';
+import { TopBar } from '~/components/TopBar';
+import { Component, Suspense } from 'react';
+// eslint-disable-next-line import/no-unresolved
+import '@excalidraw/excalidraw/index.css';
+import throttle from 'lodash.throttle';
+import { Buffer } from 'buffer';
+import axios from 'axios';
 
-export default memo(loadable(() => import('@excalidraw/excalidraw'), {
-	resolveComponent: (module) => module.Excalidraw,
-	ssr: false,
-}));
+export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState> {
+	private broadcastedElementVersions = new Map<string, number>();
+	private lastBoardcastedOrReceivedSceneVersion = -1;
 
-export const WelcomeScreen = {
-	Main: memo(loadable(() => import('@excalidraw/excalidraw'), {
-		resolveComponent: (module) => module.WelcomeScreen,
-		ssr: false,
-	})),
-	Center: memo(loadable(() => import('@excalidraw/excalidraw'), {
-		resolveComponent: (module) => module.WelcomeScreen.Center,
-		ssr: false,
-	})),
-	CenterLogo: memo(loadable(() => import('@excalidraw/excalidraw'), {
-		resolveComponent: (module) => module.WelcomeScreen.Center.Logo,
-		ssr: false,
-	})),
-};
+	private trackedFiles = new Map<string, { isDeleted: boolean; isLoaded: boolean; data: BinaryFileData; }>();
+	private apiClient: BoardsManager;
 
-export const MainMenu = {
-	Main: memo(loadable(() => import('@excalidraw/excalidraw'), {
-		resolveComponent: (module) => module.MainMenu,
-		ssr: false,
-	})),
-	Item: memo(loadable(() => import('@excalidraw/excalidraw'), {
-		resolveComponent: (module) => module.MainMenu.Item,
-		ssr: false,
-	})),
-	Footer: memo(loadable(() => import('@excalidraw/excalidraw'), {
-		resolveComponent: (module) => module.Footer,
-		ssr: false,
-	})),
-};
+	private hiddenCollaborators: Map<SocketId, Collaborator> = new Map();
+	private hideCollaborators = false;
 
-export const getVisibleSceneBounds = ({
-	scrollX,
-	scrollY,
-	width,
-	height,
-	zoom,
-}: AppState): SceneBounds => {
-	return [
-		-scrollX,
-		-scrollY,
-		-scrollX + width / zoom.value,
-		-scrollY + height / zoom.value,
-	];
-};
+	private initialDataResolve: ((data: ExcalidrawInitialDataState) => void) | null = null;
+	private initialDataPromise: Promise<ExcalidrawInitialDataState> | null;
 
-export const hashElementsVersion = (
-	elements: readonly ExcalidrawElement[] = [],
-): number => {
-	let hash = 5381;
+	private activeIntervalId: number | null;
+	private idleTimeoutId: number | null;
 
-	for (let i = 0; i < elements?.length || 0; i++) {
-		hash = (hash << 5) + hash + (elements[i]?.versionNonce || 0);
+	private onUmmount: (() => void) | null = null;
+
+	constructor (props: BoardProps) {
+		super(props);
+
+		this.apiClient = new BoardsManager(props.socketUrl);
+
+		this.state = {
+			isInitialized: false,
+			isFirstTime: true,
+			connectedBefore: false,
+			isConnected: false,
+			isKicked: false,
+			isSaved: false,
+			excalidrawAPI: null,
+			socketIO: null,
+		};
+
+		this.initialDataPromise = new Promise((resolve) => {
+			this.initialDataResolve = resolve;
+		});
+
+		this.activeIntervalId = null;
+		this.idleTimeoutId = null;
 	}
 
-	return hash >>> 0;
-};
+	componentDidMount() {
+		window.addEventListener('pointermove', this.onPointerMove);
+		window.addEventListener('beforeunload', (event) => this.handleBeforeUnload(event, this.state.isSaved));
+		window.addEventListener('visibilitychange', this.onVisibilityChange);
+		window.addEventListener('resize', () => this.relayVisibleSceneBounds());
+	}
 
-export const getSceneVersion = (elements: readonly ExcalidrawElement[]) => elements.reduce((acc, el) => acc + el.version, 0);
+	componentWillUnmount() {
+		this.onUmmount?.();
+		this.state.socketIO?.close();
 
-export const reconcileElements = (
-	localElements: readonly ExcalidrawElement[],
-	remoteElements: readonly ExcalidrawElement[],
-	localAppState: AppState,
-): ReconciledExcalidrawElement[] => {
-	const localElementsMap = arrayToMap(localElements);
-	const reconciledElements: ExcalidrawElement[] = [];
-	const added = new Set<string>();
+		window.removeEventListener('pointermove', this.onPointerMove);
+		window.removeEventListener('beforeunload', (event) => this.handleBeforeUnload(event, this.state.isSaved));
+		window.removeEventListener('visibilitychange', this.onVisibilityChange);
+		window.removeEventListener('resize', () => this.relayVisibleSceneBounds());
 
-	for (const remoteElement of remoteElements) {
-		if (!added.has(remoteElement.id)) {
-			const localElement = localElementsMap.get(remoteElement.id);
-			const discardRemoteElement = shouldDiscardRemoteElement(
-				localAppState,
-				localElement,
-				remoteElement,
-			);
+		this.updateUserPointer.cancel();
+		this.loadImageFiles.cancel();
+		this.queueSave.cancel();
+	}
 
-			if (localElement && discardRemoteElement) {
-				reconciledElements.push(localElement);
-				added.add(localElement.id);
-			} else {
-				reconciledElements.push(remoteElement);
-				added.add(remoteElement.id);
+	componentDidUpdate(prevProps: BoardProps, prevState: BoardExcalidrawState) {
+		if (prevState.excalidrawAPI !== this.state.excalidrawAPI) {
+			this.connectSocket(); this.setupEvents();
+		}
+
+		if (prevState.isSaved !== this.state.isSaved) {
+			window.removeEventListener('beforeunload', (event) => this.handleBeforeUnload(event, prevState.isSaved));
+			window.addEventListener('beforeunload', (event) => this.handleBeforeUnload(event, this.state.isSaved));
+		}
+
+		if (prevProps.hideCollaborators !== this.props.hideCollaborators) {
+			this.toggleShowCollaborators(this.props.hideCollaborators);
+		}
+	}
+
+	handleBeforeUnload(event: BeforeUnloadEvent, isSaved: boolean) {
+		if (!isSaved) {
+			event.preventDefault();
+			this.queueSave?.();
+
+			event.returnValue = 'no';
+			return event.returnValue;
+		}
+	}
+
+	setupEvents() {
+		const unsubOnUserFollow = this.state.excalidrawAPI?.onUserFollow((payload) => {
+			this.state.socketIO?.emit('userFollow', {
+				...payload, action: payload.action.toLowerCase() as 'follow' | 'unfollow',
+			});
+		});
+
+		const throttledRelayUserViewportBounds = throttleRAF(this.relayVisibleSceneBounds);
+
+		const unsubOnScrollChange = this.state.excalidrawAPI?.onScrollChange(() => throttledRelayUserViewportBounds());
+
+		this.onUmmount = () => {
+			unsubOnUserFollow?.();
+			unsubOnScrollChange?.();
+		};
+	}
+
+	getAppStateProps<K extends keyof AppState>(override?: Pick<AppState, K>) {
+		return {
+			isLoading: !this.state.isInitialized || !this.state.isConnected,
+			viewModeEnabled: !this.props.canEdit,
+			gridModeEnabled: this.props.canEdit && !this.props.isMobile,
+
+			...(override || {}),
+		} satisfies Partial<Record<keyof AppState, AppState[keyof AppState]>>;
+	}
+
+	connectSocket() {
+		const { boardId, token, socketUrl } = this.props;
+
+		const socketIO: Socket<ServerToClientEvents, ClientToServerEvents> = io(socketUrl, {
+			auth: { token, room: boardId },
+			parser: msgPack,
+		});
+
+		socketIO.on('connect', () => {
+			this.state.excalidrawAPI?.setToast({ message: 'Connected to server.', closable: true, duration: 1000 });
+			if (this.props.isMobile) this.state.excalidrawAPI?.setActiveTool({ type: 'hand' });
+			this.setState({ isConnected: true });
+		});
+
+		socketIO.on('disconnect', () => {
+			this.state.excalidrawAPI?.setToast({ message: 'Disconnected from server.', closable: false });
+			this.setState({ isConnected: false, isFirstTime: false });
+
+			this.lastBoardcastedOrReceivedSceneVersion = -1;
+			this.broadcastedElementVersions.clear();
+			this.trackedFiles.clear();
+		});
+
+		socketIO.on('init', this.handleInit);
+		socketIO.on('kick', this.handleKicked);
+		socketIO.on('preloadFiles', this.loadImageFiles);
+		socketIO.on('filesUpdated', (stats) => this.loadImageFilesWithElements(false, [], stats));
+		socketIO.on('setCollaborators', this.handleSetCollaborators);
+		socketIO.on('broadcastScene', this.handleBroadcastScene);
+		socketIO.on('sendSnapshot', (data) => {
+			this.handleBroadcastScene(data);
+			this.toggleSave(true);
+		});
+
+		socketIO.on('isSaved', () => this.toggleSave(true));
+
+		socketIO.on('followedBy', (data) => {
+			this.state.excalidrawAPI?.updateScene({ appState: this.getAppStateProps({ followedBy: new Set(data as SocketId[]) }) });
+			if (data.length > 0) this.relayVisibleSceneBounds(true);
+		});
+
+		socketIO.on('collaboratorPointerUpdate', (data) => {
+			this.handleUpdateCollaborator({
+				...data,
+				socketId: data.socketId as SocketId,
+				selectedElementIds: data.selectedElementIds?.reduce((acc, id) => {
+					acc[id] = true;
+					return acc;
+				}, {} as Record<string, true>),
+			});
+		});
+
+		socketIO.on('relayVisibleSceneBounds', (data) => {
+			if (!this.state.excalidrawAPI) return;
+			const appState = this.state.excalidrawAPI.getAppState();
+
+			if (appState.userToFollow?.socketId !== data.socketId) return;
+			else if (appState.userToFollow && appState.followedBy.has(appState.userToFollow.socketId)) return;
+
+			this.state.excalidrawAPI.updateScene({
+				appState: this.getAppStateProps(zoomToFitBounds({
+					appState,
+					bounds: data.bounds,
+					fitToViewport: true,
+					viewportZoomFactor: 1,
+				}).appState),
+			});
+		});
+
+		this.setState({ socketIO });
+	}
+
+	toggleSave = (state: boolean) => {
+		if (this.state.isSaved !== state) console.log(`Board ${this.props.boardId} is ${state ? 'saved' : 'unsaved'}.`);
+		this.setState({ isSaved: state });
+		this.forceUpdate();
+	};
+
+	handleInit = (data: ClientData) => {
+		if (!this.state.excalidrawAPI || !('elements' in data)) return;
+
+		const localElements = this.state.excalidrawAPI.getSceneElementsIncludingDeleted();
+		const appState = this.state.excalidrawAPI.getAppState();
+		const reconciledElements = reconcileElements(
+			localElements,
+			data.elements,
+			appState,
+		);
+
+		if (this.initialDataResolve) {
+			this.initialDataResolve({
+				elements: reconciledElements,
+				appState: this.getAppStateProps(),
+			});
+
+			this.initialDataResolve = null;
+			this.initialDataPromise = null;
+		} else {
+			this.state.excalidrawAPI.updateScene({
+				elements: reconciledElements,
+				appState: this.getAppStateProps(),
+			});
+		}
+
+		if (reconciledElements.length && !this.state.connectedBefore) {
+			setTimeout(() => {
+				this.state.excalidrawAPI?.scrollToContent(reconciledElements, {
+					fitToViewport: true,
+					viewportZoomFactor: 0.5,
+				});
+			}, 500);
+		}
+
+		console.log(`Board ${this.props.boardId} initialized with ${reconciledElements.length} elements.`);
+
+		this.lastBoardcastedOrReceivedSceneVersion = getSceneVersion(data.elements);
+		this.state.excalidrawAPI.history.clear();
+		this.toggleSave(true);
+
+		this.setState({ isInitialized: true, connectedBefore: true });
+	};
+
+	handleKicked = () => {
+		if (this.state.excalidrawAPI) this.sendSnapshot();
+		this.state.socketIO?.close();
+
+		this.setState({ isKicked: true });
+	};
+
+	toggleShowCollaborators = (state: boolean) => {
+		if (!this.state.excalidrawAPI || this.hideCollaborators === state) return;
+
+		if (this.hideCollaborators) {
+			this.state.excalidrawAPI.updateScene({
+				collaborators: new Map(
+					[...this.hiddenCollaborators].map(([socketId, collaborator]) => [socketId, { ...collaborator, isCurrentUser: socketId === this.state.socketIO?.id }]),
+				),
+			});
+
+			this.hiddenCollaborators.clear();
+			this.hideCollaborators = false;
+		} else {
+			this.hiddenCollaborators = new Map(this.state.excalidrawAPI.getAppState().collaborators);
+			this.state.excalidrawAPI.updateScene({ collaborators: new Map() });
+			this.hideCollaborators = true;
+		}
+	};
+
+	async fetchImageFilesWithElements(elements: readonly OrderedExcalidrawElement[], forceFetchFiles?: boolean) {
+		const unfetchedImages = elements
+			.filter((element) => {
+				return (
+					isInitializedImageElement(element) &&
+					!element.isDeleted &&
+					(forceFetchFiles ? ('status' in element && element.status !== 'pending' || Date.now() - element.updated > 10000) : 'status' in element && element.status !== 'error')
+				);
+			}).map((element) => (element as InitializedExcalidrawImageElement).fileId);
+
+		return this.fetchImageFiles(unfetchedImages);
+	}
+
+	async fetchImageFiles(fileIds: string[]) {
+		const loadedFiles: BinaryFileData[] = [];
+		const erroredFiles: string[] = [];
+
+		await Promise.all(
+			fileIds.map(async (fileId) => {
+				try {
+					const response = await axios(`${this.props.s3Url}/${this.props.s3Bucket}/${this.props.boardId}/${fileId}`, {
+						method: 'GET',
+						responseType: 'arraybuffer',
+					}).catch(() => null);
+					if (!response || response.status !== 200) throw new Error(response?.data || 'Unknown error fetching file.');
+
+					const buffer = await response.data as ArrayBuffer;
+					const contentType = response.headers['content-type'] as BinaryFileData['mimeType'];
+					if (!contentType) throw new Error('No content type.');
+
+					const dataURL = `data:${contentType};base64,${Buffer.from(buffer).toString('base64')}` as DataURL;
+					const fileData = this.trackedFiles.get(fileId);
+
+					const data = fileData ? { ...fileData.data, dataURL } : {
+						id: fileId as FileId,
+						mimeType: contentType,
+						created: Date.now(),
+						dataURL,
+					} satisfies BinaryFileData;
+
+					if (fileData) {
+						fileData.data = data;
+						fileData.isLoaded = true;
+					} else {
+						this.trackedFiles.set(fileId, { isDeleted: false, isLoaded: true, data });
+					}
+
+					loadedFiles.push(data);
+				} catch (e) {
+					console.error(`Failed to fetch file ${fileId}:`, e);
+					erroredFiles.push(fileId);
+				}
+			}),
+		);
+
+		return { loadedFiles, erroredFiles };
+	}
+
+	loadImageFilesWithElements: ReturnType<typeof throttle> = throttle(async (forceFetchFiles = false, elements?: OrderedExcalidrawElement[], stats?: StatsData) => {
+		if (!this.state.excalidrawAPI) return;
+
+		if (stats) {
+			console.log(`Successfully uploaded ${stats.success} file${stats.success > 1 ? 's' : ''}, failed to upload ${stats.failed} file${stats.failed > 1 ? 's' : ''} out of ${stats.total} total.`);
+			if (stats.failed > 0) {
+				this.state.excalidrawAPI.setToast({
+					message: `Failed to upload ${stats.failed} file${stats.failed > 1 ? 's' : ''}.`,
+					closable: true,
+					duration: 5000,
+				});
 			}
 		}
-	}
 
-	for (const localElement of localElements) {
-		if (!added.has(localElement.id)) {
-			reconciledElements.push(localElement);
-			added.add(localElement.id);
+		const { loadedFiles, erroredFiles } = await this.fetchImageFilesWithElements(
+			elements && elements.length > 0 ? elements : this.state.excalidrawAPI.getSceneElementsIncludingDeleted(),
+			forceFetchFiles,
+		);
+
+		this.updateFiles(loadedFiles, erroredFiles);
+	}, 500);
+
+	loadImageFiles: ReturnType<typeof throttle> = throttle(async (fileIds: string[]) => {
+		if (!this.state.excalidrawAPI) return;
+
+		const { loadedFiles, erroredFiles } = await this.fetchImageFiles(fileIds);
+		this.updateFiles(loadedFiles, erroredFiles);
+	}, 500);
+
+	async updateFiles(loadedFiles: BinaryFileData[], erroredFiles: string[], updateScene = true) {
+		if (!this.state.excalidrawAPI) return;
+
+		if (loadedFiles.length > 0) {
+			this.state.excalidrawAPI.addFiles(loadedFiles);
+			if (updateScene) this.state.excalidrawAPI.updateScene({
+				elements: this.state.excalidrawAPI
+					.getSceneElementsIncludingDeleted()
+					.map((element) => {
+						if (isInitializedImageElement(element) && loadedFiles.map((file) => file.id).includes(element.fileId)) {
+							return newElementWith(element, {
+								status: 'saved',
+							});
+						}
+
+
+						return element;
+					}),
+			});
+		}
+
+		if (erroredFiles.length > 0 && updateScene) {
+			this.state.excalidrawAPI.updateScene({
+				elements: this.state.excalidrawAPI
+					.getSceneElementsIncludingDeleted()
+					.map((element) => {
+						if (isInitializedImageElement(element) && erroredFiles.includes(element.fileId)) {
+							return newElementWith(element, {
+								status: 'error',
+							});
+						}
+
+						return element;
+					}),
+			});
 		}
 	}
 
-	const orderedElements = orderByFractionalIndex(reconciledElements);
-	return orderedElements as ReconciledExcalidrawElement[];
-};
+	handleSetCollaborators = (collaborators: Collaborator[]) => {
+		if (!this.state.excalidrawAPI) return;
 
-export const arrayToMap = <T extends { id: string } | string>(
-	items: readonly T[] | Map<string, T>,
-) => {
-	if (items instanceof Map) {
-		return items;
-	}
-	return items.reduce((acc: Map<string, T>, element) => {
-		acc.set(typeof element === 'string' ? element : element.id, element);
-		return acc;
-	}, new Map());
-};
+		const currentCollaborators = this.hideCollaborators ? this.hiddenCollaborators : this.state.excalidrawAPI.getAppState().collaborators;
+		const users: CollabUser[] = [];
 
-const shouldDiscardRemoteElement = (
-	localAppState: AppState,
-	local: ExcalidrawElement | undefined,
-	remote: ExcalidrawElement,
-): boolean => {
-	if (
-		local &&
-		(local.id === localAppState.editingTextElement?.id ||
-			local.id === localAppState.resizingElement?.id ||
-			local.id === localAppState.newElement?.id ||
-			local.version > remote.version ||
-			(local.version === remote.version &&
-				local.versionNonce < remote.versionNonce))
-	) return true;
+		if (this.hideCollaborators) {
+			this.hiddenCollaborators = new Map(
+				collaborators.map((collaborator) => {
+					if (collaborator.id) users.push({
+						id: collaborator.id,
+						username: collaborator.username || 'Unknown',
+						avatarUrl: collaborator.avatarUrl || null,
+						socketId: collaborator.socketId as SocketId,
+					});
 
-	return false;
-};
+					return [
+						collaborator.socketId as SocketId,
+						{
+							...collaborator,
+							...(currentCollaborators.get(collaborator.socketId as SocketId) || {}),
+							isCurrentUser: collaborator.socketId === this.state.socketIO?.id,
+						},
+					];
+				}),
+			);
+		} else {
+			this.state.excalidrawAPI.updateScene({
+				collaborators: new Map(
+					collaborators.map((collaborator) => {
+						if (collaborator.id) users.push({
+							id: collaborator.id,
+							username: collaborator.username || 'Unknown',
+							avatarUrl: collaborator.avatarUrl || null,
+							socketId: collaborator.socketId as SocketId,
+						});
 
-export const orderByFractionalIndex = <T extends ExcalidrawElement>(elements: T[]) => {
-	return elements.sort((a, b) => {
-		if (isOrderedElement(a) && isOrderedElement(b)) {
-			if (a.index < b.index) return -1;
-			else if (a.index > b.index) return 1;
-
-			return a.id < b.id ? -1 : 1;
+						return [
+							collaborator.socketId as SocketId,
+							{
+								...collaborator,
+								...(currentCollaborators.get(collaborator.socketId as SocketId) || {}),
+								isCurrentUser: collaborator.socketId === this.state.socketIO?.id,
+							},
+						];
+					}),
+				),
+			});
 		}
 
-		return 1;
-	});
-};
+		this.props.updateCollaborators(users.filter((user, index, self) =>
+			index === self.findIndex((u) => u.id === user.id),
+		));
+	};
 
-const isOrderedElement = (element: ExcalidrawElement): element is OrderedExcalidrawElement => {
-	if (element.index) return true;
-	return false;
-};
+	relayVisibleSceneBounds = (force = false) => {
+		if (!this.state.excalidrawAPI) return;
+		const appState = this.state.excalidrawAPI.getAppState();
 
-export const zoomToFitBounds = ({
-	bounds,
-	appState,
-	fitToViewport = false,
-	viewportZoomFactor = 0.7,
-}: {
-	bounds: SceneBounds;
-	appState: Readonly<AppState>;
-	fitToViewport: boolean;
-	viewportZoomFactor?: number;
-}) => {
-	const [x1, y1, x2, y2] = bounds;
-	const centerX = (x1 + x2) / 2;
-	const centerY = (y1 + y2) / 2;
-
-	let newZoomValue;
-	let scrollX;
-	let scrollY;
-
-	if (fitToViewport) {
-		const commonBoundsWidth = x2 - x1;
-		const commonBoundsHeight = y2 - y1;
-
-		newZoomValue = Math.min(appState.width / commonBoundsWidth, appState.height / commonBoundsHeight) * Math.min(1, Math.max(viewportZoomFactor, 0.1));
-		newZoomValue = Math.min(Math.max(newZoomValue, 0.1), 30.0) as NormalizedZoomValue;
-
-		let appStateWidth = appState.width;
-
-		if (appState.openSidebar) {
-			const sidebarDOMElem = document.querySelector('.sidebar') as HTMLElement | null;
-			const sidebarWidth = sidebarDOMElem?.offsetWidth ?? 0;
-			const isRTL = document.documentElement.getAttribute('dir') === 'rtl';
-
-			appStateWidth = !isRTL ? appState.width - sidebarWidth : appState.width + sidebarWidth;
+		if (this.state.socketIO && (appState.followedBy.size > 0 || force)) {
+			this.state.socketIO.emit('relayVisibleSceneBounds', {
+				roomId: `follows@${this.state.socketIO.id}`,
+				bounds: getVisibleSceneBounds(appState),
+			});
 		}
+	};
 
-		scrollX = (appStateWidth / 2) * (1 / newZoomValue) - centerX;
-		scrollY = (appState.height / 2) * (1 / newZoomValue) - centerY;
-	} else {
-		newZoomValue = zoomValueToFitBoundsOnViewport(bounds, {
-			width: appState.width,
-			height: appState.height,
+	handleUpdateCollaborator = (payload: Partial<Collaborator>) => {
+		if (!this.state.excalidrawAPI || !this.state.socketIO || !payload.socketId) return;
+
+		const collaborators = new Map(this.hideCollaborators ? this.hiddenCollaborators : this.state.excalidrawAPI.getAppState().collaborators);
+		const user = Object.assign({}, collaborators.get(payload.socketId), payload, { isCurrentUser: payload.socketId === this.state.socketIO.id });
+
+		if (this.hideCollaborators) this.hiddenCollaborators.set(payload.socketId, user);
+		else {
+			collaborators.set(payload.socketId, user);
+			this.state.excalidrawAPI.updateScene({ collaborators });
+		}
+	};
+
+	handleBroadcastScene = (data: SceneBroadcastData) => {
+		if (!this.state.excalidrawAPI) return;
+
+		const reconciledElements = reconcileElements(this.state.excalidrawAPI.getSceneElementsIncludingDeleted(), data.elements, this.state.excalidrawAPI.getAppState());
+
+		const version = getSceneVersion(reconciledElements);
+		if (version <= this.lastBoardcastedOrReceivedSceneVersion) return;
+		this.lastBoardcastedOrReceivedSceneVersion = version;
+
+		this.state.excalidrawAPI.updateScene({ elements: reconciledElements });
+	};
+
+	onSceneChange = (elements: readonly OrderedExcalidrawElement[]) => {
+		if (!this.state.socketIO || !this.state.excalidrawAPI || !this.props.canEdit) return;
+
+		this.queueFileUpload();
+
+		const version = getSceneVersion(elements);
+		if (version <= this.lastBoardcastedOrReceivedSceneVersion) return;
+
+		const syncableElements = elements.filter((element) => {
+			return (
+				(!this.broadcastedElementVersions.has(element.id) || element.version > this.broadcastedElementVersions.get(element.id)!) &&
+				isSyncableElement(element)
+			);
 		});
 
-		const centerScroll = centerScrollOn({
-			scenePoint: { x: centerX, y: centerY },
-			viewportDimensions: {
-				width: appState.width,
-				height: appState.height,
-			},
-			zoom: { value: newZoomValue },
-		});
-
-		scrollX = centerScroll.scrollX;
-		scrollY = centerScroll.scrollY;
-	}
-
-	return {
-		commitToHistory: false,
-		appState: {
-			...appState,
-			scrollX,
-			scrollY,
-			zoom: { value: newZoomValue },
-		},
-	};
-};
-
-export type SyncableExcalidrawElement = OrderedExcalidrawElement & MakeBrand<'SyncableExcalidrawElement'>;
-
-export const isSyncableElement = (
-	element: OrderedExcalidrawElement,
-): element is SyncableExcalidrawElement => {
-	if (element.isDeleted) {
-		if (element.updated > Date.now() - 24 * 60 * 60 * 1000) return true;
-		return false;
-	}
-
-	return !isInvisiblySmallElement(element);
-};
-
-export const isInvisiblySmallElement = (
-	element: ExcalidrawElement,
-): boolean => {
-	if (isLinearElement(element) || isFreeDrawElement(element)) return (element.points?.length || 0) < 2;
-	return element.width === 0 && element.height === 0;
-};
-
-export const isFreeDrawElement = (
-	element?: ExcalidrawElement | null,
-): element is ExcalidrawFreeDrawElement => {
-	return element != null && isFreeDrawElementType(element.type);
-};
-
-export const isFreeDrawElementType = (
-	elementType: ExcalidrawElementType,
-): boolean => {
-	return elementType === 'freedraw';
-};
-
-export const isLinearElement = (
-	element?: ExcalidrawElement | null,
-): element is ExcalidrawLinearElement => {
-	return element != null && isLinearElementType(element.type);
-};
-
-export const isLinearElementType = (
-	elementType: ElementOrToolType,
-): boolean => {
-	return (elementType === 'arrow' || elementType === 'line');
-};
-
-const zoomValueToFitBoundsOnViewport = (
-	bounds: SceneBounds,
-	viewportDimensions: { width: number; height: number },
-) => {
-	const [x1, y1, x2, y2] = bounds;
-	const commonBoundsWidth = x2 - x1;
-	const zoomValueForWidth = viewportDimensions.width / commonBoundsWidth;
-	const commonBoundsHeight = y2 - y1;
-	const zoomValueForHeight = viewportDimensions.height / commonBoundsHeight;
-	const smallestZoomValue = Math.min(zoomValueForWidth, zoomValueForHeight);
-	const zoomAdjustedToSteps = Math.floor(smallestZoomValue / 0.1) * 0.1;
-	const clampedZoomValueToFitElements = Math.min(Math.max(zoomAdjustedToSteps, 0.1), 1);
-
-	return clampedZoomValueToFitElements as NormalizedZoomValue;
-};
-
-export const centerScrollOn = ({
-	scenePoint,
-	viewportDimensions,
-	zoom,
-}: {
-	scenePoint: PointerCoords;
-	viewportDimensions: { height: number; width: number };
-	zoom: Zoom;
-}) => {
-	return {
-		scrollX: viewportDimensions.width / 2 / zoom.value - scenePoint.x,
-		scrollY: viewportDimensions.height / 2 / zoom.value - scenePoint.y,
-	};
-};
-
-export const newElementWith = <TElement extends ExcalidrawElement>(
-	element: TElement,
-	updates: ElementUpdate<TElement>,
-	force = false,
-): TElement => {
-	let didChange = false;
-	for (const key in updates) {
-		const value = updates[key as keyof typeof updates];
-
-		if (typeof value !== 'undefined') {
-			if (element[key as keyof TElement] === value && (typeof value !== 'object' || value === null)) continue;
-			didChange = true;
+		for (const element of syncableElements) {
+			this.broadcastedElementVersions.set(element.id, element.version);
 		}
-	}
 
-	if (!didChange && !force) return element;
+		this.state.socketIO.emit('broadcastScene', { elements: syncableElements });
+		this.lastBoardcastedOrReceivedSceneVersion = version;
+		this.toggleSave(false);
 
-	return {
-		...element,
-		...updates,
-		updated: Date.now(),
-		version: element.version + 1,
-		versionNonce: Math.floor(Math.random() * 0x100000000),
+		this.queueSave();
 	};
-};
+
+	reportIdle = () => {
+		if (!this.state.socketIO?.id) return;
+		this.state.socketIO?.emit('collaboratorPointerUpdate', { state: 'idle', socketId: this.state.socketIO.id, username: this.props.user?.displayName });
+
+		if (this.activeIntervalId) {
+			window.clearInterval(this.activeIntervalId);
+			this.activeIntervalId = null;
+		}
+	};
+
+	reportActive = () => {
+		if (!this.state.socketIO?.id) return;
+		this.state.socketIO?.emit('collaboratorPointerUpdate', { state: 'active', socketId: this.state.socketIO.id, username: this.props.user?.displayName });
+	};
+
+	onPointerMove = () => {
+		if (this.idleTimeoutId) {
+			window.clearTimeout(this.idleTimeoutId);
+			this.idleTimeoutId = null;
+		}
+
+		this.idleTimeoutId = window.setTimeout(this.reportIdle, 60 * 1000);
+
+		if (!this.activeIntervalId) {
+			this.activeIntervalId = window.setInterval(this.reportActive, 3 * 1000);
+		}
+	};
+
+	onVisibilityChange = () => {
+		if (!this.state.socketIO?.id) return;
+
+		if (document.hidden) {
+			if (this.idleTimeoutId) {
+				window.clearTimeout(this.idleTimeoutId);
+				this.idleTimeoutId = null;
+			}
+
+			if (this.activeIntervalId) {
+				window.clearInterval(this.activeIntervalId);
+				this.activeIntervalId = null;
+			}
+
+			this.state.socketIO?.emit('collaboratorPointerUpdate', { state: 'away', socketId: this.state.socketIO.id, username: this.props.user?.displayName });
+		} else {
+			this.idleTimeoutId = window.setTimeout(this.reportIdle, 60 * 1000);
+			this.activeIntervalId = window.setInterval(this.reportActive, 3 * 1000);
+			this.state.socketIO?.emit('collaboratorPointerUpdate', { state: 'active', socketId: this.state.socketIO.id, username: this.props.user?.displayName });
+		}
+	};
+
+	updateUserPointer: ReturnType<typeof throttle> = throttle((payload: {
+		pointer: { x: number; y: number; tool: 'pointer' | 'laser' };
+		pointersMap: Gesture['pointers'];
+		button: 'down' | 'up';
+	}) => {
+		if (payload.pointersMap.size > 2 || !this.state.socketIO?.id || !this.state.excalidrawAPI) return;
+
+		const selectedElementIds = this.state.excalidrawAPI.getAppState().selectedElementIds;
+
+		this.state.socketIO.emit('collaboratorPointerUpdate', {
+			socketId: this.state.socketIO.id,
+			username: this.props.user?.displayName,
+			selectedElementIds: Object.keys(selectedElementIds),
+			pointer: payload.pointer,
+			button: payload.button,
+		});
+	}, 33);
+
+	queueSave: ReturnType<typeof throttle> = throttle(() => this.sendSnapshot(), 10 * 1000, { leading: false });
+
+	queueFileUpload: ReturnType<typeof throttle> = throttle(async () => {
+		if (!this.state.excalidrawAPI) return;
+
+		const files = this.state.excalidrawAPI.getFiles();
+		const fileIds = new Set(Object.keys(files));
+
+		const newFiles: BinaryFileData[] = [];
+		const deletedFiles: BinaryFileData[] = [];
+
+		for (const element of this.state.excalidrawAPI.getSceneElements()) {
+			if (isInitializedImageElement(element) && fileIds.has(element.fileId)) {
+				const tracked = this.trackedFiles.get(element.fileId);
+				if (!tracked || tracked.isDeleted) {
+					const file = files[element.fileId];
+					if (file) newFiles.push(file);
+				}
+			}
+		}
+
+		const elementFileIds = new Set(this.state.excalidrawAPI.getSceneElements().filter((e) => isInitializedImageElement(e) && e.fileId).map((e) => (e as InitializedExcalidrawImageElement).fileId as string));
+
+		for (const fileId of fileIds) {
+			if (!elementFileIds.has(fileId)) {
+				const tracked = this.trackedFiles.get(fileId);
+				if (tracked && !tracked.isDeleted) {
+					const file = files[fileId];
+					if (file) deletedFiles.push(file);
+				}
+			}
+		}
+
+		if (newFiles.length > 0) this.newImagesAdded(newFiles);
+		if (deletedFiles.length > 0) this.imagesDeleted(deletedFiles);
+	}, 1000);
+
+	sendSnapshot = () => {
+		if (!this.state.socketIO || !this.state.excalidrawAPI) return;
+
+		const allElements = this.state.excalidrawAPI.getSceneElementsIncludingDeleted();
+
+		const newVersion = Math.max(getSceneVersion(allElements), this.lastBoardcastedOrReceivedSceneVersion);
+		this.lastBoardcastedOrReceivedSceneVersion = newVersion;
+
+		const syncElements = allElements.filter((element) => isSyncableElement(element));
+		this.state.socketIO.emit('sendSnapshot', { elements: syncElements });
+
+		for (const element of syncElements) {
+			this.broadcastedElementVersions.set(element.id, element.version);
+		}
+	};
+
+	newImagesAdded = async (files: BinaryFileData[]) => {
+		for (const file of files) {
+			const tracked = this.trackedFiles.get(file.id);
+			if (tracked) this.trackedFiles.set(file.id, { ...tracked, isDeleted: false, isLoaded: false, data: file });
+			else this.trackedFiles.set(file.id, { isDeleted: false, isLoaded: false, data: file });
+		}
+
+		const apiFiles = files
+			.filter((file, index, self) => self.findIndex((f) => f.id === file.id) === index)
+			.map((file) => ({
+				id: file.id,
+				data: file.dataURL,
+				mimeType: file.mimeType,
+			}));
+
+		const result = await this.apiClient.files.uploadBase64Files({
+			auth: this.props.token,
+			boardId: this.props.boardId,
+			files: apiFiles,
+		}).catch(() => null);
+
+		if (!result || 'error' in result) console.error('Failed to upload files:', result?.error || 'Unknown error uploading files.');
+		else {
+			console.log(`Successfully uploaded ${result.data.success} files.`);
+			if (result.data.failed > 0) console.warn(`Failed to upload ${result.data.failed} files.`);
+		}
+	};
+
+	imagesDeleted = async (files: BinaryFileData[]) => {
+		const props = { isDeleted: false, isLoaded: false };
+
+		for (const file of files) {
+			const tracked = this.trackedFiles.get(file.id);
+			if (tracked) this.trackedFiles.set(file.id, { ...tracked, isDeleted: true });
+			else this.trackedFiles.set(file.id, { ...props, data: file, isDeleted: true });
+		}
+
+		const fileIds = files.map((file) => file.id).filter((id, index, self) => self.indexOf(id) === index);
+
+		const result = await this.apiClient.files.deleteFiles({
+			auth: this.props.token,
+			boardId: this.props.boardId,
+			fileIds,
+		}).catch(() => null);
+
+		if (!result || 'error' in result) console.error('Failed to delete files:', result?.error || 'Unknown error deleting files.');
+		else console.log('Successfully deleted files.');
+	};
+
+	render() {
+		return (
+			<Flex direction={'column'} w={'100%'} h={'100vh'} overflow={'hidden'}>
+				{!this.state.isConnected && !this.state.isFirstTime && !this.state.isKicked && (
+					<TopBar
+						colorScheme={'red'}
+						message={'You are currently disconnected from the server, changes will not be saved.'}
+					/>
+				)}
+
+				{this.state.isKicked && (
+					<TopBar
+						colorScheme={'orange'}
+						message={'You have been forcefully disconnected from the board.'}
+					/>
+				)}
+
+				<Box
+					w={'100%'} h={'100%'} overflow={'hidden'}
+					filter={this.state.isKicked ? 'blur(15px)' : 'none'}
+					display={this.state.isConnected || (!this.state.isConnected && !this.state.isFirstTime) ? 'block' : 'none'}
+					pointerEvents={!this.state.isConnected || (!this.state.isConnected && !this.state.isFirstTime) || this.state.isKicked ? 'none' : 'auto'}
+				>
+					<Suspense fallback={<Spinner size={'xl'} thickness={'4px'} speed={'0.65s'} color={'white'} />}>
+						<Excalidraw
+							theme={this.props.useOppositeColorForBoard ? (this.props.colorMode === 'light' ? 'dark' : 'light') : this.props.colorMode}
+							excalidrawAPI={(api) => this.setState({ excalidrawAPI: api })}
+							viewModeEnabled={this.props.canEdit ? undefined : true}
+							onPointerUpdate={this.updateUserPointer}
+							libraryReturnUrl={this.props.currentUrl}
+							initialData={this.initialDataPromise}
+							onChange={this.onSceneChange}
+							validateEmbeddable={true}
+							name={this.props.name}
+							isCollaborating={true}
+							aiEnabled={false}
+							autoFocus={true}
+							UIOptions={{
+								canvasActions: {
+									clearCanvas: false,
+									...(this.props.canEdit ? {} : {
+										export: false,
+										saveAsImage: false,
+										saveToActiveFile: false,
+									}),
+								},
+							}}
+						>
+							<WelcomeScreen.Main>
+								<WelcomeScreen.Center>
+									<WelcomeScreen.CenterLogo />
+								</WelcomeScreen.Center>
+							</WelcomeScreen.Main>
+						</Excalidraw>
+					</Suspense>
+				</Box>
+			</Flex>
+		);
+	}
+}

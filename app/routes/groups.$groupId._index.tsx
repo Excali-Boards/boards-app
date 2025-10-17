@@ -3,7 +3,8 @@ import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/rea
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
-import useFetcherResponse from '~/hooks/useFetcherResponse';
+import { useFetcherResponse } from '~/hooks/useFetcherResponse';
+import { FaPlus, FaTools, FaCalendarAlt } from 'react-icons/fa';
 import { SearchBar } from '~/components/layout/SearchBar';
 import { canManage, validateParams } from '~/other/utils';
 import { NoticeCard } from '~/components/other/Notice';
@@ -12,7 +13,6 @@ import { useDebounced } from '~/hooks/useDebounced';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
-import { FaPlus, FaTools } from 'react-icons/fa';
 import { WebReturnType } from '~/other/types';
 import { api } from '~/utils/web.server';
 
@@ -79,10 +79,10 @@ export default function Categories() {
 	const [categoryId, setCategoryId] = useState<string | null>(null);
 	const [modalOpen, setModalOpen] = useState<ModalOpen>(null);
 
-	const [tempCategories, setTempCategories] = useState<string[]>([]);
-	const [didShowAlert, setDidShowAlert] = useState(false);
-	const [revertKey, setRevertKey] = useState(0); // Key to force CardList reset
+	const [_, setDidShowAlert] = useState(false);
+	const [revertKey, setRevertKey] = useState(0);
 	const [editorMode, setEditorMode] = useState(false);
+	const [tempCategories, setTempCategories] = useState<string[]>([]);
 
 	const [search, setSearch] = useState('');
 	const dbcSearch = useDebounced(search, [search], 300);
@@ -106,9 +106,7 @@ export default function Categories() {
 	useEffect(() => setCanInvite?.(canManageAnything), [canManageAnything, setCanInvite]);
 
 	useEffect(() => {
-		if (tempCategories.length > 0) {
-			setDidShowAlert(true);
-		}
+		if (tempCategories.length > 0) setDidShowAlert(true);
 	}, [tempCategories]);
 
 	return (
@@ -118,7 +116,13 @@ export default function Categories() {
 					name={`Categories in group: ${group.name}`}
 					description={'List of all categories that are currently available to you in this group.'}
 					goBackPath='/groups'
-					customButtons={user?.isDev || canManage(group.accessLevel) ? [{
+					customButtons={[{
+						type: 'link',
+						label: 'Calendar',
+						icon: <FaCalendarAlt />,
+						to: `/groups/${group.id}/calendar`,
+						tooltip: 'View group calendar',
+					}, ...(user?.isDev || canManage(group.accessLevel) ? [{
 						type: 'normal',
 						label: 'Manage categories.',
 						icon: <FaTools />,
@@ -134,13 +138,14 @@ export default function Categories() {
 						onClick: () => setModalOpen('createCategory'),
 						isLoading: fetcher.state === 'loading',
 						tooltip: 'Create category.',
-					}] : []}
+					}] as const : [])
+					]}
 				/>
 
 				<SearchBar search={search} setSearch={setSearch} whatSearch={'categories'} id='categories' dividerMY={4} />
 
 				<CardList
-					key={revertKey} // Force remount when reverting
+					key={revertKey}
 					noWhat='categories'
 					onDelete={editorMode ? (index) => {
 						setModalOpen('deleteCategory');

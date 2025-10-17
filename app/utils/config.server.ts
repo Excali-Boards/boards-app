@@ -9,6 +9,8 @@ const config = {
 	sessionSecret: process.env.SESSION_SECRET!,
 	apiToken: process.env.API_TOKEN!,
 
+	tldrawLicense: process.env.TLDRAW_LICENSE || null,
+
 	port: process.env.PORT ? parseInt(process.env.PORT, 10) : 3002,
 	isDev: process.env.NODE_ENV === 'development',
 
@@ -46,6 +48,8 @@ const ConfigSchema = z.object({
 
 	sessionSecret: z.string(),
 	apiToken: z.string(),
+
+	tldrawLicense: z.string().nullable(),
 
 	port: z.number().int().min(1).max(65535),
 	isDev: z.boolean(),

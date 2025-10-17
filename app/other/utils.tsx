@@ -171,7 +171,7 @@ export function canRead(role: AccessLevel) {
 }
 
 export function canManage(role: AccessLevel) {
-	return role === 'manage';
+	return role === 'manage' || role === 'admin';
 }
 
 export function canInvite(role: AccessLevel) {
@@ -240,6 +240,23 @@ export function findConflicts({ allData, selectedGroups, selectedCategories, sel
 
 	return conflicts;
 }
+
+export function closest15MinuteCreate(dateTime: Temporal.ZonedDateTime) {
+	const startDate = new Date(dateTime.epochMilliseconds);
+	const minutes = startDate.getMinutes();
+	const roundedMinutes = Math.round(minutes / 15) * 15;
+
+	startDate.setMinutes(roundedMinutes, 0, 0);
+
+	const endDate = new Date(startDate);
+	endDate.setHours(endDate.getHours() + 1);
+
+	const startISO = startDate.toISOString();
+	const endISO = endDate.toISOString();
+
+	return { start: startISO, end: endISO };
+}
+
 // Excalidraw.
 export const throttleRAF = <T extends unknown[]>(
 	fn: (...args: T) => void,

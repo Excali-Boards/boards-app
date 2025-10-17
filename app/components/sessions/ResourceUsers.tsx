@@ -1,8 +1,8 @@
 import { GrantedEntry, ResourceType, ViewPermissionsOutput } from '@excali-boards/boards-api-client';
 import { RevokePermissionModal } from '../permissions/RevokePermissionModal';
 import { VStack, useToast, useDisclosure } from '@chakra-ui/react';
+import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { UserCard, NoUserCard } from '../permissions/UserCard';
-import useFetcherResponse from '~/hooks/useFetcherResponse';
 import { WebReturnType } from '~/other/types';
 import { useFetcher } from '@remix-run/react';
 import { useCallback, useState } from 'react';

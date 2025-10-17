@@ -1,12 +1,14 @@
 import { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { useBreakpointValue, useColorMode } from '@chakra-ui/react';
-import { Board as BoardComponent } from '~/components/board/Main';
+import { ExcalidrawBoard } from '~/components/board/Excalidraw';
+import { TldrawBoard } from '~/components/board/Tldraw';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import configServer from '~/utils/config.server';
 import { useLoaderData } from '@remix-run/react';
 import { validateParams } from '~/other/utils';
+import InfoComponent from '~/components/Info';
 import { useContext, useEffect } from 'react';
 import { api } from '~/utils/web.server';
 
@@ -53,7 +55,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
 export default function Board() {
 	const { socketUrl, board, category, group, webUrl, currentUrl, s3Url, s3Bucket } = useLoaderData<typeof loader>();
-	const { useOppositeColorForBoard, hideCollaborators, user, setBoardActiveCollaborators } = useContext(RootContext) || {};
+	const { useOppositeColorForBoard, hideCollaborators, user, token, setBoardActiveCollaborators } = useContext(RootContext) || {};
 	const isMobile = useBreakpointValue({ base: true, md: false });
 	const { colorMode } = useColorMode();
 
@@ -61,8 +63,18 @@ export default function Board() {
 		window.EXCALIDRAW_ASSET_PATH = '/';
 	}, [webUrl]);
 
+	const Component = board.type === 'Excalidraw' ? ExcalidrawBoard : board.type === 'Tldraw' ? TldrawBoard : null;
+	if (!Component) return <div>Board type not supported.</div>;
+
+	if (!token || !user) return (
+		<InfoComponent
+			title='401 | Unauthorized.'
+			text='You are not authorized to view this page.'
+		/>
+	);
+
 	return (
-		<BoardComponent
+		<Component
 			updateCollaborators={setBoardActiveCollaborators || (() => { })}
 			useOppositeColorForBoard={useOppositeColorForBoard || false}
 			hideCollaborators={hideCollaborators || false}
@@ -76,8 +88,9 @@ export default function Board() {
 			s3Bucket={s3Bucket}
 			boardId={board.id}
 			groupId={group.id}
+			token={token}
 			s3Url={s3Url}
-			user={user!}
+			user={user}
 		/>
 	);
 }

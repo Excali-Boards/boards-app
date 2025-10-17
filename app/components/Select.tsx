@@ -1,4 +1,4 @@
-import { Select as ChakraSelect, GroupBase, OptionsOrGroups } from 'chakra-react-select';
+import { Select as ChakraSelect, GroupBase, OptionProps, OptionsOrGroups, StylesFunction } from 'chakra-react-select';
 import { useColorMode } from '@chakra-ui/react';
 
 export type SelectProps<Option, IsMulti extends boolean, Group extends GroupBase<Option>> = {
@@ -8,6 +8,7 @@ export type SelectProps<Option, IsMulti extends boolean, Group extends GroupBase
 	isMulti?: IsMulti;
 	closeMenuOnSelect?: boolean;
 	onChange?: (e: OnChangeValue<Option, IsMulti>) => void;
+	optionStyles?: StylesFunction<OptionProps<Option, IsMulti, Group>>;
 } & Omit<React.ComponentProps<typeof ChakraSelect>, 'placeholder' | 'defaultValue' | 'options' | 'onChange' | 'isMulti' | 'closeMenuOnSelect' | 'chakraStyles'>;
 
 export default function Select<
@@ -21,6 +22,7 @@ export default function Select<
 	isMulti,
 	closeMenuOnSelect,
 	onChange,
+	optionStyles,
 	...props
 }: SelectProps<Option, IsMulti, Group>) {
 	const { colorMode } = useColorMode();
@@ -57,8 +59,9 @@ export default function Select<
 					backgroundColor: colorMode === 'dark' ? 'brand800' : 'white',
 					width: '100%',
 				}),
-				option: (styles) => ({
+				option: (styles, state) => ({
 					...styles,
+					...(optionStyles ? optionStyles(styles, state as never) : {}),
 					backgroundColor: colorMode === 'dark' ? 'brand600' : 'white',
 					_hover: { backgroundColor: colorMode === 'dark' ? 'alpha200' : 'gray.200' },
 					_active: { backgroundColor: colorMode === 'dark' ? 'brand800' : 'white' },
