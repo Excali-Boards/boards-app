@@ -77,9 +77,8 @@ export default function Groups() {
 	const [groupId, setGroupId] = useState<string | null>(null);
 
 	const [tempGroups, setTempGroups] = useState<string[]>([]);
-	const [didShowAlert, setDidShowAlert] = useState(false);
-	const [revertKey, setRevertKey] = useState(0);
 	const [editorMode, setEditorMode] = useState(false);
+	const [revertKey, setRevertKey] = useState(0);
 
 	const [search, setSearch] = useState('');
 	const dbcSearch = useDebounced(search, [search], 300);
@@ -102,12 +101,6 @@ export default function Groups() {
 	const canManageAnything = useMemo(() => groups.some((c) => c.accessLevel === 'admin'), [groups]);
 	useEffect(() => setCanInvite?.(canManageAnything), [canManageAnything, setCanInvite]);
 	useEffect(() => setShowAllBoards?.(groups.length !== 0), [setShowAllBoards]);
-
-	useEffect(() => {
-		if (tempGroups.length > 0) {
-			setDidShowAlert(true);
-		}
-	}, [tempGroups]);
 
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }} id='a1'>
@@ -179,14 +172,10 @@ export default function Groups() {
 					variant='warning'
 					confirmText='Save Changes'
 					cancelText='Cancel'
-					onConfirm={() => {
-						handleSave();
-						setDidShowAlert(false);
-					}}
+					onConfirm={() => handleSave()}
 					onCancel={() => {
 						setTempGroups([]);
-						setDidShowAlert(false);
-						setRevertKey(prev => prev + 1);
+						setRevertKey((prev) => prev + 1);
 					}}
 				/>
 			</Box>

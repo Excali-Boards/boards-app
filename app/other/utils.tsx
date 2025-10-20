@@ -257,6 +257,47 @@ export function closest15MinuteCreate(dateTime: Temporal.ZonedDateTime) {
 	return { start: startISO, end: endISO };
 }
 
+export function getRoleColor(role: string): string {
+	switch (role) {
+		case 'BoardViewer':
+		case 'CategoryViewer':
+		case 'GroupViewer':
+			return 'blue.300';
+		case 'BoardCollaborator':
+		case 'CategoryCollaborator':
+		case 'GroupCollaborator':
+			return 'purple.300';
+		case 'CategoryManager':
+		case 'GroupManager':
+			return 'yellow.300';
+		case 'CategoryAdmin':
+		case 'GroupAdmin':
+			return 'red.300';
+		default:
+			return 'gray.300';
+	}
+}
+
+export function getGrantInfo(grantType: 'explicit' | 'implicit') {
+	switch (grantType) {
+		case 'explicit':
+			return {
+				color: 'green.300',
+				label: 'Direct',
+			};
+		case 'implicit':
+			return {
+				color: 'purple.300',
+				label: 'Inherited',
+			};
+		default:
+			return {
+				color: 'gray.300',
+				label: 'Unknown',
+			};
+	}
+}
+
 // Excalidraw.
 export const throttleRAF = <T extends unknown[]>(
 	fn: (...args: T) => void,

@@ -1,7 +1,7 @@
 import { Flex, Text, HStack, Divider, IconButton, FlexProps, Badge, Avatar } from '@chakra-ui/react';
 import { UserRole } from '@excali-boards/boards-api-client';
+import { getGrantInfo, getRoleColor } from '~/other/utils';
 import { FaTrash } from 'react-icons/fa';
-import { useCallback } from 'react';
 
 export type UserCardProps = {
 	id: string;
@@ -26,35 +26,6 @@ export function UserCard({
 	canManage,
 	onRevoke,
 }: UserCardProps & FlexProps) {
-	const getRoleColor = useCallback((role: UserRole) => {
-		switch (role) {
-			case 'BoardViewer':
-			case 'CategoryViewer':
-			case 'GroupViewer':
-				return 'blue.300';
-			case 'BoardCollaborator':
-			case 'CategoryCollaborator':
-			case 'GroupCollaborator':
-				return 'purple.300';
-			case 'CategoryManager':
-			case 'GroupManager':
-				return 'yellow.300';
-			case 'CategoryAdmin':
-			case 'GroupAdmin':
-				return 'red.300';
-			default:
-				return 'gray.300';
-		}
-	}, []);
-
-	const getGrantTypeColor = useCallback((grantType: 'explicit' | 'implicit') => {
-		return grantType === 'explicit' ? 'green.300' : 'purple.300';
-	}, []);
-
-	const getGrantTypeLabel = useCallback((grantType: 'explicit' | 'implicit') => {
-		return grantType === 'explicit' ? 'Direct' : 'Inherited';
-	}, []);
-
 	return (
 		<Flex
 			gap={4}
@@ -106,9 +77,9 @@ export function UserCard({
 					color={'white'}
 					borderRadius={'full'}
 					textTransform={'none'}
-					bg={getGrantTypeColor(grantType)}
+					bg={getGrantInfo(grantType).color}
 				>
-					{getGrantTypeLabel(grantType)}
+					{getGrantInfo(grantType).label}
 				</Badge>
 			</HStack>
 
