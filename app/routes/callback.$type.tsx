@@ -17,18 +17,18 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const check = await authenticator.isAuthenticated(request);
 	if (check) return redirect(backTo);
 
-	const addToUser = 'currentUserId' in backToCookie ? backToCookie.currentUserId : undefined;
+	const addToUser = backToCookie.currentUserId;
 	if (addToUser) backToCookie.currentUserId = undefined;
 
 	try {
 		return await authenticator.authenticate(type, request, {
 			successRedirect: backTo,
 			failureRedirect: '/login',
-			context: {
+			context: addToUser ? {
 				currentUserId: addToUser,
 				device: parseUserAgent(request.headers.get('user-agent')),
 				ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || request.headers.get('cf-connecting-ip') || undefined,
-			},
+			} : undefined,
 		});
 	} catch (error) { // This is really ingenious way.
 		if (error instanceof Response && !error.redirected) {

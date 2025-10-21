@@ -3,7 +3,7 @@ import { authenticator } from '~/utils/auth.server';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const backTo = new URLSearchParams(request.url.split('?')[1]).get('backTo');
-	return await authenticator.logout(request, { redirectTo: backTo || '' });
+	await authenticator.logout(request, { redirectTo: backTo || '/' });
 };
 
 export default function Logout() {

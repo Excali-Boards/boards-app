@@ -4,6 +4,7 @@ import { Container } from '~/components/layout/Container';
 import { allowedPlatforms } from '~/utils/config.server';
 import { platformButtons } from '~/other/platforms';
 import { authenticator } from '~/utils/auth.server';
+import { useSearchParams } from '@remix-run/react';
 import { RootContext } from '~/components/Context';
 import { loginInfo } from '~/utils/storage.server';
 import { LinkButton } from '~/components/Button';
@@ -17,12 +18,22 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const DBUser = (await getCachedUser(request))?.data;
 
 	const type = query.get('type') as string | undefined;
+	const backTo = query.get('backTo') || '/';
+
 	if (!type || !allowedPlatforms.some((p) => p.toLowerCase() === type.toLowerCase())) {
 		if (token) return redirect('/');
-		else return { data: null };
+		else {
+			const cookieHeader = request.headers.get('Cookie');
+			const backToCookie = await loginInfo.parse(cookieHeader) || {};
+			backToCookie.backTo = backTo;
+
+			return {
+				data: null,
+				headers: { 'Set-Cookie': await loginInfo.serialize(backToCookie) },
+			};
+		}
 	}
 
-	const backTo = query.get('backTo') || '/';
 	if (token && DBUser && 'data' in DBUser && type === DBUser.data.mainLoginType.toLowerCase()) return redirect(backTo || '/');
 
 	const cookieHeader = request.headers.get('Cookie');
@@ -63,6 +74,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function Login() {
 	const { allowedPlatforms = [] } = useContext(RootContext) || {};
 	const allButtons = useMemo(() => platformButtons(allowedPlatforms), [allowedPlatforms]);
+	const [searchParams] = useSearchParams();
+
+	const backTo = searchParams.get('backTo');
 
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 40 }} id='a1'>
@@ -70,7 +84,7 @@ export default function Login() {
 				<Container gap={2} bg='transparent' p={0}>
 					{allButtons.length ? allButtons.map((platform) => (
 						<LinkButton
-							to={`/login?type=${platform.name.toLowerCase()}`}
+							to={`/login?type=${platform.name.toLowerCase()}${backTo ? `&backTo=${encodeURIComponent(backTo)}` : ''}`}
 							id={`login-button-${platform.name}`}
 							rounded={12}
 							key={platform.name}
