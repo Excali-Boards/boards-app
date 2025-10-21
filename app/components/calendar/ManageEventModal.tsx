@@ -12,6 +12,7 @@ export type ModalOpen = 'createEvent' | 'updateEvent' | 'viewEvent' | 'viewHolid
 export type ManageEventProps = {
 	isOpen: boolean;
 	onClose: () => void;
+	canEdit: boolean;
 	type: NonNullable<ModalOpen>;
 	fetcher: FetcherWithComponents<unknown>;
 	defaultEvent?: Partial<CalendarEvent>;
@@ -23,7 +24,7 @@ export type ManageEventProps = {
 
 const colorOptions = Object.entries(calendarColors).map(([label, value]) => ({ value, label: label.charAt(0).toUpperCase() + label.slice(1) }));
 
-export function ManageEvent({ isOpen, onClose, type, fetcher, defaultEvent, eventId, selectedDate, onEdit, onDelete }: ManageEventProps) {
+export function ManageEvent({ isOpen, onClose, canEdit, type, fetcher, defaultEvent, eventId, selectedDate, onEdit, onDelete }: ManageEventProps) {
 	const [selectedColor, setSelectedColor] = useState<string>(defaultEvent?.color || calendarColors.skyline);
 	const [title, setTitle] = useState<string>(defaultEvent?.title || '');
 	const [location, setLocation] = useState<string>(defaultEvent?.where || '');
@@ -484,7 +485,7 @@ export function ManageEvent({ isOpen, onClose, type, fetcher, defaultEvent, even
 						</Flex>
 					</ModalBody>
 					<ModalFooter display={'flex'} gap={1}>
-						{type === 'viewEvent' ? (
+						{type === 'viewEvent' && canEdit ? (
 							<>
 								<Button flex={1} colorScheme='gray' onClick={onClose}>
 									Close
@@ -496,7 +497,7 @@ export function ManageEvent({ isOpen, onClose, type, fetcher, defaultEvent, even
 									Edit
 								</Button>
 							</>
-						) : type === 'viewHoliday' ? (
+						) : (type === 'viewHoliday' || !canEdit) ? (
 							<>
 								<Button flex={1} colorScheme='gray' onClick={onClose}>
 									Close

@@ -2,6 +2,7 @@ import { CalendarEventExternal, createViewDay, createViewMonthGrid, createViewWe
 import { useEffect, useContext, useMemo, useState, useCallback, useRef } from 'react';
 import { CalendarHeader, CalendarView } from '~/components/calendar/CalendarHeader';
 import { ManageEvent, ModalOpen } from '~/components/calendar/ManageEventModal';
+import { canEdit, closest15MinuteCreate, validateParams } from '~/other/utils';
 import { VStack, Box, Flex, useToast, useColorMode } from '@chakra-ui/react';
 import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls';
 import { CountryCodeModal } from '~/components/calendar/CountryCodeModal';
@@ -10,7 +11,6 @@ import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { createEventsServicePlugin } from '@schedule-x/events-service';
 import { useCalendarApp, ScheduleXCalendar } from '@schedule-x/react';
-import { closest15MinuteCreate, validateParams } from '~/other/utils';
 import { createDragAndDropPlugin } from '@schedule-x/drag-and-drop';
 import { Jsonify } from '@remix-run/server-runtime/dist/jsonify';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
@@ -448,6 +448,7 @@ export default function GroupCalendar() {
 					eventId={selectedEvent?.id}
 					type={modalOpen || 'createEvent'}
 					defaultEvent={selectedEvent || undefined}
+					canEdit={canEdit(group.accessLevel)}
 					selectedDate={undefined}
 					onDelete={() => setShowDeleteConfirm(true)}
 					onEdit={() => {

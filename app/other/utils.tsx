@@ -170,6 +170,10 @@ export function canRead(role: AccessLevel) {
 	return role === 'read';
 }
 
+export function canEdit(role: AccessLevel) {
+	return role === 'write' || role === 'manage' || role === 'admin';
+}
+
 export function canManage(role: AccessLevel) {
 	return role === 'manage' || role === 'admin';
 }
