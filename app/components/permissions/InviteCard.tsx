@@ -132,11 +132,11 @@ export function InviteCard({
 				<VStack spacing={1} align='stretch' w='100%'>
 					<HStack spacing={3} align='center' justify='space-between' w='100%'>
 						<Text
-							fontSize={codeTextSize}
-							fontWeight={'bold'}
 							overflow='hidden'
-							textOverflow='ellipsis'
+							fontWeight='bold'
 							whiteSpace='nowrap'
+							textOverflow='ellipsis'
+							fontSize={codeTextSize}
 							maxW={isMobile ? '60%' : 'none'}
 						>
 							{code}
@@ -145,15 +145,17 @@ export function InviteCard({
 						{isMobile && badges}
 					</HStack>
 
-					<HStack spacing={2} flexWrap='wrap'>
+					<HStack spacing={isMobile ? 1 : 2} flexWrap='wrap'>
 						{expiresAt && (
-							<Text fontSize='md' color={'gray.500'}>
-								{isExpired ? 'Expired' : formatExpiresIn(new Date(expiresAt))}
+							<Text fontSize='md' color='gray.500'>
+								{isMobile ? ' • ' : ''}{isExpired ? 'Expired' : formatExpiresIn(new Date(expiresAt))}
 							</Text>
 						)}
 
-						<Text fontSize='md' color={'gray.500'}>
-							• {uses}/{maxUses} uses
+						{!isMobile && <Text fontSize='md' color='gray.500'> • </Text>}
+
+						<Text fontSize='md' color='gray.500'>
+							{isMobile ? ' • ' : ''}{uses}/{maxUses} uses
 						</Text>
 					</HStack>
 				</VStack>

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 
 export type CountryCodeModalProps = {
 	isOpen: boolean;
+	canManage: boolean;
 	onClose: () => void;
 	currentCountryCode: string | null;
 	onSave: (countryCode: string | null) => void;
@@ -11,9 +12,10 @@ export type CountryCodeModalProps = {
 
 export function CountryCodeModal({
 	isOpen,
-	onClose,
-	currentCountryCode,
 	onSave,
+	onClose,
+	canManage,
+	currentCountryCode,
 	isLoading = false,
 }: CountryCodeModalProps) {
 	const [countryCode, setCountryCode] = useState(currentCountryCode || '');
@@ -58,6 +60,7 @@ export function CountryCodeModal({
 							<FormLabel>Country Code</FormLabel>
 							<Input
 								value={countryCode}
+								isDisabled={!canManage || isLoading}
 								onChange={(e) => setCountryCode(e.target.value)}
 								placeholder='US, GB, DE, FR, HR'
 								maxLength={2}
@@ -71,12 +74,6 @@ export function CountryCodeModal({
 								Leave empty to disable country-specific holidays.
 							</FormHelperText>
 						</FormControl>
-
-						{currentCountryCode && (
-							<Text fontSize='sm' color={colorMode === 'light' ? 'gray.500' : 'gray.400'}>
-								Current setting: {currentCountryCode}
-							</Text>
-						)}
 					</VStack>
 				</ModalBody>
 
@@ -89,22 +86,26 @@ export function CountryCodeModal({
 					>
 						Close
 					</Button>
-					<Button
-						flex={1}
-						colorScheme='red'
-						onClick={handleReset}
-						isDisabled={isLoading}
-					>
-						Reset
-					</Button>
-					<Button
-						flex={1}
-						colorScheme='blue'
-						onClick={handleSave}
-						isLoading={isLoading}
-					>
-						Save
-					</Button>
+
+					{canManage && (
+						<>
+							<Button
+								flex={1}
+								colorScheme='red'
+								onClick={handleReset}
+								isDisabled={isLoading}
+							>
+								Reset
+							</Button>
+							<Button
+								flex={1}
+								colorScheme='blue'
+								onClick={handleSave}
+								isLoading={isLoading}
+							>
+								Save
+							</Button></>
+					)}
 				</ModalFooter>
 			</ModalContent>
 		</Modal>

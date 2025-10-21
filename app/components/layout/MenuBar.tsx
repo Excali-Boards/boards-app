@@ -7,6 +7,7 @@ export type CustomButton<T extends 'normal' | 'link'> = (T extends 'normal' ? {
 	onClick: () => void;
 } : {
 	to: string;
+	reloadDocument?: boolean;
 }) & {
 	type: T;
 	label: string;
@@ -67,6 +68,7 @@ export default function MenuBar({
 						icon={button.icon}
 						isActive={button.isActive}
 						colorScheme={button.colorScheme}
+						reloadDocument={(button as CustomButton<'link'>).reloadDocument}
 						_hover={{ bg: 'alpha300' }}
 						_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
 					/>

@@ -122,6 +122,7 @@ export default function Categories() {
 						icon: <FaCalendarAlt />,
 						to: `/groups/${group.id}/calendar`,
 						tooltip: 'View group calendar',
+						reloadDocument: true,
 					}, ...(user?.isDev || canManage(group.accessLevel) ? [{
 						type: 'normal',
 						label: 'Manage categories.',

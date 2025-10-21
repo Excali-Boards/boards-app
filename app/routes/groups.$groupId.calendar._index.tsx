@@ -1,9 +1,9 @@
 import { CalendarEventExternal, createViewDay, createViewMonthGrid, createViewWeek } from '@schedule-x/calendar';
 import { VStack, Box, Flex, useToast, useColorMode, useBreakpointValue } from '@chakra-ui/react';
+import { canEdit, canManage, closest15MinuteCreate, validateParams } from '~/other/utils';
 import { useEffect, useContext, useMemo, useState, useCallback, useRef } from 'react';
 import { CalendarHeader, CalendarView } from '~/components/calendar/CalendarHeader';
 import { ManageEvent, ModalOpen } from '~/components/calendar/ManageEventModal';
-import { canEdit, closest15MinuteCreate, validateParams } from '~/other/utils';
 import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls';
 import { CountryCodeModal } from '~/components/calendar/CountryCodeModal';
 import type { FormattedHoliday } from '@excali-boards/boards-api-client';
@@ -482,6 +482,7 @@ export default function GroupCalendar() {
 				<CountryCodeModal
 					isOpen={showCountryModal}
 					onSave={handleCountrySave}
+					canManage={canManage(group.accessLevel)}
 					currentCountryCode={group.calendarCode}
 					onClose={() => setShowCountryModal(false)}
 					isLoading={fetcher.state === 'loading' || fetcher.state === 'submitting'}

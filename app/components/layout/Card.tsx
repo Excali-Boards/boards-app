@@ -1,4 +1,4 @@
-import { Flex, Text, HStack, Divider, IconButton, FlexProps, useColorMode, Badge } from '@chakra-ui/react';
+import { Flex, Text, HStack, Divider, IconButton, FlexProps, useColorMode, Badge, useBreakpointValue } from '@chakra-ui/react';
 import { FaLink, FaPen, FaTrash, FaTrashRestore, FaUsers } from 'react-icons/fa';
 import { formatBytes, getCardDeletionTime } from '~/other/utils';
 import { IconLinkButton } from '~/components/Button';
@@ -41,6 +41,7 @@ export function Card({
 	const { colorMode } = useColorMode();
 
 	const isDeletedSoon = getCardDeletionTime(isScheduledForDeletion || null, colorMode);
+	const isMobile = useBreakpointValue({ base: true, md: false }) || false;
 
 	return (
 		<Flex
@@ -55,11 +56,12 @@ export function Card({
 			transition={'all 0.3s ease'}
 			justifyContent={'space-between'}
 			_hover={{ bg: isDeletedSoon.borderColor }}
+			flexDirection={editorMode ? { base: 'column', md: 'row' } : 'row'}
 		>
 			<Flex
 				justifyContent='center'
-				alignItems='start'
-				textAlign='start'
+				alignItems={{ base: editorMode ? 'center' : 'start', md: 'start' }}
+				textAlign={{ base: editorMode ? 'center' : 'start', md: 'start' }}
 				flexDir='column'
 				flexGrow={1}
 			>
@@ -96,7 +98,7 @@ export function Card({
 				flexDir={'row'}
 				gap={4}
 			>
-				<Divider orientation={'vertical'} color={'red'} height={'50px'} />
+				<Divider orientation={'vertical'} color={'red'} height={'50px'} display={isMobile && editorMode ? 'none' : 'block'} />
 
 				<HStack spacing={2}>
 					{onCancelDeletion && isScheduledForDeletion && (
