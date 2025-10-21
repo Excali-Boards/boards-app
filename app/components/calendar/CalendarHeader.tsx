@@ -1,10 +1,10 @@
-import { Flex, Button, Text, IconButton, HStack, useColorMode, Menu, MenuButton, MenuList, MenuItem, Portal } from '@chakra-ui/react';
+import { Flex, Button, Text, IconButton, HStack, useColorMode, Menu, MenuButton, MenuList, MenuItem, Portal, useBreakpointValue } from '@chakra-ui/react';
 import { ChevronLeftIcon, ChevronRightIcon, AddIcon, SettingsIcon } from '@chakra-ui/icons';
 import { BsCalendarWeek, BsCalendarMonth, BsCalendar3 } from 'react-icons/bs';
 import 'temporal-polyfill/global';
 import { useMemo } from 'react';
 
-export type CalendarView = 'day' | 'week' | 'month';
+export type CalendarView = 'day' | 'week' | 'month-grid';
 
 export type CalendarHeaderProps = {
 	groupName: string;
@@ -20,7 +20,7 @@ export type CalendarHeaderProps = {
 const viewOptions = [
 	{ value: 'day' as CalendarView, label: 'Day', icon: BsCalendar3 },
 	{ value: 'week' as CalendarView, label: 'Week', icon: BsCalendarWeek },
-	{ value: 'month' as CalendarView, label: 'Month', icon: BsCalendarMonth },
+	{ value: 'month-grid' as CalendarView, label: 'Month', icon: BsCalendarMonth },
 ];
 
 export function CalendarHeader({
@@ -34,6 +34,7 @@ export function CalendarHeader({
 	onCountrySettings,
 }: CalendarHeaderProps) {
 	const { colorMode } = useColorMode();
+	const isMobile = useBreakpointValue({ base: true, md: false });
 
 	const formattedDate = useMemo(() => {
 		const formatter = new Intl.DateTimeFormat('en-US', {
@@ -45,7 +46,65 @@ export function CalendarHeader({
 		return formatter.format(new Date(currentDate.toString()));
 	}, [currentDate, currentView]);
 
-	const currentViewOption = viewOptions.find((option) => option.value === currentView);
+	const currentViewOption = viewOptions.find((option) => option.value === currentView) || viewOptions[2]!;
+
+	if (isMobile) {
+		return (
+			<Flex direction='column' p={3} gap={4}>
+				<HStack spacing={2} justify='center' w='100%' flexWrap='wrap'>
+					<IconButton
+						aria-label='Today'
+						icon={<BsCalendar3 />}
+						variant='outline'
+						onClick={onToday}
+					/>
+					<IconButton
+						aria-label='Previous'
+						icon={<ChevronLeftIcon />}
+						variant='outline'
+						onClick={() => handleButton('prev')}
+					/>
+					<IconButton
+						aria-label='Next'
+						icon={<ChevronRightIcon />}
+						variant='outline'
+						onClick={() => handleButton('next')}
+					/>
+					<IconButton
+						aria-label='Country Settings'
+						icon={<SettingsIcon />}
+						variant='outline'
+						onClick={onCountrySettings}
+					/>
+					<IconButton
+						aria-label={`${currentViewOption.label} view`}
+						icon={<currentViewOption.icon />}
+						variant='outline'
+						onClick={() => {
+							const currentIndex = viewOptions.findIndex((v) => v.value === currentView);
+							const nextIndex = (currentIndex + 1) % viewOptions.length;
+							onViewChange(viewOptions[nextIndex]!.value);
+						}}
+					/>
+					<IconButton
+						aria-label='Create Event'
+						icon={<AddIcon />}
+						variant='solid'
+						onClick={onCreateEvent}
+					/>
+				</HStack>
+
+				<Text
+					fontSize='lg'
+					fontWeight='semibold'
+					textAlign='center'
+					w='100%'
+				>
+					{groupName} - {formattedDate}
+				</Text>
+			</Flex>
+		);
+	}
 
 	return (
 		<Flex
@@ -94,18 +153,16 @@ export function CalendarHeader({
 				<IconButton
 					aria-label='Country Settings'
 					icon={<SettingsIcon />}
-					size='sm'
 					variant='outline'
 					onClick={onCountrySettings}
 				/>
 
 				<Menu>
 					<MenuButton
-						size='sm'
 						as={Button}
 						variant='outline'
 						data-calendar-view-menu
-						leftIcon={currentViewOption ? <currentViewOption.icon /> : undefined}
+						leftIcon={<currentViewOption.icon />}
 						sx={{
 							backgroundColor: `${colorMode === 'dark' ? 'transparent' : 'white'} !important`,
 							borderColor: `${colorMode === 'dark' ? 'whiteAlpha.300' : 'gray.300'} !important`,
@@ -116,7 +173,7 @@ export function CalendarHeader({
 							},
 						}}
 					>
-						{currentViewOption?.label || 'View'}
+						{currentViewOption.label}
 					</MenuButton>
 					<Portal>
 						<MenuList
@@ -129,6 +186,7 @@ export function CalendarHeader({
 						>
 							{viewOptions.map((option) => {
 								const IconComponent = option.icon;
+
 								return (
 									<MenuItem
 										key={option.value}
@@ -154,7 +212,6 @@ export function CalendarHeader({
 				</Menu>
 
 				<Button
-					size='sm'
 					variant='solid'
 					leftIcon={<AddIcon />}
 					onClick={onCreateEvent}

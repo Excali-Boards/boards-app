@@ -1,9 +1,9 @@
 import { CalendarEventExternal, createViewDay, createViewMonthGrid, createViewWeek } from '@schedule-x/calendar';
+import { VStack, Box, Flex, useToast, useColorMode, useBreakpointValue } from '@chakra-ui/react';
 import { useEffect, useContext, useMemo, useState, useCallback, useRef } from 'react';
 import { CalendarHeader, CalendarView } from '~/components/calendar/CalendarHeader';
 import { ManageEvent, ModalOpen } from '~/components/calendar/ManageEventModal';
 import { canEdit, closest15MinuteCreate, validateParams } from '~/other/utils';
-import { VStack, Box, Flex, useToast, useColorMode } from '@chakra-ui/react';
 import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls';
 import { CountryCodeModal } from '~/components/calendar/CountryCodeModal';
 import type { FormattedHoliday } from '@excali-boards/boards-api-client';
@@ -165,10 +165,11 @@ export default function GroupCalendar() {
 	const { colorMode } = useColorMode();
 
 	const isDark = useMemo(() => (colorMode === 'dark' ? !useOppositeColorForBoard : useOppositeColorForBoard), [colorMode, useOppositeColorForBoard]);
+	const isMobile = useBreakpointValue({ base: true, md: false }) || false;
 
 	const [currentDate, setCurrentDate] = useState(() => Temporal.Now.plainDateISO());
 	const [selectedEvent, setSelectedEvent] = useState<Partial<CalendarEvent> | null>(null);
-	const [currentView, setCurrentView] = useState<CalendarView>('month');
+	const [currentView, setCurrentViewOriginal] = useState<CalendarView>('month-grid');
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [showCountryModal, setShowCountryModal] = useState(false);
 	const [modalOpen, setModalOpen] = useState<ModalOpen>(null);
@@ -184,12 +185,6 @@ export default function GroupCalendar() {
 	const dragAndDropPlugin = useMemo(() => createDragAndDropPlugin(15), []);
 	const eventsService = useMemo(() => createEventsServicePlugin(), []);
 	const resizePlugin = useMemo(() => createResizePlugin(), []);
-
-	const viewMap = useMemo(() => ({
-		'day': createViewDay(),
-		'week': createViewWeek(),
-		'month': createViewMonthGrid(),
-	}), []);
 
 	const isAnyModalOpen = modalOpen !== null || showCountryModal || showDeleteConfirm;
 
@@ -278,10 +273,10 @@ export default function GroupCalendar() {
 	}, [handleEventCreate]);
 
 	const calendar = useCalendarApp({
-		views: [createViewDay(), createViewWeek(), createViewMonthGrid()],
-		defaultView: viewMap[currentView].name,
-		selectedDate: currentDate,
+		views: [createViewMonthGrid(), createViewWeek(), createViewDay()],
+		selectedDate: Temporal.Now.plainDateISO(),
 		calendars: colorCalendars,
+		defaultView: 'month-grid',
 		events: [],
 		isDark,
 		plugins: [
@@ -296,7 +291,7 @@ export default function GroupCalendar() {
 			onSelectedDateUpdate: setCurrentDate,
 			onEventClick: (event) => handleEventClick(String(event.id)),
 			onBeforeEventUpdate: (_, newEvent) => !holidayIdsRef.current.has(String(newEvent.id)),
-			isCalendarSmall: ($app) => $app.elements.calendarWrapper?.clientWidth ? $app.elements.calendarWrapper.clientWidth < 700 : false,
+			isCalendarSmall: () => isMobile,
 
 			onEventUpdate: (updatedEvent) => {
 				const startIso = new Date((updatedEvent.start as Temporal.ZonedDateTime).epochMilliseconds).toISOString();
@@ -330,9 +325,17 @@ export default function GroupCalendar() {
 
 	calendarRef.current = calendar;
 
+	const setCurrentView = useCallback((view: CalendarView) => {
+		if (!calendar) return;
+		setCurrentViewOriginal(view);
+		calendarControlsPlugin.setView(view);
+	}, [calendarControlsPlugin, calendar]);
+
 	const handleButton = useCallback((direction: 'prev' | 'next') => {
-		setCurrentDate(direction === 'prev' ? currentDate.subtract({ [`${currentView}s`]: 1 }) : currentDate.add({ [`${currentView}s`]: 1 }));
-	}, [currentDate, currentView]);
+		if (!calendar) return;
+		const tempCurrentView = currentView === 'month-grid' ? 'month' : currentView;
+		calendarControlsPlugin.setDate(direction === 'prev' ? currentDate.subtract({ [`${tempCurrentView}s`]: 1 }) : currentDate.add({ [`${tempCurrentView}s`]: 1 }));
+	}, [currentDate, calendar, currentView, calendarControlsPlugin]);
 
 	const handleDeleteEvent = useCallback(() => {
 		if (selectedEvent?.id) {
@@ -350,8 +353,8 @@ export default function GroupCalendar() {
 		switch (k) {
 			case 'A': handleButton('prev'); break;
 			case 'D': handleButton('next'); break;
-			case 'W': setCurrentView((prev) => prev === 'day' ? 'day' : prev === 'week' ? 'day' : 'week'); break;
-			case 'S': setCurrentView((prev) => prev === 'month' ? 'month' : prev === 'week' ? 'month' : 'week'); break;
+			case 'W': setCurrentView(currentView === 'day' ? 'week' : currentView === 'week' ? 'month-grid' : 'day'); break;
+			case 'S': setCurrentView(currentView === 'month-grid' ? 'week' : currentView === 'week' ? 'day' : 'month-grid'); break;
 			case 'N': createEvent(); break;
 		}
 	}, isAnyModalOpen);
@@ -417,8 +420,17 @@ export default function GroupCalendar() {
 	}, [calendar, initialEvents, initialHolidays]);
 
 	useEffect(() => { calendar?.setTheme(isDark ? 'dark' : 'light'); }, [isDark, calendar]);
-	useEffect(() => { calendarControlsPlugin.setDate(currentDate); }, [currentDate, calendar, calendarControlsPlugin]);
-	useEffect(() => { calendarControlsPlugin.setView(viewMap[currentView].name); }, [currentView, calendar, viewMap, calendarControlsPlugin]);
+
+	useEffect(() => {
+		if (!calendar || !calendarControlsPlugin) return;
+
+		const timeout = setTimeout(() => {
+			calendarControlsPlugin.setView('month-grid');
+			setCurrentViewOriginal('month-grid');
+		}, 50);
+
+		return () => clearTimeout(timeout);
+	}, [calendar, calendarControlsPlugin]);
 
 	return (
 		<VStack w='100%' align='center' px={0} spacing={0} h='100vh'>
@@ -434,7 +446,7 @@ export default function GroupCalendar() {
 					onCountrySettings={() => setShowCountryModal(true)}
 				/>
 
-				<Box w='100%' h='100%' overflow='hidden'>
+				<Box w='100%' flex='1' minH='0' overflow='auto'>
 					<ScheduleXCalendar calendarApp={calendar} />
 				</Box>
 
@@ -447,9 +459,9 @@ export default function GroupCalendar() {
 					fetcher={fetcher}
 					eventId={selectedEvent?.id}
 					type={modalOpen || 'createEvent'}
+					selectedDate={currentDate.toString()}
 					defaultEvent={selectedEvent || undefined}
 					canEdit={canEdit(group.accessLevel)}
-					selectedDate={undefined}
 					onDelete={() => setShowDeleteConfirm(true)}
 					onEdit={() => {
 						if (selectedEvent) setModalOpen('updateEvent');
