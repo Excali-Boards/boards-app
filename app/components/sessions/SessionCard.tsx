@@ -136,14 +136,15 @@ export function SessionCard({
 									</Text>
 								)}
 
-								<Flex flexDirection={'column'}>
+								<HStack spacing={1} flexWrap='wrap'>
 									<Text fontSize='sm' color='gray.500'>
-										Created {formatRelativeTime(createdAt)}
+										• Created {formatRelativeTime(createdAt)}
 									</Text>
+
 									<Text fontSize='sm' color='gray.500'>
-										Last active {formatRelativeTime(lastUsed)}
+										• Last active {formatRelativeTime(lastUsed)}
 									</Text>
-								</Flex>
+								</HStack>
 							</VStack>
 
 							{onDelete && (
@@ -190,8 +191,11 @@ export function SessionCard({
 							<Text fontSize='sm' color='gray.500'>
 								Created {formatRelativeTime(createdAt)} • Last active {formatRelativeTime(lastUsed)}
 							</Text>
+
+							<Text fontSize='sm' color='gray.500'> • </Text>
+
 							<Text fontSize='sm' color='gray.500'>
-								• {isExpired ? 'Expired' : formatExpiresIn(expiresAt)}
+								{isExpired ? 'Expired' : formatExpiresIn(expiresAt)}
 							</Text>
 						</HStack>
 					</Flex>
