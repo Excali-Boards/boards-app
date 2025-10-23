@@ -1,6 +1,6 @@
 import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, IconButton, Divider, HStack, Tooltip, Textarea } from '@chakra-ui/react';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
-import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
+import { LoaderFunctionArgs, ActionFunctionArgs, redirect } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { FaPlus, FaTrash, FaPen, FaDownload } from 'react-icons/fa';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -9,6 +9,7 @@ import { authenticator } from '~/utils/auth.server';
 import MenuBar from '~/components/layout/MenuBar';
 import { validateParams } from '~/other/utils';
 import { WebReturnType } from '~/other/types';
+import { FaExplosion } from 'react-icons/fa6';
 import Select from '~/components/Select';
 import { api } from '~/utils/web.server';
 
@@ -113,7 +114,8 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 		}
 		case 'destroyDeck': {
 			const result = await api?.flashcards.destroyDeck({ auth: token, groupId, categoryId, boardId });
-			return makeResObject(result, 'Failed to delete all cards.');
+			if (!result || 'error' in result) return makeResObject(result, 'Failed to delete deck.');
+			return redirect(`/groups/${groupId}/${categoryId}`);
 		}
 		case 'deleteAll': {
 			const cardIds = formData.getAll('cardIds') as string[];
@@ -158,6 +160,12 @@ export default function ManageFlashcards() {
 					description={'Add, edit, or delete flashcards in this deck.'}
 					goBackWindow={true}
 					customButtons={[{
+						type: 'normal',
+						label: 'Delete Deck',
+						icon: <FaExplosion />,
+						onClick: () => setModalOpen('destroyDeck'),
+						tooltip: 'Delete entire flashcard deck',
+					}, {
 						type: 'normal',
 						label: 'Delete All Cards',
 						icon: <FaTrash />,
@@ -208,6 +216,7 @@ export default function ManageFlashcards() {
 					fetcher={fetcher}
 					isOpen={modalOpen !== null}
 					type={modalOpen || 'createCard'}
+					allCardIds={deck.cards.map((card) => card.id)}
 					selectedCard={selectedCard}
 					onClose={() => {
 						setModalOpen(null);
@@ -308,7 +317,7 @@ export function FlashcardItem({ card, onEdit, onDelete }: FlashcardItemProps) {
 	);
 }
 
-export type ModalOpen = 'createCard' | 'editCard' | 'deleteCard' | 'import' | 'deleteAll' | null;
+export type ModalOpen = 'createCard' | 'editCard' | 'deleteCard' | 'import' | 'deleteAll' | 'destroyDeck' | null;
 export type EditableCard = {
 	id: string;
 	front: string;
@@ -321,9 +330,10 @@ export type ManageModalProps = {
 	type: NonNullable<ModalOpen>;
 	fetcher: FetcherWithComponents<unknown>;
 	selectedCard: EditableCard | null;
+	allCardIds: string[];
 };
 
-export function ManageModal({ isOpen, onClose, type, fetcher, selectedCard }: ManageModalProps) {
+export function ManageModal({ isOpen, onClose, type, fetcher, selectedCard, allCardIds }: ManageModalProps) {
 	const { colorMode } = useColorMode();
 
 	const [front, setFront] = useState('');
@@ -389,6 +399,7 @@ export function ManageModal({ isOpen, onClose, type, fetcher, selectedCard }: Ma
 						{type === 'deleteCard' && 'Delete Card'}
 						{type === 'import' && 'Import Cards'}
 						{type === 'deleteAll' && 'Delete All Cards'}
+						{type === 'destroyDeck' && 'Delete Flashcard Deck'}
 					</ModalHeader>
 					<ModalCloseButton />
 					<ModalBody>
@@ -538,9 +549,21 @@ export function ManageModal({ isOpen, onClose, type, fetcher, selectedCard }: Ma
 
 							{type === 'deleteAll' && (
 								<>
-									<VisuallyHiddenInput onChange={() => { }} name='type' value='destroyDeck' />
+									<VisuallyHiddenInput onChange={() => { }} name='type' value='deleteAll' />
+									{allCardIds.map((id) => <VisuallyHiddenInput key={id} onChange={() => { }} name='cardIds' value={id} />)}
+
 									<Text>
 										Are you sure you want to delete all flashcards? <br /> This action cannot be undone.
+									</Text>
+								</>
+							)}
+
+							{type === 'destroyDeck' && (
+								<>
+									<VisuallyHiddenInput onChange={() => { }} name='type' value='destroyDeck' />
+
+									<Text>
+										Are you sure you want to delete the entire flashcard deck? <br /> This action cannot be undone and all flashcards will be lost.
 									</Text>
 								</>
 							)}
@@ -553,7 +576,7 @@ export function ManageModal({ isOpen, onClose, type, fetcher, selectedCard }: Ma
 						<Button
 							flex={1}
 							type='submit'
-							colorScheme={type === 'deleteCard' || type === 'deleteAll' ? 'red' : 'blue'}
+							colorScheme={type === 'deleteCard' || type === 'deleteAll' || type === 'destroyDeck' ? 'red' : 'blue'}
 							isLoading={fetcher.state === 'loading' || fetcher.state === 'submitting'}
 							isDisabled={
 								((type === 'createCard' || type === 'editCard') && (!front.trim() || !back.trim())) ||
@@ -565,6 +588,7 @@ export function ManageModal({ isOpen, onClose, type, fetcher, selectedCard }: Ma
 							{type === 'deleteCard' && 'Delete Card'}
 							{type === 'import' && `Import ${parsedPreview.total} Cards`}
 							{type === 'deleteAll' && 'Delete All'}
+							{type === 'destroyDeck' && 'Delete Deck'}
 						</Button>
 					</ModalFooter>
 				</fetcher.Form>
