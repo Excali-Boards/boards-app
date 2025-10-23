@@ -251,7 +251,11 @@ export function GrantPermissionsModal({ isOpen, onClose, allData, canSelectGroup
 					</VStack>
 				</ModalBody>
 				<ModalFooter display='flex' gap={1}>
-					<Button flex={1} colorScheme='gray' onClick={onClose}>
+					<Button
+						flex={1}
+						colorScheme='gray'
+						onClick={onClose}
+					>
 						Cancel
 					</Button>
 					<Button
@@ -261,7 +265,7 @@ export function GrantPermissionsModal({ isOpen, onClose, allData, canSelectGroup
 						isLoading={fetcher.state !== 'idle'}
 						isDisabled={!isFormValid}
 					>
-						Create Invite
+						Grant Permissions
 					</Button>
 				</ModalFooter>
 			</ModalContent>

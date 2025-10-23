@@ -59,7 +59,6 @@ export function ConfirmModal({
 						flex={1}
 						onClick={onConfirm}
 						isLoading={isLoading}
-						loadingText={confirmText}
 						colorScheme={colorScheme || 'blue'}
 					>
 						{confirmText}

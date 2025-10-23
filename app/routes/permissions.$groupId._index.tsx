@@ -47,6 +47,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 	const formData = await request.formData();
 	const type = formData.get('type') as string;
 
+	console.log('Action type:', type, [...formData.entries()]);
+
 	switch (type) {
 		case 'createInvite': {
 			const inviteData = JSON.parse(formData.get('inviteData') as string);

@@ -58,9 +58,7 @@ export default function Sessions() {
 	const toast = useToast();
 
 	const fetcher = useFetcher<WebReturnType<string>>();
-	useFetcherResponse(fetcher, toast, () => {
-		setConfirmModal(null);
-	});
+	useFetcherResponse(fetcher, toast, () => setConfirmModal(null));
 
 	const handleDeleteSession = useCallback((id: string) => {
 		fetcher.submit({ type: 'deleteSession', sessionId: id, isCurrent: id === activeDbId }, { method: 'post' });

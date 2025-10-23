@@ -74,9 +74,7 @@ export function ResourceGrantModal({
 			<ModalOverlay />
 			<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
 				<fetcher.Form method='post'>
-					<ModalHeader>
-						Grant Permissions
-					</ModalHeader>
+					<ModalHeader>Grant Permissions</ModalHeader>
 					<ModalCloseButton />
 					<ModalBody>
 						<VStack spacing={6}>
@@ -132,7 +130,6 @@ export function ResourceGrantModal({
 							flex={1}
 							colorScheme='blue'
 							onClick={handleSubmit}
-							loadingText='Granting...'
 							isDisabled={!selectedRole || !userId}
 							isLoading={fetcher.state === 'submitting' || fetcher.state === 'loading'}
 						>

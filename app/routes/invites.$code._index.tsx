@@ -208,7 +208,6 @@ export default function AcceptInvite() {
 						size='lg'
 						w='full'
 						isLoading={isSubmitting}
-						loadingText='Accepting..'
 						isDisabled={isExpired || isAtMaxUses || isInviter}
 						colorScheme={isExpired || isAtMaxUses || isInviter ? 'red' : 'purple'}
 						leftIcon={isSubmitting ? <Spinner size='sm' /> : <Icon as={FaGift} />}

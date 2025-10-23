@@ -94,9 +94,7 @@ export default function Profile() {
 	const toast = useToast();
 
 	const fetcher = useFetcher<WebReturnType<string>>();
-	useFetcherResponse(fetcher, toast, () => {
-		setModalShown(null);
-	});
+	useFetcherResponse(fetcher, toast, () => setModalShown(null));
 
 	const allPlatformData = useMemo(() => platformButtons(allowedPlatforms || []), [allowedPlatforms]);
 	const customButtons = useMemo(() => {

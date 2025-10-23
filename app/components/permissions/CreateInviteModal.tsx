@@ -46,7 +46,20 @@ export function CreateInviteModal({ isOpen, onClose, allData, canSelectGroups, c
 	const [maxUses, setMaxUses] = useState<number>(1);
 	const [expiresIn, setExpiresIn] = useState(7);
 
-	useFetcherResponse(fetcher, toast);
+	useFetcherResponse(fetcher, toast, () => {
+		onClose();
+
+		setSelectedGroups([]);
+		setSelectedCategories([]);
+		setSelectedBoards([]);
+
+		setGroupRole(null);
+		setCategoryRole(null);
+		setBoardRole(null);
+
+		setMaxUses(1);
+		setExpiresIn(7);
+	});
 
 	const groupOptions = useMemo(() => allData.map((group) => ({
 		value: group.id,
@@ -101,22 +114,7 @@ export function CreateInviteModal({ isOpen, onClose, allData, canSelectGroups, c
 		formData.append('type', 'createInvite');
 		formData.append('inviteData', JSON.stringify(inviteData));
 		fetcher.submit(formData, { method: 'post' });
-
-		if (fetcher.state === 'idle') {
-			onClose();
-
-			setSelectedGroups([]);
-			setSelectedCategories([]);
-			setSelectedBoards([]);
-
-			setGroupRole(null);
-			setCategoryRole(null);
-			setBoardRole(null);
-
-			setMaxUses(1);
-			setExpiresIn(7);
-		}
-	}, [selectedGroups, selectedCategories, selectedBoards, groupRole, categoryRole, boardRole, maxUses, expiresIn, fetcher, onClose, canSelectGroups, canSelectCategories, canSelectBoards]);
+	}, [selectedGroups, selectedCategories, selectedBoards, groupRole, categoryRole, boardRole, maxUses, expiresIn, fetcher, canSelectGroups, canSelectCategories, canSelectBoards]);
 
 	const conflicts = useMemo(() => findConflicts({
 		allData,
@@ -141,7 +139,7 @@ export function CreateInviteModal({ isOpen, onClose, allData, canSelectGroups, c
 		<Modal isOpen={isOpen} onClose={onClose} isCentered size='3xl'>
 			<ModalOverlay />
 			<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
-				<ModalHeader>Create New Invite</ModalHeader>
+				<ModalHeader>Create Invite</ModalHeader>
 				<ModalCloseButton />
 				<ModalBody>
 					<VStack spacing={4}>
@@ -278,15 +276,19 @@ export function CreateInviteModal({ isOpen, onClose, allData, canSelectGroups, c
 					</VStack>
 				</ModalBody>
 				<ModalFooter display='flex' gap={1}>
-					<Button flex={1} colorScheme='gray' onClick={onClose}>
+					<Button
+						flex={1}
+						colorScheme='gray'
+						onClick={onClose}
+					>
 						Cancel
 					</Button>
 					<Button
 						flex={1}
 						colorScheme='blue'
 						onClick={handleSubmit}
-						isLoading={fetcher.state !== 'idle'}
 						isDisabled={!isFormValid}
+						isLoading={fetcher.state === 'submitting' || fetcher.state === 'loading'}
 					>
 						Create Invite
 					</Button>

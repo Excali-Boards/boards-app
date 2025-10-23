@@ -1,10 +1,11 @@
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, FormControl, FormLabel, NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper, useColorMode, VisuallyHiddenInput, Input, Flex } from '@chakra-ui/react';
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, FormControl, FormLabel, NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper, useColorMode, VisuallyHiddenInput, Input, Flex, useToast } from '@chakra-ui/react';
+import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { ResourceType } from '@excali-boards/boards-api-client';
 import { HigherRoles, LowerRoles } from './CreateInviteModal';
+import { useState, useMemo, useCallback } from 'react';
 import { firstToUpperCase } from '~/other/utils';
 import { WebReturnType } from '~/other/types';
 import { useFetcher } from '@remix-run/react';
-import { useState, useMemo } from 'react';
 import Select from '~/components/Select';
 
 export type ResourceInviteModalProps = {
@@ -34,11 +35,20 @@ export function ResourceInviteModal({
 	groupName,
 }: ResourceInviteModalProps) {
 	const { colorMode } = useColorMode();
+
 	const fetcher = useFetcher<WebReturnType<string>>();
+	const toast = useToast();
 
 	const [selectedRole, setSelectedRole] = useState<string | null>('Viewer');
 	const [expiresIn, setExpiresIn] = useState(7);
 	const [maxUses, setMaxUses] = useState(1);
+
+	useFetcherResponse(fetcher, toast, () => {
+		onClose();
+
+		setMaxUses(1);
+		setExpiresIn(7);
+	});
 
 	const resourcePath = useMemo(() => {
 		if (resourceType === 'group') return groupName;
@@ -54,14 +64,41 @@ export function ResourceInviteModal({
 		return undefined;
 	}, [resourceType, groupId, categoryId, boardId]);
 
+	const handleSubmit = useCallback(() => {
+		const inviteData: Record<string, unknown> = {};
+
+		if (maxUses) inviteData.maxUses = maxUses;
+		if (expiresIn) inviteData.expiresIn = expiresIn;
+
+		switch (resourceType) {
+			case 'group':
+				inviteData.groupIds = [resourceId];
+				if (selectedRole) inviteData.groupRole = 'Group' + selectedRole;
+				break;
+			case 'category':
+				inviteData.categoryIds = [resourceId];
+				if (selectedRole) inviteData.categoryRole = 'Category' + selectedRole;
+				break;
+			case 'board':
+				inviteData.boardIds = [resourceId];
+				if (selectedRole) inviteData.boardRole = 'Board' + selectedRole;
+				break;
+			default:
+				break;
+		}
+
+		const formData = new FormData();
+		formData.append('type', 'createInvite');
+		formData.append('inviteData', JSON.stringify(inviteData));
+		fetcher.submit(formData, { method: 'post' });
+	}, [maxUses, expiresIn, fetcher, selectedRole, resourceType, resourceId]);
+
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} size='lg' isCentered>
 			<ModalOverlay />
 			<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
 				<fetcher.Form method='post'>
-					<ModalHeader>
-						Create Invite
-					</ModalHeader>
+					<ModalHeader>Create Invite</ModalHeader>
 					<ModalCloseButton />
 					<ModalBody>
 						<VisuallyHiddenInput name='type' value='createInvite' />
@@ -146,9 +183,8 @@ export function ResourceInviteModal({
 						</Button>
 						<Button
 							flex={1}
-							type='submit'
 							colorScheme='blue'
-							loadingText='Creating..'
+							onClick={handleSubmit}
 							isDisabled={!selectedRole}
 							isLoading={fetcher.state === 'submitting' || fetcher.state === 'loading'}
 						>

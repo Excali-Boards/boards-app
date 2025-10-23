@@ -570,7 +570,11 @@ export function ManageModal({ isOpen, onClose, type, fetcher, selectedCard, allC
 						</Flex>
 					</ModalBody>
 					<ModalFooter display='flex' gap={1}>
-						<Button flex={1} colorScheme='gray' onClick={onClose}>
+						<Button
+							flex={1}
+							colorScheme='gray'
+							onClick={onClose}
+						>
 							Cancel
 						</Button>
 						<Button
