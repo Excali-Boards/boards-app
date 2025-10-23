@@ -5,21 +5,24 @@ on:
     branches:
       - main
     paths:
-      - 'app/**'
-      - 'server/**'
-      - 'Dockerfile'
-      - '.dockerignore'
-      - 'docker-compose.yml'
-      - 'vite.config.ts'
-      - 'tsconfig.json'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
+      - "app/**"
+      - "server/**"
+      - "Dockerfile"
+      - ".dockerignore"
+      - "docker-compose.yml"
+      - "vite.config.ts"
+      - "tsconfig.json"
+      - "package.json"
+      - "pnpm-lock.yaml"
 
   workflow_dispatch:
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+
+    env:
+      NODE_OPTIONS: --max-old-space-size=16384
 
     steps:
       - name: Checkout code
@@ -42,10 +45,10 @@ jobs:
 
       - name: Build Docker image
         run: |
-          REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          REPO_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')
           docker build -t ghcr.io/${REPO_NAME}:latest .
 
       - name: Push Docker image
         run: |
-          REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          REPO_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')
           docker push ghcr.io/${REPO_NAME}:latest

@@ -5,8 +5,9 @@ WORKDIR /app
 COPY . .
 
 RUN npm install -g pnpm
-
 RUN pnpm install
+
+ENV NODE_OPTIONS="--max-old-space-size=16384"
 RUN pnpm build
 
 # Stage 2: Runtime
