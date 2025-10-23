@@ -1,8 +1,8 @@
 import { VStack, Box, Flex, Text, Avatar, IconButton, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Button, useColorMode, Badge, HStack, Divider, useToast } from '@chakra-ui/react';
 import { FaClipboard, FaEye, FaFolder, FaLock, FaQuestionCircle, FaTrash, FaUsers } from 'react-icons/fa';
+import { GrantedEntry, PermUser, ResourceType } from '@excali-boards/boards-api-client';
 import { makeResObject, makeResponse, securityUtils } from '~/utils/functions.server';
 import { firstToUpperCase, getGrantInfo, getRoleColor } from '~/other/utils';
-import { GrantedEntry, PermUser } from '@excali-boards/boards-api-client';
 import { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { useFetcher, useLoaderData } from '@remix-run/react';
@@ -57,7 +57,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 			const result = await api?.permissions.revokePermissions({
 				auth: token,
-				body: { userId, resourceType: resourceType as 'group' | 'category' | 'board', resourceId },
+				body: { userId, resourceType: resourceType as ResourceType, resourceId },
 			});
 
 			return makeResObject(result, 'Failed to revoke permission.');

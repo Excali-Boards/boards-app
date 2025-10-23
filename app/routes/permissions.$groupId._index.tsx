@@ -6,6 +6,7 @@ import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { ResourceUsers } from '~/components/sessions/ResourceUsers';
 import { VStack, Box, Divider, useToast } from '@chakra-ui/react';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
+import { ResourceType } from '@excali-boards/boards-api-client';
 import { useFetcher, useLoaderData } from '@remix-run/react';
 import { FaAddressCard, FaGift } from 'react-icons/fa';
 import { authenticator } from '~/utils/auth.server';
@@ -85,7 +86,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 			const result = await api?.permissions.revokePermissions({
 				auth: token,
-				body: { userId, resourceType: resourceType as 'group' | 'category' | 'board', resourceId },
+				body: { userId, resourceType: resourceType as ResourceType, resourceId },
 			});
 
 			return makeResObject(result, 'Failed to revoke permission.');
@@ -122,13 +123,13 @@ export default function GroupPermissions() {
 					customButtons={[{
 						type: 'normal',
 						label: 'Grant Permissions',
-						tooltip: 'Grant permissions to a user for this group.',
+						tooltip: 'Grant permissions to a user for this group',
 						icon: <FaAddressCard />,
 						onClick: () => setIsPermissionModalOpen(true),
 					}, {
 						type: 'normal',
 						label: 'Create Invite',
-						tooltip: 'Create an invite for this group.',
+						tooltip: 'Create an invite for this group',
 						icon: <FaGift />,
 						onClick: () => setIsInviteModalOpen(true),
 					}]}

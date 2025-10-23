@@ -122,13 +122,13 @@ export default function CategoryPermissions() {
 					customButtons={[{
 						type: 'normal',
 						label: 'Grant Permissions',
-						tooltip: 'Grant permissions to a user for this category.',
+						tooltip: 'Grant permissions to a user for this category',
 						icon: <FaAddressCard />,
 						onClick: () => setIsPermissionModalOpen(true),
 					}, {
 						type: 'normal',
 						label: 'Create Invite',
-						tooltip: 'Create an invite for this category.',
+						tooltip: 'Create an invite for this category',
 						icon: <FaGift />,
 						onClick: () => setIsInviteModalOpen(true),
 					}]}

@@ -58,7 +58,7 @@ export function TopBar({
 			</Flex>
 
 			{dismissable && uniqueId && (
-				<Tooltip label='Close.' aria-label='Close'>
+				<Tooltip label='Close' hasArrow>
 					<IconButton
 						right={4}
 						position='absolute'

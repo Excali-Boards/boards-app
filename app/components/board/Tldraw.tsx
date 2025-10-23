@@ -5,6 +5,8 @@ import { useCallback, useMemo, useEffect, useState } from 'react';
 import msgPack from 'socket.io-msgpack-parser';
 import { io, Socket } from 'socket.io-client';
 import { apiClient } from '~/other/apiClient';
+import { TopBar } from '~/components/TopBar';
+import { Box, Flex } from '@chakra-ui/react';
 import { BoardProps } from './types';
 import { Tldraw } from './Imports';
 // eslint-disable-next-line import/no-unresolved
@@ -13,6 +15,9 @@ import 'tldraw/tldraw.css';
 export function TldrawBoard(props: BoardProps) {
 	const { boardId, token, socketUrl, canEdit, user } = props;
 	const [editor, setEditor] = useState<Editor | null>(null);
+	const [isConnected, setIsConnected] = useState(false);
+	const [isFirstTime, setIsFirstTime] = useState(true);
+	const [isKicked, setIsKicked] = useState(false);
 
 	const connectFunction = useCallback(() => {
 		const ioSocket: Socket<ServerToClientEvents, ClientToServerEvents> = io(socketUrl, {
@@ -22,14 +27,22 @@ export function TldrawBoard(props: BoardProps) {
 
 		ioSocket.on('connect', () => {
 			console.log('Socket.IO connected to server.');
+			setIsConnected(true);
+			setIsFirstTime(false);
 		});
 
 		ioSocket.on('disconnect', (reason) => {
 			console.log('Socket.IO disconnected:', reason);
+			setIsConnected(false);
 		});
 
 		ioSocket.on('connect_error', (error) => {
 			console.error('Socket.IO connection error:', error);
+			setIsConnected(false);
+		});
+
+		ioSocket.on('kick', () => {
+			setIsKicked(true);
 		});
 
 		return socketIoToTldrawSocket(ioSocket);
@@ -69,31 +82,54 @@ export function TldrawBoard(props: BoardProps) {
 	}, [editor, triggerColorUpdate]);
 
 	return (
-		<Tldraw
-			store={store}
-			hideUi={!canEdit}
-			onMount={(editor) => {
-				setEditor(editor);
+		<Flex direction={'column'} w={'100%'} h={'100vh'} overflow={'hidden'}>
+			{!isConnected && !isFirstTime && !isKicked && (
+				<TopBar
+					colorScheme={'red'}
+					message={'You are currently disconnected from the server, changes will not be saved.'}
+				/>
+			)}
 
-				const colorScheme = props.useOppositeColorForBoard
-					? (props.colorMode === 'light' ? 'dark' : 'light')
-					: props.colorMode;
+			{isKicked && (
+				<TopBar
+					colorScheme={'orange'}
+					message={'You have been forcefully disconnected from the board.'}
+				/>
+			)}
 
-				editor.user.updateUserPreferences({ colorScheme });
+			<Box
+				w={'100%'} h={'100%'} overflow={'hidden'}
+				filter={isKicked ? 'blur(15px)' : 'none'}
+				display={isConnected || (!isConnected && !isFirstTime) ? 'block' : 'none'}
+				pointerEvents={!isConnected || (!isConnected && !isFirstTime) || isKicked ? 'none' : 'auto'}
+			>
+				<Tldraw
+					store={store}
+					hideUi={!canEdit}
+					onMount={(editor) => {
+						setEditor(editor);
 
-				editor.registerExternalAssetHandler('url', (asset) => {
-					return unfurlBookmarkUrl({
-						url: asset.url,
-						apiUrl: socketUrl,
-						apiAuth: user.email,
-					});
-				});
+						const colorScheme = props.useOppositeColorForBoard
+							? (props.colorMode === 'light' ? 'dark' : 'light')
+							: props.colorMode;
 
-				setTimeout(() => {
-					triggerColorUpdate();
-				}, 50);
-			}}
-		/>
+						editor.user.updateUserPreferences({ colorScheme });
+
+						editor.registerExternalAssetHandler('url', (asset) => {
+							return unfurlBookmarkUrl({
+								url: asset.url,
+								apiUrl: socketUrl,
+								apiAuth: user.email,
+							});
+						});
+
+						setTimeout(() => {
+							triggerColorUpdate();
+						}, 50);
+					}}
+				/>
+			</Box>
+		</Flex>
 	);
 }
 

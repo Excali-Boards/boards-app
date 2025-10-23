@@ -7,8 +7,18 @@
 	}
 }
 
+.sx-react-calendar-wrapper {
+	width: 100%;
+	height: 100%;
+}
+
 .sx__calendar {
-	height: 100% !important;
+	flex: 1;
+	height: 100%;
+	display: flex;
+	flex-flow: column;
+	background-color: var(--sx-color-background);
+	overflow: hidden;
 	border: none !important;
 	border-radius: 0 !important;
 }

@@ -104,7 +104,7 @@ export default function InvitesPage() {
 					customButtons={[{
 						type: 'normal',
 						label: 'Grant Permissions',
-						tooltip: 'Grant permissions to a user.',
+						tooltip: 'Grant permissions to a user',
 						icon: <FaAddressCard />,
 						onClick: () => setIsPermissionModalOpen(true),
 						isDisabled: !(user?.isDev || options.canSelectGroups || options.canSelectCategories || options.canSelectBoards),
@@ -113,7 +113,7 @@ export default function InvitesPage() {
 						label: 'Create Invite',
 						icon: <FaUserPlus />,
 						onClick: () => setIsInviteModalOpen(true),
-						tooltip: 'Create new invite.',
+						tooltip: 'Create new invite',
 						isDisabled: !(user?.isDev || options.canSelectGroups || options.canSelectCategories || options.canSelectBoards),
 					}]}
 				/>

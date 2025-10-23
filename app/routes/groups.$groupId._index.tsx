@@ -79,7 +79,6 @@ export default function Categories() {
 	const [categoryId, setCategoryId] = useState<string | null>(null);
 	const [modalOpen, setModalOpen] = useState<ModalOpen>(null);
 
-	const [_, setDidShowAlert] = useState(false);
 	const [revertKey, setRevertKey] = useState(0);
 	const [editorMode, setEditorMode] = useState(false);
 	const [tempCategories, setTempCategories] = useState<string[]>([]);
@@ -105,10 +104,6 @@ export default function Categories() {
 	const canManageAnything = useMemo(() => categories.some((c) => c.accessLevel === 'admin'), [categories]);
 	useEffect(() => setCanInvite?.(canManageAnything), [canManageAnything, setCanInvite]);
 
-	useEffect(() => {
-		if (tempCategories.length > 0) setDidShowAlert(true);
-	}, [tempCategories]);
-
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }} id='a1'>
 			<Box maxWidth='1000px' width={{ base: '100%', sm: '90%', md: '80%', xl: '60%' }} id='a2'>
@@ -125,22 +120,21 @@ export default function Categories() {
 						reloadDocument: true,
 					}, ...(user?.isDev || canManage(group.accessLevel) ? [{
 						type: 'normal',
-						label: 'Manage categories.',
+						label: 'Manage categories',
 						icon: <FaTools />,
 						isDisabled: categories.length === 0,
 						onClick: () => setEditorMode(!editorMode),
 						isLoading: fetcher.state === 'loading',
-						tooltip: 'Manage categories.',
+						tooltip: 'Manage categories',
 						isActive: editorMode,
 					}, {
 						type: 'normal',
-						label: 'Create category.',
+						label: 'Create category',
 						icon: <FaPlus />,
 						onClick: () => setModalOpen('createCategory'),
 						isLoading: fetcher.state === 'loading',
 						tooltip: 'Create category.',
-					}] as const : [])
-					]}
+					}] as const : [])]}
 				/>
 
 				<SearchBar search={search} setSearch={setSearch} whatSearch={'categories'} id='categories' dividerMY={4} />
@@ -188,14 +182,10 @@ export default function Categories() {
 					message='Save your changes or cancel to revert.'
 					confirmText='Save Changes'
 					cancelText='Cancel'
-					onConfirm={() => {
-						handleSave();
-						setDidShowAlert(false);
-					}}
+					onConfirm={handleSave}
 					onCancel={() => {
 						setTempCategories([]);
-						setDidShowAlert(false);
-						setRevertKey(prev => prev + 1);
+						setRevertKey((prev) => prev + 1);
 					}}
 				/>
 			</Box>

@@ -46,10 +46,9 @@ export default function MenuBar({
 				key={'custom-button-' + index}
 				label={button.tooltip}
 				aria-label={button.tooltip}
+				closeOnClick={false}
 				placement={'top'}
 				hasArrow
-				rounded={'lg'}
-				closeOnClick={false}
 			>
 				{button.type === 'link' ? (
 					<IconButton
@@ -140,9 +139,8 @@ export default function MenuBar({
 						label={'Back'}
 						aria-label={'Back'}
 						placement={'top'}
-						hasArrow
-						rounded={'lg'}
 						closeOnClick={false}
+						hasArrow
 					>
 						<IconButton
 							as={goBackWindow ? undefined : Link}

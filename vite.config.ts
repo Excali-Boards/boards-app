@@ -42,7 +42,7 @@ export default defineConfig({
 			exclude: [/^\/(app)\/.+/, /^\/@.+$/, /^\/node_modules\/.*/],
 		}),
 		remix({
-			ignoredRouteFiles: ['**/*.css'],
+			ignoredRouteFiles: ['**/*.css', '**/*.server.*'],
 			serverBuildFile: 'remix.js',
 			buildEnd: async () => {
 				await esbuild.build({

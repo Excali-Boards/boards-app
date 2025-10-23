@@ -89,7 +89,7 @@ export default function AdminRooms() {
 								flexDir={'row'}
 								gap={4}
 							>
-								<Tooltip key={i} label={`Collaborators: ${b.collaborators.map((collab) => collab.username).join(', ')}`} placement='top'>
+								<Tooltip key={i} label={`Collaborators: ${b.collaborators.map((collab) => collab.username).join(', ')}`} placement='top' hasArrow>
 									<AvatarGroup size={'sm'} max={5}>
 										{b.collaborators.map((collab, i) => (
 											<Avatar

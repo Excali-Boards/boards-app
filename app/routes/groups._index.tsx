@@ -110,20 +110,20 @@ export default function Groups() {
 					description={'List of all groups that are currently available to you.'}
 					customButtons={user?.isDev ? [{
 						type: 'normal',
-						label: 'Manage groups.',
+						label: 'Manage groups',
 						icon: <FaTools />,
 						isDisabled: groups.length === 0,
 						onClick: () => setEditorMode(!editorMode),
 						isLoading: fetcher.state === 'loading',
-						tooltip: 'Manage groups.',
+						tooltip: 'Manage groups',
 						isActive: editorMode,
 					}, {
 						type: 'normal',
-						label: 'Create group.',
+						label: 'Create group',
 						icon: <FaPlus />,
 						onClick: () => setModalOpen('createGroup'),
 						isLoading: fetcher.state === 'loading',
-						tooltip: 'Create group.',
+						tooltip: 'Create group',
 					}] : []}
 				/>
 
@@ -172,7 +172,7 @@ export default function Groups() {
 					variant='warning'
 					confirmText='Save Changes'
 					cancelText='Cancel'
-					onConfirm={() => handleSave()}
+					onConfirm={handleSave}
 					onCancel={() => {
 						setTempGroups([]);
 						setRevertKey((prev) => prev + 1);

@@ -1,8 +1,11 @@
 import { useEventListener } from '@chakra-ui/react';
 
+export type SpecialKey = 'meta' | 'shift' | 'alt';
+export type SpecialCombo = `${SpecialKey}Key`;
+
 export type Key = {
 	key: string;
-	special?: ('ctrl' | 'shift' | 'alt')[];
+	special?: SpecialKey[];
 } | string;
 
 export function useHotkeys(keys: Key[], callback: (k: Key) => void, dontIf?: boolean) {
@@ -10,7 +13,7 @@ export function useHotkeys(keys: Key[], callback: (k: Key) => void, dontIf?: boo
 		if (dontIf) return;
 
 		const isMac = /(Mac|iPhone|iPod|iPad)/i.test(navigator?.platform);
-		const formatSpecialKey = (specialKey: 'ctrl' | 'shift' | 'alt') => ((specialKey === 'ctrl' ? isMac ? 'meta' : 'ctrl' : specialKey) + 'Key') as ('metaKey' | 'shiftKey' | 'altKey' | 'ctrlKey');
+		const formatSpecialKey = (specialKey: SpecialKey) => ((specialKey === 'meta' ? isMac ? 'meta' : 'ctrl' : specialKey) + 'Key') as SpecialCombo;
 
 		const someMatch = keys.find((key) => {
 			if (typeof key === 'string') return event.key.toLowerCase() === key.toLowerCase();

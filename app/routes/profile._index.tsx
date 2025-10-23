@@ -148,7 +148,7 @@ export default function Profile() {
 							</Flex>
 
 							<Flex flexDir={'column'} gap={2} justifyContent='flex-end'>
-								<Tooltip label='Change main platform or main group.'>
+								<Tooltip label='Change main platform or main group' hasArrow>
 									<IconButton
 										aria-label={'Change'}
 										icon={<GrConfigure size={20} />}
@@ -303,7 +303,7 @@ export function Platform({ icon, title, isConnected, manageUrl, text, addDivider
 						{isConnected ? 'Unlink' : 'Link'}
 					</LinkButton>
 					{otherButtons?.map((b, i) => (
-						<Tooltip key={i} label={b.label}>
+						<Tooltip key={i} label={b.label} hasArrow>
 							<IconButton
 								ml={2}
 								key={i}

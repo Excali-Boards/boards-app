@@ -122,13 +122,13 @@ export default function BoardPermissions() {
 					customButtons={[{
 						type: 'normal',
 						label: 'Grant Permissions',
-						tooltip: 'Grant permissions to a user for this board.',
+						tooltip: 'Grant permissions to a user for this board',
 						icon: <FaAddressCard />,
 						onClick: () => setIsPermissionModalOpen(true),
 					}, {
 						type: 'normal',
 						label: 'Create Invite',
-						tooltip: 'Create an invite for this board.',
+						tooltip: 'Create an invite for this board',
 						icon: <FaGift />,
 						onClick: () => setIsInviteModalOpen(true),
 					}]}

@@ -1,0 +1,179 @@
+.flashcard-background-wrapper {
+	position: fixed;
+	inset: 0;
+	width: 100vw;
+	height: 100vh;
+	pointer-events: none;
+	overflow: hidden;
+	z-index: 0;
+}
+
+.flashcard-background-container {
+	display: flex;
+	width: 100%;
+	height: 100%;
+	position: absolute;
+	left: 0;
+	top: 0;
+	filter: blur(120px);
+	opacity: 0.4;
+}
+
+.flashcard-circle {
+	position: absolute;
+	border-radius: 50%;
+	background-blend-mode: screen;
+	transition: all 0.5s;
+	animation-timing-function: ease-in-out;
+	animation-iteration-count: infinite;
+	animation-direction: alternate;
+	mix-blend-mode: screen;
+}
+
+.flashcard-circle-1 {
+	width: 60%;
+	height: 50%;
+	top: -10%;
+	left: -10%;
+	background: radial-gradient(ellipse at center, rgba(255, 0, 0, 0.8), transparent);
+	animation: morph-float-1 6s ease-in-out infinite alternate;
+}
+
+.flashcard-circle-2 {
+	width: 50%;
+	height: 50%;
+	top: -10%;
+	right: -10%;
+	background: radial-gradient(ellipse at center, rgba(255, 165, 0, 0.8), transparent);
+	animation: morph-float-2 7s ease-in-out infinite alternate;
+}
+
+.flashcard-circle-3 {
+	width: 55%;
+	height: 45%;
+	bottom: -10%;
+	left: -10%;
+	background: radial-gradient(ellipse at center, rgba(255, 255, 0, 0.8), transparent);
+	animation: morph-float-3 8s ease-in-out infinite alternate;
+}
+
+.flashcard-circle-4 {
+	width: 45%;
+	height: 45%;
+	bottom: -10%;
+	right: -10%;
+	background: radial-gradient(ellipse at center, rgba(0, 255, 0, 0.8), transparent);
+	animation: morph-float-4 9s ease-in-out infinite alternate;
+}
+
+.flashcard-circle-5 {
+	width: 35%;
+	height: 35%;
+	top: 50%;
+	left: 50%;
+	background: radial-gradient(ellipse at center, rgba(0, 0, 255, 0.8), transparent);
+	transform: translate(-50%, -50%);
+	animation: morph-float-5 5s ease-in-out infinite alternate;
+}
+
+.flashcard-circle-6 {
+	width: 40%;
+	height: 40%;
+	top: 20%;
+	left: 30%;
+	background: radial-gradient(ellipse at center, rgba(75, 0, 130, 0.8), transparent);
+	animation: morph-float-6 6.5s ease-in-out infinite alternate;
+}
+
+.flashcard-circle-7 {
+	width: 30%;
+	height: 30%;
+	bottom: 20%;
+	right: 25%;
+	background: radial-gradient(ellipse at center, rgba(148, 0, 211, 0.8), transparent);
+	animation: morph-float-7 7.5s ease-in-out infinite alternate;
+}
+
+@keyframes morph-float-1 {
+	0% {
+		transform: translate(0, 0) scale(1) rotate(0deg);
+		border-radius: 50% 40% 45% 55%;
+	}
+
+	100% {
+		transform: translate(50%, 40%) scale(1.3) rotate(180deg);
+		border-radius: 40% 50% 55% 45%;
+	}
+}
+
+@keyframes morph-float-2 {
+	0% {
+		transform: translate(0, 0) scale(1) rotate(0deg);
+		border-radius: 45% 55% 50% 40%;
+	}
+
+	100% {
+		transform: translate(-40%, 50%) scale(1.2) rotate(-180deg);
+		border-radius: 55% 45% 40% 50%;
+	}
+}
+
+@keyframes morph-float-3 {
+	0% {
+		transform: translate(0, 0) scale(1) rotate(0deg);
+		border-radius: 50% 50% 40% 60%;
+	}
+
+	100% {
+		transform: translate(45%, -35%) scale(1.25) rotate(180deg);
+		border-radius: 60% 40% 50% 50%;
+	}
+}
+
+@keyframes morph-float-4 {
+	0% {
+		transform: translate(0, 0) scale(1) rotate(0deg);
+		border-radius: 55% 45% 45% 55%;
+	}
+
+	100% {
+		transform: translate(-50%, -40%) scale(1.15) rotate(-180deg);
+		border-radius: 45% 55% 55% 45%;
+	}
+}
+
+@keyframes morph-float-5 {
+	0% {
+		transform: translate(-50%, -50%) scale(1) rotate(0deg);
+		border-radius: 40% 60% 50% 50%;
+	}
+
+	100% {
+		transform: translate(0%, 20%) scale(1.4) rotate(180deg);
+		border-radius: 60% 40% 50% 50%;
+	}
+}
+
+@keyframes morph-float-6 {
+	0% {
+		transform: translate(0, 0) scale(1) rotate(0deg);
+		border-radius: 50% 45% 55% 40%;
+	}
+
+	100% {
+		transform: translate(-30%, 45%) scale(1.3) rotate(-180deg);
+		border-radius: 45% 50% 40% 55%;
+	}
+}
+
+@keyframes morph-float-7 {
+	0% {
+		transform: translate(0, 0) scale(1) rotate(0deg);
+		border-radius: 55% 40% 45% 50%;
+	}
+
+	100% {
+		transform: translate(35%, -30%) scale(1.2) rotate(180deg);
+		border-radius: 40% 55% 50% 45%;
+	}
+}

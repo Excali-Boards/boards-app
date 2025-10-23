@@ -450,7 +450,7 @@ export function Footer({ mt = 24, forceGoBack }: FooterProps) {
 			<Flex position='absolute' right={4}>
 				{place === 'left' && footerIcon(<FaCode />, 'https://github.com/Excali-Boards', 'GitHub')}
 
-				{<Tooltip label='Back to top.' aria-label='Back to top' placement={place} hasArrow>
+				{<Tooltip label='Back to top' placement={place} hasArrow>
 					<IconButton
 						variant={'ghost'}
 						rounded={'full'}
@@ -598,7 +598,7 @@ export function KickUsersModal({ users, isOpen, currentUserId, onClose, onKick }
 									<IconButton
 										aria-label={`Kick ${user.username}`}
 										icon={<FaUserSlash />}
-										colorScheme='red'
+										colorScheme='orange'
 										variant='outline'
 										size='sm'
 										isDisabled={user.id === currentUserId}

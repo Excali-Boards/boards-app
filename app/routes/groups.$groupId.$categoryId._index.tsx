@@ -76,6 +76,13 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 			const result = await api?.boards.cancelBoardDeletion({ auth: token, boardId, groupId, categoryId });
 			return makeResObject(result, 'Failed to cancel board deletion.');
 		}
+		case 'initializeFlashcards': {
+			const boardId = formData.get('boardId') as string;
+			if (!boardId) return { status: 400, error: 'Invalid board id.' };
+
+			const result = await api?.flashcards.initializeDeck({ auth: token, boardId, groupId, categoryId });
+			return makeResObject(result, 'Failed to initialize flashcards for board.');
+		}
 		default: {
 			return { status: 400, error: 'Invalid request.' };
 		}
@@ -89,7 +96,6 @@ export default function Boards() {
 	const [modalOpen, setModalOpen] = useState<ModalOpen>(null);
 	const [boardId, setBoardId] = useState<string | null>(null);
 
-	const [_, setDidShowAlert] = useState(false);
 	const [revertKey, setRevertKey] = useState(0);
 	const [editorMode, setEditorMode] = useState(false);
 	const [tempBoards, setTempBoards] = useState<string[]>([]);
@@ -112,13 +118,6 @@ export default function Boards() {
 		setTempBoards([]);
 	}, [fetcher, tempBoards]);
 
-	const canManageAnything = useMemo(() => boards.some((c) => c.accessLevel === 'admin'), [boards]);
-	useEffect(() => setCanInvite?.(canManageAnything), [canManageAnything, setCanInvite]);
-
-	useEffect(() => {
-		if (tempBoards.length > 0) setDidShowAlert(true);
-	}, [tempBoards]);
-
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }} id='a1'>
 			<Box maxWidth='1000px' width={{ base: '100%', sm: '90%', md: '80%', xl: '60%' }} id='a2'>
@@ -128,16 +127,16 @@ export default function Boards() {
 					goBackPath={`/groups/${group.id}`}
 					customButtons={user?.isDev || canManage(category.accessLevel) ? [{
 						type: 'normal',
-						label: 'Manage boards.',
+						label: 'Manage boards',
 						icon: <FaTools />,
 						isDisabled: boards.length === 0,
 						onClick: () => setEditorMode(!editorMode),
 						isLoading: fetcher.state === 'loading',
-						tooltip: 'Manage boards.',
+						tooltip: 'Manage boards',
 						isActive: editorMode,
 					}, {
 						type: 'normal',
-						label: 'Create board.',
+						label: 'Create board',
 						icon: <FaPlus />,
 						onClick: () => setModalOpen('createBoard'),
 						isLoading: fetcher.state === 'loading',
@@ -161,6 +160,12 @@ export default function Boards() {
 					onReorder={editorMode ? (orderedIds) => {
 						setTempBoards(orderedIds);
 					} : undefined}
+					onFlashCreate={editorMode ? (index) => {
+						const board = finalBoards[index];
+						if (!board) return;
+
+						fetcher.submit({ type: 'initializeFlashcards', boardId: board.id }, { method: 'post' });
+					} : undefined}
 					onCancelDeletion={editorMode ? (index) => {
 						const board = finalBoards[index];
 						if (!board?.scheduledForDeletion) return;
@@ -170,10 +175,11 @@ export default function Boards() {
 					cards={finalBoards.map((b) => ({
 						id: b.id,
 						editorMode,
-						canManageAnything,
 						sizeBytes: b.totalSizeBytes,
+						flashExists: b.hasFlashcards,
 						url: `/groups/${group.id}/${category.id}/${b.id}`,
 						name: b.name.charAt(0).toUpperCase() + b.name.slice(1),
+						flashUrl: `/flashcards/${group.id}/${category.id}/${b.id}`,
 						isScheduledForDeletion: b.scheduledForDeletion ? new Date(b.scheduledForDeletion) : undefined,
 						permsUrl: (user?.isDev || b.accessLevel === 'admin') ? `/permissions/${group.id}/${category.id}/${b.id}` : undefined,
 					}))}
@@ -196,14 +202,10 @@ export default function Boards() {
 					message='Save your changes or cancel to revert.'
 					confirmText='Save Changes'
 					cancelText='Cancel'
-					onConfirm={() => {
-						handleSave();
-						setDidShowAlert(false);
-					}}
+					onConfirm={handleSave}
 					onCancel={() => {
 						setTempBoards([]);
-						setDidShowAlert(false);
-						setRevertKey(prev => prev + 1);
+						setRevertKey((prev) => prev + 1);
 					}}
 				/>
 			</Box>

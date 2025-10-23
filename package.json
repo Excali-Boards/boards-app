@@ -6,7 +6,7 @@
 	"author": "Digital39999",
 	"type": "module",
 	"scripts": {
-		"build": "NODE_OPTIONS='--max-old-space-size=4096' remix vite:build",
+		"build": "NODE_OPTIONS='--max-old-space-size=8192' remix vite:build",
 		"dev": "vite --host",
 		"lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
 		"start": "dotenv cross-env NODE_ENV=production node ./build/server/index.js",
@@ -36,7 +36,7 @@
 		"@emotion/cache": "11.14.0",
 		"@emotion/react": "11.14.0",
 		"@emotion/server": "11.11.0",
-		"@excali-boards/boards-api-client": "1.1.23",
+		"@excali-boards/boards-api-client": "1.1.27",
 		"@excalidraw/excalidraw": "0.18.0",
 		"@floating-ui/react": "0.27.16",
 		"@hocuspocus/provider": "3.2.4",

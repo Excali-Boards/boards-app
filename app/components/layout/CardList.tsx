@@ -11,6 +11,7 @@ export type CardListProps = {
 	onEdit?: (index: number) => void;
 	onDelete?: (index: number) => void;
 	onReorder?: (orderedIds: string[]) => void;
+	onFlashCreate?: (index: number) => void;
 	onCancelDeletion?: (index: number) => void;
 };
 
@@ -20,6 +21,7 @@ export default function CardList({
 	onEdit,
 	onDelete,
 	onReorder,
+	onFlashCreate,
 	onCancelDeletion,
 }: CardListProps) {
 	const [items, setItems] = useState(cards.map((card) => card.id));
@@ -79,6 +81,7 @@ export default function CardList({
 							<SortableItem key={id + '|' + i} id={id}>
 								<Card
 									onCancelDeletion={onCancelDeletion ? () => onCancelDeletion(i) : undefined}
+									onFlashCreate={onFlashCreate ? () => onFlashCreate(i) : undefined}
 									onDelete={onDelete ? () => onDelete(i) : undefined}
 									onEdit={onEdit ? () => onEdit(i) : undefined}
 									{...card}
@@ -95,10 +98,11 @@ export default function CardList({
 		<VStack w={'100%'} spacing={2}>
 			{cards.length ? cards.map((card, i) => (
 				<Card
-					key={card.id + '|' + i}
 					onCancelDeletion={onCancelDeletion ? () => onCancelDeletion(i) : undefined}
+					onFlashCreate={onFlashCreate ? () => onFlashCreate(i) : undefined}
 					onDelete={onDelete ? () => onDelete(i) : undefined}
 					onEdit={onEdit ? () => onEdit(i) : undefined}
+					key={card.id + '|' + i}
 					{...card}
 				/>
 			)) : (

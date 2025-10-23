@@ -1,7 +1,8 @@
-import { Flex, Text, HStack, Divider, IconButton, FlexProps, useColorMode, Badge, useBreakpointValue } from '@chakra-ui/react';
+import { Flex, Text, HStack, Divider, IconButton, FlexProps, useColorMode, Badge, useBreakpointValue, Tooltip } from '@chakra-ui/react';
 import { FaLink, FaPen, FaTrash, FaTrashRestore, FaUsers } from 'react-icons/fa';
 import { formatBytes, getCardDeletionTime } from '~/other/utils';
 import { IconLinkButton } from '~/components/Button';
+import { IoFlash } from 'react-icons/io5';
 import { useState } from 'react';
 
 export type CardProps = {
@@ -11,7 +12,9 @@ export type CardProps = {
 
 	permsUrl?: string;
 	editorMode?: boolean;
-	canManageAnything?: boolean;
+
+	flashUrl?: string;
+	flashExists?: boolean;
 
 	refresh?: boolean;
 	sizeBytes?: number;
@@ -19,6 +22,7 @@ export type CardProps = {
 	isScheduledForDeletion?: Date;
 
 	onCancelDeletion?: () => void;
+	onFlashCreate?: () => void;
 	onDelete?: () => void;
 	onEdit?: () => void;
 };
@@ -28,12 +32,14 @@ export function Card({
 	name,
 	refresh,
 	permsUrl,
+	flashUrl,
 	sizeBytes,
 	editorMode,
+	flashExists,
 	isDeleteDisabled,
 	isScheduledForDeletion,
-	canManageAnything,
 	onCancelDeletion,
+	onFlashCreate,
 	onDelete,
 	onEdit,
 }: CardProps & FlexProps) {
@@ -102,72 +108,140 @@ export function Card({
 
 				<HStack spacing={2}>
 					{onCancelDeletion && isScheduledForDeletion && (
-						<IconButton
-							onClick={onCancelDeletion}
-							variant={'ghost'}
-							rounded={'full'}
-							bg={'alpha100'}
-							icon={<FaTrashRestore />}
-							colorScheme='blue'
-							aria-label={'Cancel deletion'}
-							alignItems={'center'}
-							justifyContent={'center'}
-							_hover={{ bg: 'alpha300' }}
-							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-						/>
+						<Tooltip label='Restore' hasArrow>
+							<IconButton
+								onClick={onCancelDeletion}
+								variant={'ghost'}
+								rounded={'full'}
+								bg={'alpha100'}
+								icon={<FaTrashRestore />}
+								colorScheme='blue'
+								aria-label={'Cancel deletion'}
+								alignItems={'center'}
+								justifyContent={'center'}
+								_hover={{ bg: 'alpha300' }}
+								_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+							/>
+						</Tooltip>
 					)}
 
 					{onDelete && !isScheduledForDeletion && (
-						<IconButton
-							onClick={onDelete}
-							variant={'ghost'}
-							rounded={'full'}
-							bg={'alpha100'}
-							icon={<FaTrash />}
-							colorScheme='red'
-							aria-label={'Delete'}
-							alignItems={'center'}
-							justifyContent={'center'}
-							_hover={{ bg: 'alpha300' }}
-							isDisabled={isDeleteDisabled}
-							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-						/>
+						<Tooltip label='Delete' hasArrow>
+							<IconButton
+								onClick={onDelete}
+								variant={'ghost'}
+								rounded={'full'}
+								bg={'alpha100'}
+								icon={<FaTrash />}
+								aria-label={'Delete'}
+								alignItems={'center'}
+								justifyContent={'center'}
+								_hover={{ bg: 'alpha300' }}
+								isDisabled={isDeleteDisabled}
+								_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+							/>
+						</Tooltip>
 					)}
 
 					{onEdit && (
-						<IconButton
-							onClick={onEdit}
-							variant={'ghost'}
-							rounded={'full'}
-							bg={'alpha100'}
-							aria-label={'Edit'}
-							icon={<FaPen />}
-							colorScheme='orange'
-							alignItems={'center'}
-							justifyContent={'center'}
-							_hover={{ bg: 'alpha300' }}
-							isDisabled={!!isScheduledForDeletion}
-							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-						/>
+						<Tooltip label='Edit' hasArrow>
+							<IconButton
+								onClick={onEdit}
+								variant={'ghost'}
+								rounded={'full'}
+								bg={'alpha100'}
+								aria-label={'Edit'}
+								icon={<FaPen />}
+								alignItems={'center'}
+								justifyContent={'center'}
+								_hover={{ bg: 'alpha300' }}
+								isDisabled={!!isScheduledForDeletion}
+								_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+							/>
+						</Tooltip>
 					)}
 
-					{(permsUrl || canManageAnything) && editorMode && (
-						<IconLinkButton
-							to={permsUrl || '#'}
-							variant={'ghost'}
-							rounded={'full'}
-							bg={'alpha100'}
-							icon={<FaUsers />}
-							alignItems={'center'}
-							isDisabled={!permsUrl}
-							reloadDocument={refresh}
-							justifyContent={'center'}
-							_hover={{ bg: 'alpha300' }}
-							aria-label={'Manage Permissions'}
-							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-							onClick={() => setIsLoading(true)}
-							isLoading={isLoading}
-						/>
+					{permsUrl && editorMode && (
+						<Tooltip label='Manage Permissions' hasArrow>
+							<span>
+								<IconLinkButton
+									to={permsUrl || '#'}
+									variant={'ghost'}
+									rounded={'full'}
+									bg={'alpha100'}
+									icon={<FaUsers />}
+									alignItems={'center'}
+									isDisabled={!permsUrl}
+									reloadDocument={refresh}
+									justifyContent={'center'}
+									_hover={{ bg: 'alpha300' }}
+									aria-label={'Manage Permissions'}
+									_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+									onClick={() => setIsLoading(true)}
+									isLoading={isLoading}
+								/>
+							</span>
+						</Tooltip>
+					)}
+
+					{flashExists && flashUrl && editorMode && (
+						<Tooltip label='Manage Flashcards' hasArrow>
+							<span>
+								<IconLinkButton
+									to={flashUrl + '/manage'}
+									variant={'ghost'}
+									rounded={'full'}
+									bg={'alpha100'}
+									icon={<IoFlash />}
+									alignItems={'center'}
+									reloadDocument={refresh}
+									justifyContent={'center'}
+									_hover={{ bg: 'alpha300' }}
+									aria-label={'Manage Flashcards'}
+									_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+									onClick={() => setIsLoading(true)}
+									isLoading={isLoading}
+								/>
+							</span>
+						</Tooltip>
+					)}
+
+					{!flashExists && editorMode && onFlashCreate && (
+						<Tooltip label='Initialize Flashcards' hasArrow>
+							<IconButton
+								onClick={onFlashCreate}
+								variant={'ghost'}
+								rounded={'full'}
+								bg={'alpha100'}
+								icon={<IoFlash />}
+								alignItems={'center'}
+								justifyContent={'center'}
+								_hover={{ bg: 'alpha300' }}
+								aria-label={'Create Flashcards'}
+							/>
+						</Tooltip>
+					)}
+
+					{flashExists && flashUrl && !editorMode && (
+						<Tooltip label='Flashcards' hasArrow>
+							<span>
+								<IconLinkButton
+									to={flashUrl}
+									variant={'ghost'}
+									rounded={'full'}
+									bg={'alpha100'}
+									icon={<IoFlash />}
+									alignItems={'center'}
+									reloadDocument={refresh}
+									justifyContent={'center'}
+									_hover={{ bg: 'alpha300' }}
+									aria-label={'View Flashcards'}
+									_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+									onClick={() => setIsLoading(true)}
+									isLoading={isLoading}
+								/>
+							</span>
+						</Tooltip>
 					)}
 
 					<IconLinkButton

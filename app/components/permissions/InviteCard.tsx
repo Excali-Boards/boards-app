@@ -194,7 +194,7 @@ export function InviteCard({
 						/>
 					)}
 
-					<Tooltip label='View details'>
+					<Tooltip label='View details' hasArrow>
 						<IconButton
 							onClick={onDetails}
 							variant={'ghost'}
@@ -212,7 +212,7 @@ export function InviteCard({
 					</Tooltip>
 
 					{onRenew && canManage && (
-						<Tooltip label='Renew invite'>
+						<Tooltip label='Renew invite' hasArrow>
 							<IconButton
 								onClick={onRenew}
 								variant={'ghost'}
