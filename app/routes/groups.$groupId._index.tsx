@@ -133,7 +133,7 @@ export default function Categories() {
 						icon: <FaPlus />,
 						onClick: () => setModalOpen('createCategory'),
 						isLoading: fetcher.state === 'loading',
-						tooltip: 'Create category.',
+						tooltip: 'Create category',
 					}] as const : [])]}
 				/>
 

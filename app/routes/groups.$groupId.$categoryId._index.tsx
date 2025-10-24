@@ -140,7 +140,7 @@ export default function Boards() {
 						icon: <FaPlus />,
 						onClick: () => setModalOpen('createBoard'),
 						isLoading: fetcher.state === 'loading',
-						tooltip: 'Create board.',
+						tooltip: 'Create board',
 					}] : []}
 				/>
 

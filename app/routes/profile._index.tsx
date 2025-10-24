@@ -103,7 +103,7 @@ export default function Profile() {
 			to: '/sessions',
 			icon: <MdDesktopWindows />,
 			label: 'Manage Sessions',
-			tooltip: 'Manage sessions.',
+			tooltip: 'Manage sessions',
 		}];
 
 		if (user.isDev) {
@@ -112,7 +112,7 @@ export default function Profile() {
 				to: '/admin',
 				icon: <FaUser />,
 				label: 'Administration',
-				tooltip: 'Administration.',
+				tooltip: 'Administration',
 			});
 		}
 

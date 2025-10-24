@@ -82,7 +82,7 @@ export default function Sessions() {
 						onClick: () => setConfirmModal({ type: 'all' }),
 						icon: <FaTrash />,
 						label: 'Delete All',
-						tooltip: 'Delete all sessions.',
+						tooltip: 'Delete all sessions',
 					}] : []}
 				/>
 
