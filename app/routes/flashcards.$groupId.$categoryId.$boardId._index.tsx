@@ -1,5 +1,5 @@
+import { Box, Button, Flex, HStack, IconButton, Slider, SliderFilledTrack, SliderThumb, SliderTrack, Text, VStack } from '@chakra-ui/react';
 import { FaArrowLeft, FaArrowRight, FaBookOpen, FaCog, FaRandom } from 'react-icons/fa';
-import { Box, Button, Flex, HStack, IconButton, Text, VStack } from '@chakra-ui/react';
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
@@ -262,28 +262,31 @@ export default function Flashcards() {
 									key={currentIndex}
 								/>
 
-								<Flex w={'100%'} gap={2}>
-									{deck.cards.map((_, index) => (
-										<Box
-											key={index}
-											flex={1}
-											h={'4px'}
-											rounded={'full'}
-											bg={index <= currentIndex ? themeColor : 'alpha300'}
-											transition={'all 0.3s ease'}
-											cursor={'pointer'}
-											onClick={() => {
-												setCurrentIndex(index);
-												submitProgress(index, index === deck.cards.length - 1);
+								<Box w={'100%'} position={'relative'}>
+									<Slider
+										min={0}
+										step={1}
+										value={currentIndex}
+										max={deck.cards.length - 1}
+										aria-label='flashcard-progress'
+										focusThumbOnChange={false}
+										onChange={(value) => setCurrentIndex(value)}
+										onChangeEnd={(value) => {
+											submitProgress(value, value === deck.cards.length - 1);
 
-												if (index === deck.cards.length - 1 && !hasShownConfetti) {
-													setShowConfetti(true);
-													setHasShownConfetti(true);
-												}
-											}}
-										/>
-									))}
-								</Flex>
+											if (value === deck.cards.length - 1 && !hasShownConfetti) {
+												setShowConfetti(true);
+												setHasShownConfetti(true);
+											}
+										}}
+									>
+										<SliderTrack h={'4px'} bg={'alpha300'}>
+											<SliderFilledTrack bg={themeColor} />
+										</SliderTrack>
+
+										<SliderThumb boxSize={3} />
+									</Slider>
+								</Box>
 
 								<Flex
 									gap={4}
