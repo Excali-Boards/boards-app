@@ -24,6 +24,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	return {
 		...DBBoard.data,
 		webUrl: configServer.baseUrl,
+		licenseKey: configServer.tldrawLicense,
 		currentUrl: configServer.baseUrl + `/groups/${DBBoard.data.group.id}/${DBBoard.data.category.id}/${DBBoard.data.board.id}`,
 		socketUrl: configServer.apiUrl,
 		s3Bucket: configServer.s3Bucket,
@@ -54,7 +55,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 };
 
 export default function Board() {
-	const { socketUrl, board, category, group, webUrl, currentUrl, s3Url, s3Bucket } = useLoaderData<typeof loader>();
+	const { socketUrl, board, category, group, webUrl, currentUrl, s3Url, s3Bucket, licenseKey } = useLoaderData<typeof loader>();
 	const { useOppositeColorForBoard, hideCollaborators, user, token, setBoardActiveCollaborators } = useContext(RootContext) || {};
 	const isMobile = useBreakpointValue({ base: true, md: false });
 	const { colorMode } = useColorMode();
@@ -80,6 +81,7 @@ export default function Board() {
 			hideCollaborators={hideCollaborators || false}
 			name={`${category.name} - ${board.name}`}
 			canEdit={board.accessLevel !== 'read'}
+			licenseKey={licenseKey || undefined}
 			isMobile={isMobile || false}
 			categoryId={category.id}
 			currentUrl={currentUrl}

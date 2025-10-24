@@ -7,13 +7,13 @@ import { io, Socket } from 'socket.io-client';
 import { apiClient } from '~/other/apiClient';
 import { TopBar } from '~/components/TopBar';
 import { Box, Flex } from '@chakra-ui/react';
-import { BoardProps } from './types';
+import { TldrawBoardProps } from './types';
 import { Tldraw } from './Imports';
 // eslint-disable-next-line import/no-unresolved
 import 'tldraw/tldraw.css';
 
-export function TldrawBoard(props: BoardProps) {
-	const { boardId, token, socketUrl, canEdit, user } = props;
+export function TldrawBoard(props: TldrawBoardProps) {
+	const { boardId, token, socketUrl, canEdit, user, licenseKey } = props;
 	const [editor, setEditor] = useState<Editor | null>(null);
 	const [isConnected, setIsConnected] = useState(false);
 	const [isFirstTime, setIsFirstTime] = useState(true);
@@ -106,6 +106,7 @@ export function TldrawBoard(props: BoardProps) {
 				<Tldraw
 					store={store}
 					hideUi={!canEdit}
+					licenseKey={licenseKey}
 					onMount={(editor) => {
 						setEditor(editor);
 

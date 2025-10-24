@@ -22,6 +22,10 @@ export type BoardProps = {
 	name: string;
 };
 
+export type TldrawBoardProps = BoardProps & {
+	licenseKey?: string;
+};
+
 export type DefaultBoardState = {
 	connectedBefore: boolean;
 	isInitialized: boolean;
