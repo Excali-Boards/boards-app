@@ -40,7 +40,6 @@ export function UserCard({
 				_hover={{ bg: 'alpha200' }}
 				flexDirection={'column'}
 			>
-				{/* Top row: Avatar, Name/ID, and Delete button */}
 				<Flex
 					w={'100%'}
 					alignItems={'center'}
@@ -87,7 +86,6 @@ export function UserCard({
 					)}
 				</Flex>
 
-				{/* Bottom row: Badges centered */}
 				<HStack spacing={2} flexWrap={'wrap'} justifyContent={'center'} w={'100%'}>
 					<Badge
 						px={2} py={1}
@@ -112,7 +110,6 @@ export function UserCard({
 		);
 	}
 
-	// Desktop layout
 	return (
 		<Flex
 			gap={4}
@@ -135,14 +132,14 @@ export function UserCard({
 				flexGrow={1}
 			>
 				<HStack spacing={3}>
-					<Avatar size={'lg'} name={username} src={avatar || '/logo.webp'} />
+					<Avatar name={username} src={avatar || '/logo.webp'} />
 					<Flex
 						justifyContent={'center'}
 						alignItems={'start'}
 						flexDir={'column'}
 					>
-						<Text fontSize={'2xl'} fontWeight={'bold'}>{username}</Text>
-						<Text fontSize={'lg'} fontWeight={'bold'} color={'gray.500'}>({id})</Text>
+						<Text fontSize={'xl'} fontWeight={'bold'}>{username}</Text>
+						<Text fontWeight={'bold'} color={'gray.500'}>({id})</Text>
 					</Flex>
 				</HStack>
 			</Flex>

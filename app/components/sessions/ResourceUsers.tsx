@@ -1,4 +1,4 @@
-import { GrantedEntry, ResourceType, ViewPermissionsOutput } from '@excali-boards/boards-api-client';
+import { GrantedEntry, ResourceType, PermUser } from '@excali-boards/boards-api-client';
 import { RevokePermissionModal } from '../permissions/RevokePermissionModal';
 import { VStack, useToast, useDisclosure } from '@chakra-ui/react';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
@@ -11,7 +11,7 @@ export type ResourceUsersProps = {
 	resourceType: ResourceType;
 	resourceId: string;
 
-	users: ViewPermissionsOutput;
+	users: PermUser[];
 	canManage: boolean;
 };
 
@@ -33,12 +33,12 @@ export function ResourceUsers({ resourceType, resourceId, users, canManage }: Re
 		fetcher.submit(formData, { method: 'post' });
 	}, [fetcher]);
 
-	const getUserPerm = useCallback((user: ViewPermissionsOutput[number]) => {
+	const getUserPerm = useCallback((user: PermUser) => {
 		const permission = user.permissions.find((p) => p.type === resourceType && p.resourceId === resourceId);
 		return permission || null;
 	}, [resourceId, resourceType]);
 
-	const handleOpenRevokeModal = useCallback((user: ViewPermissionsOutput[number], permission: GrantedEntry) => {
+	const handleOpenRevokeModal = useCallback((user: PermUser, permission: GrantedEntry) => {
 		setSelectedUser({ userId: user.userId, username: user.displayName, permission });
 		onRevokeOpen();
 	}, [onRevokeOpen]);

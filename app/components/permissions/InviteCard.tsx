@@ -40,7 +40,6 @@ export function InviteCard({
 	const isMobile = useBreakpointValue({ base: true, md: false });
 	const cardPadding = useBreakpointValue({ base: 4, md: 6 });
 	const cardDirection = useBreakpointValue({ base: 'column', md: 'row' }) as 'column' | 'row';
-	const codeTextSize = useBreakpointValue({ base: 'xl', md: '2xl' });
 	const buttonSize = useBreakpointValue({ base: 'md', md: 'md' });
 
 	const copyInviteLink = useCallback(() => {
@@ -54,7 +53,6 @@ export function InviteCard({
 	}, [code, toast]);
 
 	const isExpired = expiresAt && new Date(expiresAt) < new Date();
-	const isMaxUsed = maxUses > 0 && uses >= maxUses;
 
 	const formatExpiresIn = (date: Date) => {
 		const now = new Date();
@@ -81,7 +79,7 @@ export function InviteCard({
 
 	const badges = (
 		<HStack spacing={2} flexShrink={0}>
-			{(isExpired || isMaxUsed) && (
+			{isExpired && (
 				<Badge
 					px={2} py={1}
 					color={'white'}
@@ -114,12 +112,12 @@ export function InviteCard({
 			rounded={'lg'}
 			height={'100%'}
 			alignItems={isMobile ? 'stretch' : 'center'}
-			bg={isExpired || isMaxUsed ? 'red.50' : 'alpha100'}
+			bg={isExpired ? 'red.50' : 'alpha100'}
 			wordBreak={'break-word'}
 			transition={'all 0.3s ease'}
 			flexDirection={cardDirection}
 			justifyContent={'space-between'}
-			_hover={{ bg: isExpired || isMaxUsed ? 'red.100' : 'alpha200' }}
+			_hover={{ bg: isExpired ? 'red.100' : 'alpha200' }}
 		>
 			<Flex
 				justifyContent='flex-start'
@@ -132,11 +130,11 @@ export function InviteCard({
 				<VStack spacing={1} align='stretch' w='100%'>
 					<HStack spacing={3} align='center' justify='space-between' w='100%'>
 						<Text
+							fontSize='xl'
 							overflow='hidden'
 							fontWeight='bold'
 							whiteSpace='nowrap'
 							textOverflow='ellipsis'
-							fontSize={codeTextSize}
 							maxW={isMobile ? '60%' : 'none'}
 						>
 							{code}
