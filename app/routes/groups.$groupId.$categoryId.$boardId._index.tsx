@@ -3,11 +3,11 @@ import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { useBreakpointValue, useColorMode } from '@chakra-ui/react';
 import { ExcalidrawBoard } from '~/components/board/Excalidraw';
 import { TldrawBoard } from '~/components/board/Tldraw';
+import { canEdit, validateParams } from '~/other/utils';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import configServer from '~/utils/config.server';
 import { useLoaderData } from '@remix-run/react';
-import { validateParams } from '~/other/utils';
 import InfoComponent from '~/components/Info';
 import { useContext, useEffect } from 'react';
 import { api } from '~/utils/web.server';
@@ -80,7 +80,7 @@ export default function Board() {
 			useOppositeColorForBoard={useOppositeColorForBoard || false}
 			hideCollaborators={hideCollaborators || false}
 			name={`${category.name} - ${board.name}`}
-			canEdit={board.accessLevel !== 'read'}
+			canEdit={canEdit(board.accessLevel)}
 			licenseKey={licenseKey || undefined}
 			isMobile={isMobile || false}
 			categoryId={category.id}

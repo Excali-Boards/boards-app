@@ -711,7 +711,7 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 
 				<Box
 					w={'100%'} h={'100%'} overflow={'hidden'}
-					filter={this.state.isKicked ? 'blur(15px)' : 'none'}
+					filter={this.state.isKicked || !this.state.isConnected ? 'blur(15px)' : 'none'}
 					display={this.state.isConnected || (!this.state.isConnected && !this.state.isFirstTime) ? 'block' : 'none'}
 					pointerEvents={!this.state.isConnected || (!this.state.isConnected && !this.state.isFirstTime) || this.state.isKicked ? 'none' : 'auto'}
 				>
@@ -719,9 +719,9 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 						<Excalidraw
 							theme={this.props.useOppositeColorForBoard ? (this.props.colorMode === 'light' ? 'dark' : 'light') : this.props.colorMode}
 							excalidrawAPI={(api) => this.setState({ excalidrawAPI: api })}
-							viewModeEnabled={this.props.canEdit ? undefined : true}
 							onPointerUpdate={this.updateUserPointer}
 							libraryReturnUrl={this.props.currentUrl}
+							viewModeEnabled={!this.props.canEdit}
 							initialData={this.initialDataPromise}
 							onChange={this.onSceneChange}
 							validateEmbeddable={true}

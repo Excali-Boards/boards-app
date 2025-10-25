@@ -1,7 +1,7 @@
-import { AssetRecordType, Editor, getHashForString, TLAssetStore, TLBookmarkAsset, TLRecord } from 'tldraw';
+import { AssetRecordType, Editor, getHashForString, TLAssetStore, TLBookmarkAsset, TLRecord, TLUserPreferences, useTldrawUser } from 'tldraw';
 import { TLPersistentClientSocket, TLSocketStatusChangeEvent, useSync } from '@tldraw/sync';
 import { ClientToServerEvents, ServerToClientEvents } from '~/other/types';
-import { useCallback, useMemo, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import msgPack from 'socket.io-msgpack-parser';
 import { io, Socket } from 'socket.io-client';
 import { apiClient } from '~/other/apiClient';
@@ -9,7 +9,6 @@ import { TopBar } from '~/components/TopBar';
 import { Box, Flex } from '@chakra-ui/react';
 import { TldrawBoardProps } from './types';
 import { Tldraw } from './Imports';
-// eslint-disable-next-line import/no-unresolved
 import 'tldraw/tldraw.css';
 
 export function TldrawBoard(props: TldrawBoardProps) {
@@ -18,6 +17,18 @@ export function TldrawBoard(props: TldrawBoardProps) {
 	const [isConnected, setIsConnected] = useState(false);
 	const [isFirstTime, setIsFirstTime] = useState(true);
 	const [isKicked, setIsKicked] = useState(false);
+
+	const colorScheme = useMemo(() => {
+		return props.useOppositeColorForBoard
+			? (props.colorMode === 'light' ? 'dark' : 'light')
+			: props.colorMode;
+	}, [props.colorMode, props.useOppositeColorForBoard]);
+
+	const [userPreferences, setUserPreferences] = useState<TLUserPreferences>({
+		id: user.userId,
+		name: user.displayName,
+		colorScheme: colorScheme,
+	});
 
 	const connectFunction = useCallback(() => {
 		const ioSocket: Socket<ServerToClientEvents, ClientToServerEvents> = io(socketUrl, {
@@ -51,35 +62,17 @@ export function TldrawBoard(props: TldrawBoardProps) {
 	const store = useSync({
 		connect: connectFunction,
 		assets: useMemo(() => getMultiplayerAssets({ boardId, token, socketUrl }), [boardId, token, socketUrl]),
-		userInfo: {
-			id: user.userId,
-			name: user.displayName,
-		},
+		userInfo: userPreferences,
 	});
+
+	const tldrawUser = useTldrawUser({ userPreferences, setUserPreferences });
 
 	const triggerColorUpdate = useCallback(() => {
 		if (!editor) return;
-
-		const colorScheme = props.useOppositeColorForBoard
-			? (props.colorMode === 'light' ? 'dark' : 'light')
-			: props.colorMode;
-
 		editor.user.updateUserPreferences({ colorScheme });
+	}, [editor, colorScheme]);
 
-		setTimeout(() => {
-			editor.updateInstanceState({
-				isDebugMode: editor.getInstanceState().isDebugMode,
-			});
-		}, 100);
-	}, [props.colorMode, props.useOppositeColorForBoard, editor]);
-
-	useEffect(() => {
-		triggerColorUpdate();
-	}, [triggerColorUpdate]);
-
-	useEffect(() => {
-		if (editor) triggerColorUpdate();
-	}, [editor, triggerColorUpdate]);
+	useEffect(() => { triggerColorUpdate(); }, [triggerColorUpdate]);
 
 	return (
 		<Flex direction={'column'} w={'100%'} h={'100vh'} overflow={'hidden'}>
@@ -99,22 +92,23 @@ export function TldrawBoard(props: TldrawBoardProps) {
 
 			<Box
 				w={'100%'} h={'100%'} overflow={'hidden'}
-				filter={isKicked ? 'blur(15px)' : 'none'}
+				filter={isKicked || !isConnected ? 'blur(15px)' : 'none'}
 				display={isConnected || (!isConnected && !isFirstTime) ? 'block' : 'none'}
 				pointerEvents={!isConnected || (!isConnected && !isFirstTime) || isKicked ? 'none' : 'auto'}
 			>
 				<Tldraw
 					store={store}
-					hideUi={!canEdit}
+					user={tldrawUser}
 					licenseKey={licenseKey}
+					components={props.hideCollaborators ? {
+						Toolbar: null,
+					} : undefined}
 					onMount={(editor) => {
 						setEditor(editor);
 
-						const colorScheme = props.useOppositeColorForBoard
-							? (props.colorMode === 'light' ? 'dark' : 'light')
-							: props.colorMode;
-
+						if (!canEdit) editor.setCurrentTool('hand');
 						editor.user.updateUserPreferences({ colorScheme });
+						editor.updateInstanceState({ isReadonly: !canEdit, isToolLocked: !canEdit });
 
 						editor.registerExternalAssetHandler('url', (asset) => {
 							return unfurlBookmarkUrl({
