@@ -6,12 +6,12 @@ import { Link, useFetcher, useLocation } from '@remix-run/react';
 import { IconLinkButton, LinkButton } from '~/components/Button';
 import { RootContext } from '~/components/Context';
 import { IoIosColorPalette } from 'react-icons/io';
+import { canEdit, canManage } from '~/other/utils';
 import { IoFlash, IoMenu } from 'react-icons/io5';
 import { FiLogIn, FiUsers } from 'react-icons/fi';
 import { WebReturnType } from '~/other/types';
 import { useScroll } from '~/hooks/useScroll';
 import { MdPrivacyTip } from 'react-icons/md';
-import { canManage } from '~/other/utils';
 
 export type LayoutProps = {
 	user: GetUsersOutput | null;
@@ -225,6 +225,27 @@ export function Sidebar({ user }: SidebarProps) {
 	const fetcher = useFetcher<WebReturnType<string>>();
 	const location = useLocation();
 
+	const baseFlashPath = useMemo(() => location.pathname.replace('/groups/', '/flashcards/'), [location.pathname]);
+	const canEditFlash = useMemo(() => boardInfo ? canEdit(boardInfo.accessLevel) : false, [boardInfo]);
+
+	const flashTo = useMemo(() => {
+		if (boardInfo?.hasFlashCards) return baseFlashPath;
+		else if (canEditFlash) return baseFlashPath.endsWith('/') ? `${baseFlashPath}init` : `${baseFlashPath}/init`;
+		else return '#';
+	}, [boardInfo, canEditFlash, baseFlashPath]);
+
+	const flashTooltip = useMemo(() => {
+		if (boardInfo?.hasFlashCards) return 'Flashcards';
+		else if (canEditFlash) return 'Initialize Flashcards';
+		else return 'Flashcards (not available)';
+	}, [boardInfo, canEditFlash]);
+
+	const flashDisabled = useMemo(() => {
+		if (boardInfo?.hasFlashCards) return false;
+		else if (canEditFlash) return false;
+		else return true;
+	}, [boardInfo, canEditFlash]);
+
 	return (
 		<Flex
 			w={16}
@@ -325,7 +346,7 @@ export function Sidebar({ user }: SidebarProps) {
 				</Tooltip>
 
 				<Tooltip
-					label='Flashcards'
+					label={flashTooltip}
 					aria-label='Flashcards'
 					placement='right'
 					hasArrow
@@ -343,8 +364,8 @@ export function Sidebar({ user }: SidebarProps) {
 							bg={'transparent'}
 							icon={<IoFlash />}
 							_hover={{ bg: 'alpha300' }}
-							isDisabled={!boardInfo?.hasFlashCards}
-							to={location.pathname.replace('/groups/', '/flashcards/')}
+							isDisabled={flashDisabled || !boardInfo}
+							to={flashTo}
 						/>
 					</span>
 				</Tooltip>
