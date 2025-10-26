@@ -1,16 +1,17 @@
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, Avatar, Text, Button, Image, Flex, HStack, IconButton, useColorMode, Heading, Box, useBreakpointValue, Divider, Tooltip, Drawer, DrawerBody, DrawerCloseButton, DrawerContent, DrawerHeader, DrawerOverlay, useDisclosure, FlexProps, VStack, Center } from '@chakra-ui/react';
 import { FaArrowUp, FaCode, FaCogs, FaList, FaMoon, FaSun, FaUser, FaUsers, FaUserSlash } from 'react-icons/fa';
-import { CollabUser, GetUsersOutput } from '@excali-boards/boards-api-client';
+import { AccessLevel, CollabUser, GetUsersOutput } from '@excali-boards/boards-api-client';
 import { Fragment, useCallback, useContext, useMemo, useState } from 'react';
 import { Link, useFetcher, useLocation } from '@remix-run/react';
 import { IconLinkButton, LinkButton } from '~/components/Button';
 import { RootContext } from '~/components/Context';
 import { IoIosColorPalette } from 'react-icons/io';
+import { IoFlash, IoMenu } from 'react-icons/io5';
 import { FiLogIn, FiUsers } from 'react-icons/fi';
 import { WebReturnType } from '~/other/types';
 import { useScroll } from '~/hooks/useScroll';
 import { MdPrivacyTip } from 'react-icons/md';
-import { IoMenu } from 'react-icons/io5';
+import { canManage } from '~/other/utils';
 
 export type LayoutProps = {
 	user: GetUsersOutput | null;
@@ -206,12 +207,18 @@ export function Header({ user, forceGoBack }: HeaderProps) {
 	);
 }
 
+export type BoardInfo = {
+	accessLevel: AccessLevel;
+	hasFlashCards: boolean;
+	hideCollaborators: boolean;
+};
+
 export type SidebarProps = {
 	user: GetUsersOutput | null;
 };
 
 export function Sidebar({ user }: SidebarProps) {
-	const { setUseOppositeColorForBoard, useOppositeColorForBoard, setHideCollaborators, hideCollaborators, boardActiveCollaborators = [] } = useContext(RootContext) || {};
+	const { setUseOppositeColorForBoard, useOppositeColorForBoard, boardActiveCollaborators = [], boardInfo, setBoardInfo } = useContext(RootContext) || {};
 	const [kickModalOpen, setKickModalOpen] = useState(false);
 	const { toggleColorMode, colorMode } = useColorMode();
 
@@ -273,7 +280,7 @@ export function Sidebar({ user }: SidebarProps) {
 				gap={2}
 				mb={2}
 			>
-				{user?.isDev && !!boardActiveCollaborators.length && (
+				{boardInfo && canManage(boardInfo.accessLevel) && (
 					<Tooltip
 						label='Kick collaborators'
 						aria-label='Kick collaborators'
@@ -303,7 +310,7 @@ export function Sidebar({ user }: SidebarProps) {
 					hasArrow
 				>
 					<IconButton
-						onClick={() => setHideCollaborators?.(!hideCollaborators)}
+						onClick={() => setBoardInfo?.((prev) => prev ? { ...prev, hideCollaborators: !prev.hideCollaborators } : null)}
 						variant={'ghost'}
 						rounded={'full'}
 						aria-label='Hide collaborators'
@@ -315,6 +322,31 @@ export function Sidebar({ user }: SidebarProps) {
 						icon={<MdPrivacyTip />}
 						_hover={{ bg: 'alpha300' }}
 					/>
+				</Tooltip>
+
+				<Tooltip
+					label='Flashcards'
+					aria-label='Flashcards'
+					placement='right'
+					hasArrow
+				>
+					<span>
+						<IconLinkButton
+							variant={'ghost'}
+							rounded={'full'}
+							aria-label='Flashcards'
+							boxSize={10}
+							target='_blank'
+							alignItems={'center'}
+							justifyContent={'center'}
+							display={'flex'}
+							bg={'transparent'}
+							icon={<IoFlash />}
+							_hover={{ bg: 'alpha300' }}
+							isDisabled={!boardInfo?.hasFlashCards}
+							to={location.pathname.replace('/groups/', '/flashcards/')}
+						/>
+					</span>
 				</Tooltip>
 
 				<Tooltip
@@ -596,11 +628,10 @@ export function KickUsersModal({ users, isOpen, currentUserId, onClose, onKick }
 									</Flex>
 
 									<IconButton
-										aria-label={`Kick ${user.username}`}
-										icon={<FaUserSlash />}
-										colorScheme='orange'
-										variant='outline'
 										size='sm'
+										colorScheme='orange'
+										icon={<FaUserSlash />}
+										aria-label={`Kick ${user.username}`}
 										isDisabled={user.id === currentUserId}
 										onClick={() => onKick(user.id)}
 										_disabled={{

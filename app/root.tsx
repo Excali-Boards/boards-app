@@ -3,6 +3,7 @@ import { LoaderFunctionArgs, LinksFunction, MetaFunction } from '@remix-run/node
 import { allowedPlatforms as allowedLoginPlatforms } from '~/utils/config.server';
 import { CachedResponse, getCachedUser } from './utils/session.server';
 import { CollabUser } from '@excali-boards/boards-api-client';
+import Layout, { BoardInfo } from '~/components/Layout';
 import { ChakraProvider, Flex } from '@chakra-ui/react';
 import { cssBundleHref } from '@remix-run/css-bundle';
 import { authenticator } from './utils/auth.server';
@@ -11,7 +12,6 @@ import InfoComponent from '~/components/Info';
 import theme from '~/components/theme/base';
 import { useEffect, useState } from 'react';
 import { themeColor } from './other/types';
-import Layout from '~/components/Layout';
 import isMobileDetect from 'is-mobile';
 import { Document } from '~/document';
 import '~/styles/global.css';
@@ -70,7 +70,7 @@ export default function App() {
 	const [sideBarHeader, setSiteBarHeader] = useState<'header' | 'sidebar' | 'none'>('header');
 	const [boardActiveCollaborators, setBoardActiveCollaborators] = useState<CollabUser[]>([]);
 	const [useOppositeColorForBoard, setUseOppositeColorForBoard] = useState(false);
-	const [hideCollaborators, setHideCollaborators] = useState(false);
+	const [boardInfo, setBoardInfo] = useState<BoardInfo | null>(null);
 	const [canInvite, setCanInvite] = useState(user?.isDev || false);
 	const [showAllBoards, setShowAllBoards] = useState(true);
 
@@ -87,9 +87,9 @@ export default function App() {
 				<RootContext.Provider value={{
 					boardActiveCollaborators, setBoardActiveCollaborators,
 					useOppositeColorForBoard, setUseOppositeColorForBoard,
-					hideCollaborators, setHideCollaborators,
 					sideBarHeader, setSiteBarHeader,
 					showAllBoards, setShowAllBoards,
+					boardInfo, setBoardInfo,
 					canInvite, setCanInvite,
 					allowedPlatforms,
 					token,

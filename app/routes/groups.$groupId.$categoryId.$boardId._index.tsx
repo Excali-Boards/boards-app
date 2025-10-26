@@ -56,7 +56,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
 export default function Board() {
 	const { socketUrl, board, category, group, webUrl, currentUrl, s3Url, s3Bucket, licenseKey } = useLoaderData<typeof loader>();
-	const { useOppositeColorForBoard, hideCollaborators, user, token, setBoardActiveCollaborators } = useContext(RootContext) || {};
+	const { useOppositeColorForBoard, boardInfo, user, token, setBoardActiveCollaborators } = useContext(RootContext) || {};
 	const isMobile = useBreakpointValue({ base: true, md: false });
 	const { colorMode } = useColorMode();
 
@@ -78,7 +78,7 @@ export default function Board() {
 		<Component
 			updateCollaborators={setBoardActiveCollaborators || (() => { })}
 			useOppositeColorForBoard={useOppositeColorForBoard || false}
-			hideCollaborators={hideCollaborators || false}
+			hideCollaborators={boardInfo?.hideCollaborators || false}
 			name={`${category.name} - ${board.name}`}
 			canEdit={canEdit(board.accessLevel)}
 			licenseKey={licenseKey || undefined}
