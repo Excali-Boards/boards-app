@@ -1,9 +1,10 @@
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, Avatar, Text, Button, Image, Flex, HStack, IconButton, useColorMode, Heading, Box, useBreakpointValue, Divider, Tooltip, Drawer, DrawerBody, DrawerCloseButton, DrawerContent, DrawerHeader, DrawerOverlay, useDisclosure, FlexProps, VStack, Center } from '@chakra-ui/react';
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, Avatar, Text, Button, Image, Flex, HStack, IconButton, useColorMode, Heading, Box, useBreakpointValue, Divider, Tooltip, Drawer, DrawerBody, DrawerCloseButton, DrawerContent, DrawerHeader, DrawerOverlay, useDisclosure, FlexProps, VStack, Center, useToast } from '@chakra-ui/react';
 import { FaArrowUp, FaCode, FaCogs, FaList, FaMoon, FaSun, FaUser, FaUsers, FaUserSlash } from 'react-icons/fa';
 import { AccessLevel, CollabUser, GetUsersOutput } from '@excali-boards/boards-api-client';
 import { Fragment, useCallback, useContext, useMemo, useState } from 'react';
 import { Link, useFetcher, useLocation } from '@remix-run/react';
 import { IconLinkButton, LinkButton } from '~/components/Button';
+import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { RootContext } from '~/components/Context';
 import { IoIosColorPalette } from 'react-icons/io';
 import { canEdit, canManage } from '~/other/utils';
@@ -224,6 +225,9 @@ export function Sidebar({ user }: SidebarProps) {
 
 	const fetcher = useFetcher<WebReturnType<string>>();
 	const location = useLocation();
+	const toast = useToast();
+
+	useFetcherResponse(fetcher, toast);
 
 	const baseFlashPath = useMemo(() => location.pathname.replace('/groups/', '/flashcards/'), [location.pathname]);
 	const canEditFlash = useMemo(() => boardInfo ? canEdit(boardInfo.accessLevel) : false, [boardInfo]);
