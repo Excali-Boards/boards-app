@@ -1,5 +1,5 @@
 import { Flex, VStack, Accordion, AccordionItem, AccordionButton, AccordionPanel, Box, Text, Divider, AccordionIcon, Badge, useColorMode } from '@chakra-ui/react';
-import { formatBytes, getCardDeletionTime } from '~/other/utils';
+import { formatBytes, formatRelativeTime, getCardDeletionTime } from '~/other/utils';
 import { Container } from '~/components/layout/Container';
 import { makeResponse } from '~/utils/functions.server';
 import { LoaderFunctionArgs } from '@remix-run/node';
@@ -20,7 +20,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const DBResources = await api?.groups.getAllSorted({ auth: token });
 	if (!DBResources || 'error' in DBResources) throw makeResponse(DBResources, 'Failed to get groups.');
 
-	return DBResources.data;
+	return DBResources.data.map((group) => ({
+		...group,
+		categories: group.categories.map((category) => ({
+			...category,
+			boards: category.boards.map((board) => ({
+				...board,
+				scheduledForDeletionText: board.scheduledForDeletion ? formatRelativeTime(new Date(board.scheduledForDeletion), true) : null,
+			})),
+		})),
+	}));
 };
 
 export default function All() {
@@ -112,7 +121,7 @@ export default function All() {
 																						bg={isDeletedSoon.borderColor}
 																						color={colorMode === 'light' ? 'white' : 'black'}
 																					>
-																						{isDeletedSoon.text}
+																						{board.scheduledForDeletionText}
 																					</Badge>
 																				)}
 

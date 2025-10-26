@@ -1,21 +1,28 @@
 import { Button, ButtonProps, IconButton, IconButtonProps } from '@chakra-ui/react';
 import { Link, LinkProps } from '@remix-run/react';
+import { forwardRef } from 'react';
 
-export function LinkButton({ ...props }: ButtonProps & LinkProps) {
+export const LinkButton = forwardRef<HTMLButtonElement, ButtonProps & LinkProps>(({ ...props }, ref) => {
 	return (
 		<Button
-			as={Link}
+			ref={ref}
+			as={props.isDisabled ? undefined : Link}
 			{...props}
 		/>
 	);
-}
+});
 
-export function IconLinkButton({ icon, ...props }: IconButtonProps & LinkProps) {
+LinkButton.displayName = 'LinkButton';
+
+export const IconLinkButton = forwardRef<HTMLButtonElement, IconButtonProps & LinkProps>(({ icon, ...props }, ref) => {
 	return (
 		<IconButton
-			as={Link}
+			ref={ref}
+			as={props.isDisabled ? undefined : Link}
 			icon={icon}
 			{...props}
 		/>
 	);
-}
+});
+
+IconLinkButton.displayName = 'IconLinkButton';

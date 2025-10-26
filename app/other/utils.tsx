@@ -43,16 +43,10 @@ export function getCardDeletionTime(date: Date | null, colorMode: ColorMode) {
 	const diffTime = date.getTime() - now.getTime();
 	const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-	const minutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
-	const hours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-
-	const timeString = diffDays > 0 ? `${diffDays}d ${hours}h ${minutes}m` : hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-
 	if (diffDays <= 0) {
 		return {
 			bg: colorMode === 'light' ? 'red.100' : 'red.400',
 			borderColor: 'red.200',
-			text: timeString,
 		};
 	}
 
@@ -60,14 +54,12 @@ export function getCardDeletionTime(date: Date | null, colorMode: ColorMode) {
 		return {
 			bg: colorMode === 'light' ? 'orange.100' : 'orange.400',
 			borderColor: 'orange.200',
-			text: timeString,
 		};
 	}
 
 	return {
 		bg: colorMode === 'light' ? 'yellow.100' : 'yellow.400',
 		borderColor: 'yellow.200',
-		text: timeString,
 	};
 }
 
@@ -154,6 +146,40 @@ export function formatTime(t: number | Date, from: TimeUnits = 'ms', short?: boo
 
 	return timeParts.filter(Boolean).join(' ').trim();
 }
+
+export function formatRelativeTime(date: Date, short = false): string {
+	const now = new Date();
+	const diffMs = date.getTime() - now.getTime();
+	const isFuture = diffMs > 0;
+	const diff = Math.abs(diffMs);
+
+	const seconds = Math.floor(diff / 1000) % 60;
+	const minutes = Math.floor(diff / (1000 * 60)) % 60;
+	const hours = Math.floor(diff / (1000 * 60 * 60)) % 24;
+	const days = Math.floor(diff / (1000 * 60 * 60 * 24)) % 7;
+	const weeks = Math.floor(diff / (1000 * 60 * 60 * 24 * 7)) % 4;
+	const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30)) % 12;
+	const years = Math.floor(diff / (1000 * 60 * 60 * 24 * 365));
+
+	const parts: string[] = [];
+	const add = (value: number, shortForm: string, longForm: string) => {
+		if (value > 0) parts.push(short ? `${value}${shortForm}` : `${value} ${longForm}${value !== 1 ? 's' : ''}`);
+	};
+
+	add(years, 'y', 'year');
+	add(months, 'mo', 'month');
+	add(weeks, 'w', 'week');
+	add(days, 'd', 'day');
+	add(hours, 'h', 'hour');
+	add(minutes, 'm', 'minute');
+	add(seconds, 's', 'second');
+
+	const shown = parts.slice(0, Math.max(2, Math.min(3, parts.length)));
+
+	const result = shown.join(short ? ' ' : ', ');
+	return isFuture ? (short ? result : result) : (short ? `${result} ago` : `${result} ago`);
+}
+
 
 export function validateParams<T extends string>(params: Record<string, string | undefined>, requiredParams: T[]): Record<T, string> {
 	const validatedParams = {} as Record<T[number], string>;

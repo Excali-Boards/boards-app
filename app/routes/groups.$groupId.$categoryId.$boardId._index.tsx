@@ -56,9 +56,13 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
 export default function Board() {
 	const { socketUrl, board, category, group, webUrl, currentUrl, s3Url, s3Bucket, licenseKey } = useLoaderData<typeof loader>();
-	const { useOppositeColorForBoard, boardInfo, user, token, setBoardActiveCollaborators } = useContext(RootContext) || {};
+	const { useOppositeColorForBoard, boardInfo, user, token, setBoardActiveCollaborators, setBoardInfo } = useContext(RootContext) || {};
 	const isMobile = useBreakpointValue({ base: true, md: false });
 	const { colorMode } = useColorMode();
+
+	useEffect(() => {
+		setBoardInfo?.({ accessLevel: board.accessLevel, hideCollaborators: false, hasFlashCards: board.hasFlashcards });
+	}, [setBoardInfo, board.accessLevel, board.hasFlashcards]);
 
 	useEffect(() => {
 		window.EXCALIDRAW_ASSET_PATH = '/';

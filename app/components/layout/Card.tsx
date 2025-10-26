@@ -19,7 +19,9 @@ export type CardProps = {
 	refresh?: boolean;
 	sizeBytes?: number;
 	isDeleteDisabled?: boolean;
+
 	isScheduledForDeletion?: Date;
+	isScheduledForDeletionText?: string;
 
 	onCancelDeletion?: () => void;
 	onFlashCreate?: () => void;
@@ -38,6 +40,7 @@ export function Card({
 	flashExists,
 	isDeleteDisabled,
 	isScheduledForDeletion,
+	isScheduledForDeletionText,
 	onCancelDeletion,
 	onFlashCreate,
 	onDelete,
@@ -74,7 +77,7 @@ export function Card({
 				<Text fontSize={'2xl'} fontWeight={'bold'}>{name}</Text>
 			</Flex>
 
-			{isScheduledForDeletion && (
+			{isScheduledForDeletion && isScheduledForDeletionText && (
 				<Badge
 					px={2} py={1}
 					borderRadius={'full'}
@@ -82,7 +85,7 @@ export function Card({
 					bg={isDeletedSoon.borderColor}
 					color={colorMode === 'light' ? 'white' : 'black'}
 				>
-					{isDeletedSoon.text}
+					{isScheduledForDeletionText}
 				</Badge>
 			)}
 

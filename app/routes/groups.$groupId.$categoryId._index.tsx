@@ -1,12 +1,12 @@
 import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
 import { BoardType } from '@excali-boards/boards-api-client/prisma/generated/client';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { canManage, formatRelativeTime, validateParams } from '~/other/utils';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
+import { useCallback, useContext, useMemo, useState } from 'react';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { SearchBar } from '~/components/layout/SearchBar';
-import { canManage, validateParams } from '~/other/utils';
 import { NoticeCard } from '~/components/other/Notice';
 import CardList from '~/components/layout/CardList';
 import { useDebounced } from '~/hooks/useDebounced';
@@ -27,7 +27,13 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const DBCategory = await api?.categories.getCategory({ auth: token, categoryId, groupId });
 	if (!DBCategory || 'error' in DBCategory) throw makeResponse(DBCategory, 'Failed to get category.');
 
-	return DBCategory.data;
+	return {
+		...DBCategory.data,
+		boards: DBCategory.data.boards.map((board) => ({
+			...board,
+			scheduledForDeletionText: board.scheduledForDeletion ? formatRelativeTime(new Date(board.scheduledForDeletion), true) : null,
+		})),
+	}
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
@@ -181,6 +187,7 @@ export default function Boards() {
 						name: b.name.charAt(0).toUpperCase() + b.name.slice(1),
 						flashUrl: `/flashcards/${group.id}/${category.id}/${b.id}`,
 						isScheduledForDeletion: b.scheduledForDeletion ? new Date(b.scheduledForDeletion) : undefined,
+						isScheduledForDeletionText: b.scheduledForDeletionText || undefined,
 						permsUrl: (user?.isDev || b.accessLevel === 'admin') ? `/permissions/${group.id}/${category.id}/${b.id}` : undefined,
 					}))}
 				/>
