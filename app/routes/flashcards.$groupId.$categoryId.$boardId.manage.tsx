@@ -192,6 +192,8 @@ export default function ManageFlashcards() {
 					}]}
 				/>
 
+				<Divider my={4} />
+
 				<Flex flexDir='column' gap={4} mt={8}>
 					{deck.cards.length === 0 ? (
 						<Flex
