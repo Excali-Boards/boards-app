@@ -1,18 +1,23 @@
 import { Box, Button, Flex, HStack, IconButton, Slider, SliderFilledTrack, SliderThumb, SliderTrack, Text, Tooltip, VStack } from '@chakra-ui/react';
+import { ActionFunctionArgs, LinkDescriptor, LoaderFunctionArgs } from '@remix-run/node';
 import { FaArrowLeft, FaArrowRight, FaBookOpen, FaCog, FaRandom } from 'react-icons/fa';
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { ConfettiContainer } from '~/components/other/Confetti';
 import { useFetcher, useLoaderData } from '@remix-run/react';
 import { themeColor, WebReturnType } from '~/other/types';
 import { canEdit, validateParams } from '~/other/utils';
+import { TextParser } from '~/components/TextParser';
 import { IconLinkButton } from '~/components/Button';
 import { authenticator } from '~/utils/auth.server';
 import { useHotkeys } from '~/hooks/useHotkey';
 import { FaDeleteLeft } from 'react-icons/fa6';
 import { GiGloop } from 'react-icons/gi';
 import { api } from '~/utils/web.server';
+
+export const links = (): LinkDescriptor[] => [
+	{ rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css' },
+];
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const { groupId, categoryId, boardId } = validateParams(params, ['groupId', 'categoryId', 'boardId']);
@@ -434,7 +439,7 @@ export function FlipCard({ front, back, rotation, onFlip }: FlipCardProps) {
 						fontWeight='semibold'
 						textAlign='center'
 					>
-						{front}
+						<TextParser>{front}</TextParser>
 					</Text>
 				</Box>
 
@@ -459,7 +464,7 @@ export function FlipCard({ front, back, rotation, onFlip }: FlipCardProps) {
 						fontWeight='semibold'
 						textAlign='center'
 					>
-						{back}
+						<TextParser>{back}</TextParser>
 					</Text>
 				</Box>
 			</Box>

@@ -1,10 +1,11 @@
 import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, IconButton, Divider, HStack, Tooltip, Textarea } from '@chakra-ui/react';
+import { LoaderFunctionArgs, ActionFunctionArgs, redirect, LinkDescriptor } from '@remix-run/node';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
-import { LoaderFunctionArgs, ActionFunctionArgs, redirect } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { FaPlus, FaTrash, FaPen, FaDownload } from 'react-icons/fa';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
+import { TextParser } from '~/components/TextParser';
 import { authenticator } from '~/utils/auth.server';
 import MenuBar from '~/components/layout/MenuBar';
 import { validateParams } from '~/other/utils';
@@ -12,6 +13,10 @@ import { WebReturnType } from '~/other/types';
 import { FaExplosion } from 'react-icons/fa6';
 import Select from '~/components/Select';
 import { api } from '~/utils/web.server';
+
+export const links = (): LinkDescriptor[] => [
+	{ rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css' },
+];
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const { groupId, categoryId, boardId } = validateParams(params, ['groupId', 'categoryId', 'boardId']);
@@ -261,11 +266,11 @@ export function FlashcardItem({ card, onEdit, onDelete }: FlashcardItemProps) {
 			>
 				<Box>
 					<Text fontSize='sm' fontWeight='semibold' color='gray.500'>Question</Text>
-					<Text fontSize='lg'>{card.front}</Text>
+					<Text fontSize='lg'><TextParser>{card.front}</TextParser></Text>
 				</Box>
 				<Box>
 					<Text fontSize='sm' fontWeight='semibold' color='gray.500'>Answer</Text>
-					<Text fontSize='lg'>{card.back}</Text>
+					<Text fontSize='lg'><TextParser>{card.back}</TextParser></Text>
 				</Box>
 			</Flex>
 
