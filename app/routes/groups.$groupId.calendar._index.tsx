@@ -205,8 +205,8 @@ export default function GroupCalendar() {
 		if (calendarEvent) {
 			existingData = {
 				title: calendarEvent.title,
-				start: new Date((calendarEvent.start as Temporal.ZonedDateTime).epochMilliseconds).toISOString(),
-				end: new Date((calendarEvent.end as Temporal.ZonedDateTime).epochMilliseconds).toISOString(),
+				start: (calendarEvent.start as Temporal.ZonedDateTime).toInstant().toString(),
+				end: (calendarEvent.end as Temporal.ZonedDateTime).toInstant().toString(),
 				description: calendarEvent.description || null,
 				where: calendarEvent.location || null,
 				color: calendarEvent.calendarId || calendarColors.skyline,
@@ -225,14 +225,17 @@ export default function GroupCalendar() {
 		}, { method: 'post' });
 	}, [fetcher]);
 
+
 	const handleDateClick = useCallback((date: Temporal.PlainDate) => {
-		const dateStr = date.toString();
+		const tz = Temporal.Now.timeZoneId();
 
-		setSelectedEvent({
-			start: dateStr + 'T09:00:00',
-			end: dateStr + 'T10:00:00',
-		});
+		const startZdt = date.toZonedDateTime({ timeZone: tz, plainTime: '09:00:00' });
+		const endZdt = date.toZonedDateTime({ timeZone: tz, plainTime: '10:00:00' });
 
+		const startIso = startZdt.toInstant().toString();
+		const endIso = endZdt.toInstant().toString();
+
+		setSelectedEvent({ start: startIso, end: endIso });
 		setModalOpen('createEvent');
 	}, []);
 
@@ -240,8 +243,9 @@ export default function GroupCalendar() {
 		const calendarEvent = calendarRef.current?.events.get(eventId);
 		if (!calendarEvent) return;
 
-		const startIso = new Date((calendarEvent.start as Temporal.ZonedDateTime).epochMilliseconds).toISOString();
-		const endIso = new Date((calendarEvent.end as Temporal.ZonedDateTime).epochMilliseconds).toISOString();
+		// Convert to Instant ISO (UTC) for storage/display
+		const startIso = (calendarEvent.start as Temporal.ZonedDateTime).toInstant().toString();
+		const endIso = (calendarEvent.end as Temporal.ZonedDateTime).toInstant().toString();
 
 		const eventData: Partial<CalendarEvent> = {
 			id: String(calendarEvent.id),
@@ -294,8 +298,8 @@ export default function GroupCalendar() {
 			isCalendarSmall: () => isMobile,
 
 			onEventUpdate: (updatedEvent) => {
-				const startIso = new Date((updatedEvent.start as Temporal.ZonedDateTime).epochMilliseconds).toISOString();
-				const endIso = new Date((updatedEvent.end as Temporal.ZonedDateTime).epochMilliseconds).toISOString();
+				const startIso = (updatedEvent.start as Temporal.ZonedDateTime).toInstant().toString();
+				const endIso = (updatedEvent.end as Temporal.ZonedDateTime).toInstant().toString();
 
 				const originalState = originalEventStateRef.current.get(String(updatedEvent.id));
 
@@ -385,16 +389,23 @@ export default function GroupCalendar() {
 	useEffect(() => {
 		if (!calendar) return;
 
-		const formatSingleEvent = (event: CalendarEvent | Jsonify<FormattedHoliday>): CalendarEventExternal => ({
-			id: event.id,
-			title: event.title,
-			start: Temporal.Instant.fromEpochMilliseconds(Date.parse(event.start)).toZonedDateTimeISO(Temporal.Now.timeZoneId()),
-			end: Temporal.Instant.fromEpochMilliseconds(Date.parse(event.end)).toZonedDateTimeISO(Temporal.Now.timeZoneId()),
-			location: 'where' in event ? event.where || undefined : undefined,
-			description: event.description || undefined,
-			calendarId: event.color,
-			_options: 'types' in event ? { disableDND: true, disableResize: true } : {},
-		});
+		const formatSingleEvent = (event: CalendarEvent | Jsonify<FormattedHoliday>): CalendarEventExternal => {
+			const startInstant = Temporal.Instant.from(event.start);
+			const endInstant = Temporal.Instant.from(event.end);
+
+			const userTimeZone = Temporal.Now.timeZoneId();
+
+			return {
+				id: event.id,
+				title: event.title,
+				start: startInstant.toZonedDateTimeISO(userTimeZone),
+				end: endInstant.toZonedDateTimeISO(userTimeZone),
+				location: 'where' in event ? event.where || undefined : undefined,
+				description: event.description || undefined,
+				calendarId: event.color,
+				_options: 'types' in event ? { disableDND: true, disableResize: true } : {},
+			};
+		};
 
 		const formattedHolidays = initialHolidays.map(formatSingleEvent);
 
