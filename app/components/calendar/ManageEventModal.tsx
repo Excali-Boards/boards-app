@@ -205,6 +205,29 @@ export function ManageEvent({ isOpen, onClose, canEdit, type, fetcher, defaultEv
 		return formatted.replace(/\b(\d{1,2})\b/, (match) => `${match}${getOrdinal(Number(match))}`);
 	}, []);
 
+	const convertLocalToUTCTemporal = useCallback((date: Date): string => {
+		const timeZone = Temporal.Now.timeZoneId();
+
+		const year = date.getFullYear();
+		const month = date.getMonth() + 1;
+		const day = date.getDate();
+		const hour = date.getHours();
+		const minute = date.getMinutes();
+
+		const plainDateTime = Temporal.PlainDateTime.from({
+			year,
+			month,
+			day,
+			hour,
+			minute,
+			second: 0,
+			millisecond: 0,
+		});
+
+		const zonedDateTime = plainDateTime.toZonedDateTime(timeZone);
+		return zonedDateTime.toInstant().toString();
+	}, []);
+
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} size='lg' isCentered>
 			<ModalOverlay />
@@ -252,7 +275,7 @@ export function ManageEvent({ isOpen, onClose, canEdit, type, fetcher, defaultEv
 													/>
 												}
 											/>
-											<VisuallyHiddenInput onChange={() => { }} name='startDate' value={startDate.toISOString()} />
+											<VisuallyHiddenInput onChange={() => { }} name='startDate' value={convertLocalToUTCTemporal(startDate)} />
 										</FormControl>
 										<FormControl flex={1}>
 											<FormLabel>End Date & Time</FormLabel>
@@ -272,7 +295,7 @@ export function ManageEvent({ isOpen, onClose, canEdit, type, fetcher, defaultEv
 													/>
 												}
 											/>
-											<VisuallyHiddenInput onChange={() => { }} name='endDate' value={endDate.toISOString()} />
+											<VisuallyHiddenInput onChange={() => { }} name='endDate' value={convertLocalToUTCTemporal(endDate)} />
 										</FormControl>
 									</Flex>
 

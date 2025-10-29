@@ -243,7 +243,6 @@ export default function GroupCalendar() {
 		const calendarEvent = calendarRef.current?.events.get(eventId);
 		if (!calendarEvent) return;
 
-		// Convert to Instant ISO (UTC) for storage/display
 		const startIso = (calendarEvent.start as Temporal.ZonedDateTime).toInstant().toString();
 		const endIso = (calendarEvent.end as Temporal.ZonedDateTime).toInstant().toString();
 
@@ -279,6 +278,7 @@ export default function GroupCalendar() {
 	const calendar = useCalendarApp({
 		views: [createViewMonthGrid(), createViewWeek(), createViewDay()],
 		selectedDate: Temporal.Now.plainDateISO(),
+		timezone: Temporal.Now.timeZoneId() as 'UTC', // TypeScript :/
 		calendars: colorCalendars,
 		defaultView: 'month-grid',
 		events: [],

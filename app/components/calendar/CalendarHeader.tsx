@@ -151,14 +151,16 @@ export function CalendarHeader({
 
 			<HStack spacing={2} minW='200px' justify='flex-end' zIndex={1}>
 				<IconButton
-					aria-label='Country Settings'
-					icon={<SettingsIcon />}
+					size='sm'
 					variant='outline'
+					icon={<SettingsIcon />}
+					aria-label='Country Settings'
 					onClick={onCountrySettings}
 				/>
 
 				<Menu>
 					<MenuButton
+						size='sm'
 						as={Button}
 						variant='outline'
 						data-calendar-view-menu
@@ -212,6 +214,7 @@ export function CalendarHeader({
 				</Menu>
 
 				<Button
+					size='sm'
 					variant='solid'
 					leftIcon={<AddIcon />}
 					onClick={onCreateEvent}
