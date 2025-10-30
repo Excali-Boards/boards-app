@@ -36,27 +36,34 @@ export function TldrawBoard(props: TldrawBoardProps) {
 			parser: msgPack,
 		});
 
-		ioSocket.on('connect', () => {
-			console.log('Socket.IO connected to server.');
-			setIsConnected(true);
-			setIsFirstTime(false);
-		});
-
-		ioSocket.on('disconnect', (reason) => {
-			console.log('Socket.IO disconnected:', reason);
-			setIsConnected(false);
-		});
-
-		ioSocket.on('connect_error', (error) => {
-			console.error('Socket.IO connection error:', error);
-			setIsConnected(false);
-		});
-
 		ioSocket.on('kick', () => {
 			setIsKicked(true);
 		});
 
-		return socketIoToTldrawSocket(ioSocket);
+		const tldrawSocket = socketIoToTldrawSocket(ioSocket);
+
+		tldrawSocket.onStatusChange((event) => {
+			switch (event.status) {
+				case 'online': {
+					console.log('Tldraw socket status: online');
+					setIsConnected(true);
+					setIsFirstTime(false);
+					break;
+				}
+				case 'offline': {
+					console.log('Tldraw socket status: offline');
+					setIsConnected(false);
+					break;
+				}
+				case 'error': {
+					console.error('Tldraw socket status: error', event.reason);
+					setIsConnected(false);
+					break;
+				}
+			}
+		});
+
+		return tldrawSocket;
 	}, [boardId, token, socketUrl]);
 
 	const store = useSync({
