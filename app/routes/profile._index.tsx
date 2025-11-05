@@ -354,7 +354,7 @@ export function UpdateUserModal({ isOpen, onClose, currentMainPlatform, linkedPl
 	}, [groups]);
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} isCentered size='lg'>
+		<Modal isOpen={isOpen} onClose={onClose} isCentered size='xl'>
 			<ModalOverlay />
 			<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
 				<ModalHeader>Account Settings</ModalHeader>

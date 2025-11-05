@@ -136,7 +136,7 @@ export function GrantPermissionsModal({ isOpen, onClose, allData, canSelectGroup
 	}, [selectedGroups, selectedCategories, selectedBoards, groupRole, categoryRole, boardRole, conflicts, canSelectBoards, canSelectCategories, canSelectGroups]);
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} isCentered size='3xl'>
+		<Modal isOpen={isOpen} onClose={onClose} isCentered size='xl'>
 			<ModalOverlay />
 			<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
 				<ModalHeader>Grant Permissions</ModalHeader>

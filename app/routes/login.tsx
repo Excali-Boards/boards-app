@@ -90,9 +90,9 @@ export default function Login() {
 							key={platform.name}
 							bgColor={platform.color}
 							leftIcon={platform.icon({ boxSize: 6 })}
+							pl={{ base: '25%', md: '30%' }}
 							justifyContent='flex-start'
 							variant='solid'
-							pl={'30%'}
 							size='lg'
 							w='100%'
 						>

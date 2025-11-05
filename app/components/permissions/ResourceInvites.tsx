@@ -7,6 +7,7 @@ import { InviteCard, NoInviteCard } from './InviteCard';
 import { Fragment, useCallback, useState } from 'react';
 import { WebReturnType } from '~/other/types';
 import { useFetcher } from '@remix-run/react';
+import { QRCodeModal } from '../QRCode';
 import Select from '../Select';
 
 export type ResourceInvitesProps = {
@@ -20,6 +21,7 @@ export function ResourceInvites({ invites, canManage, showRenew }: ResourceInvit
 	const toast = useToast();
 
 	const [targetInvite, setTargetInvite] = useState<Jsonify<InviteData> | null>(null);
+	const [targetQRCode, setTargetQRCode] = useState<string | null>(null);
 
 	useFetcherResponse(fetcher, toast);
 
@@ -59,9 +61,10 @@ export function ResourceInvites({ invites, canManage, showRenew }: ResourceInvit
 						maxUses={invite.maxUses || 0}
 						expiresAt={invite.expiresAt ? new Date(invite.expiresAt) : null}
 						canManage={canManage}
-						onRenew={showRenew ? () => handleRenewInvite(invite.code) : undefined}
-						onDelete={() => handleDeleteInvite(invite.code)}
+
 						onDetails={() => setTargetInvite(invite)}
+						onDelete={() => handleDeleteInvite(invite.code)}
+						onQrCode={() => setTargetQRCode(`${window.location.origin}/invites/${invite.code}`)}
 					/>
 				)) : (
 					<NoInviteCard noWhat='active invites' />
@@ -73,6 +76,18 @@ export function ResourceInvites({ invites, canManage, showRenew }: ResourceInvit
 					isOpen={true}
 					invite={mappedData(targetInvite)}
 					onClose={() => setTargetInvite(null)}
+					onRenew={showRenew ? () => {
+						handleRenewInvite(targetInvite.code);
+						setTargetInvite(null);
+					} : undefined}
+				/>
+			)}
+
+			{targetQRCode && (
+				<QRCodeModal
+					isOpen={true}
+					qrCodeDataUrl={targetQRCode}
+					onClose={() => setTargetQRCode(null)}
 				/>
 			)}
 		</Fragment>
@@ -87,11 +102,13 @@ export type UpdatedInviteData = Jsonify<Pick<Invite, 'code' | 'expiresAt' | 'max
 
 export type ResourceInviteDetailsPropsModal = {
 	isOpen: boolean;
-	onClose: () => void;
 	invite: UpdatedInviteData;
+
+	onClose: () => void;
+	onRenew?: () => void;
 };
 
-export function ResourceInviteDetailsModal({ invite, isOpen, onClose }: ResourceInviteDetailsPropsModal) {
+export function ResourceInviteDetailsModal({ invite, isOpen, onClose, onRenew }: ResourceInviteDetailsPropsModal) {
 	const { colorMode } = useColorMode();
 
 	const formatExpiresIn = (date: Date) => {
@@ -118,7 +135,7 @@ export function ResourceInviteDetailsModal({ invite, isOpen, onClose }: Resource
 	};
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} isCentered size='3xl'>
+		<Modal isOpen={isOpen} onClose={onClose} isCentered size='xl'>
 			<ModalOverlay />
 			<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
 				<ModalHeader>Invite Details</ModalHeader>
@@ -247,6 +264,15 @@ export function ResourceInviteDetailsModal({ invite, isOpen, onClose }: Resource
 					>
 						Close
 					</Button>
+					{onRenew && (
+						<Button
+							flex={1}
+							colorScheme='blue'
+							onClick={onRenew}
+						>
+							Renew Invite
+						</Button>
+					)}
 				</ModalFooter>
 			</ModalContent>
 		</Modal>

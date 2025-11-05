@@ -1,7 +1,6 @@
 import { Flex, Text, HStack, VStack, IconButton, FlexProps, Badge, useToast, useDisclosure, useBreakpointValue, Divider, Tooltip } from '@chakra-ui/react';
-import { FaTrash, FaCopy, FaEye } from 'react-icons/fa';
+import { FaTrash, FaCopy, FaEye, FaQrcode } from 'react-icons/fa';
 import { ConfirmModal } from '../other/ConfirmModal';
-import { IoMdCloudUpload } from 'react-icons/io';
 import { Fragment, useCallback } from 'react';
 
 export type InputType = {
@@ -18,9 +17,9 @@ export type InviteCardProps = {
 	expiresAt: Date | null;
 
 	canManage?: boolean;
-	onRenew?: () => void;
 	onDelete?: () => void;
 	onDetails: () => void;
+	onQrCode?: () => void;
 };
 
 export function InviteCard({
@@ -30,9 +29,9 @@ export function InviteCard({
 	maxUses,
 	expiresAt,
 	canManage,
-	onRenew,
 	onDelete,
 	onDetails,
+	onQrCode,
 }: InviteCardProps & FlexProps) {
 	const toast = useToast();
 	const { isOpen: isConfirmOpen, onOpen: onConfirmOpen, onClose: onConfirmClose } = useDisclosure();
@@ -176,20 +175,22 @@ export function InviteCard({
 
 				<HStack spacing={1} w={isMobile ? '100%' : 'auto'} justify={isMobile ? 'center' : 'flex-start'}>
 					{onDelete && canManage && (
-						<IconButton
-							onClick={onConfirmOpen}
-							variant={'ghost'}
-							rounded={'full'}
-							bg={'alpha100'}
-							icon={<FaTrash />}
-							colorScheme='gray'
-							size={buttonSize}
-							aria-label={'Delete invite'}
-							alignItems={'center'}
-							justifyContent={'center'}
-							_hover={{ bg: 'alpha300' }}
-							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-						/>
+						<Tooltip label='Delete invite' hasArrow>
+							<IconButton
+								onClick={onConfirmOpen}
+								variant={'ghost'}
+								rounded={'full'}
+								bg={'alpha100'}
+								icon={<FaTrash />}
+								colorScheme='gray'
+								size={buttonSize}
+								aria-label={'Delete invite'}
+								alignItems={'center'}
+								justifyContent={'center'}
+								_hover={{ bg: 'alpha300' }}
+								_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+							/>
+						</Tooltip>
 					)}
 
 					<Tooltip label='View details' hasArrow>
@@ -209,39 +210,39 @@ export function InviteCard({
 						/>
 					</Tooltip>
 
-					{onRenew && canManage && (
-						<Tooltip label='Renew invite' hasArrow>
-							<IconButton
-								onClick={onRenew}
-								variant={'ghost'}
-								rounded={'full'}
-								bg={'alpha100'}
-								icon={<IoMdCloudUpload />}
-								colorScheme='gray'
-								size={buttonSize}
-								aria-label={'Renew invite'}
-								alignItems={'center'}
-								justifyContent={'center'}
-								_hover={{ bg: 'alpha300' }}
-								_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-							/>
-						</Tooltip>
-					)}
+					<Tooltip label='Show QR Code' hasArrow>
+						<IconButton
+							onClick={onQrCode}
+							variant={'ghost'}
+							rounded={'full'}
+							bg={'alpha100'}
+							icon={<FaQrcode />}
+							colorScheme='gray'
+							size={buttonSize}
+							aria-label={'Show QR Code'}
+							alignItems={'center'}
+							justifyContent={'center'}
+							_hover={{ bg: 'alpha300' }}
+							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+						/>
+					</Tooltip>
 
-					<IconButton
-						onClick={copyInviteLink}
-						variant={'ghost'}
-						rounded={'full'}
-						bg={'alpha100'}
-						icon={<FaCopy />}
-						colorScheme='gray'
-						size={buttonSize}
-						aria-label={'Copy invite link'}
-						alignItems={'center'}
-						justifyContent={'center'}
-						_hover={{ bg: 'alpha300' }}
-						_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-					/>
+					<Tooltip label='Copy invite link' hasArrow>
+						<IconButton
+							onClick={copyInviteLink}
+							variant={'ghost'}
+							rounded={'full'}
+							bg={'alpha100'}
+							icon={<FaCopy />}
+							colorScheme='gray'
+							size={buttonSize}
+							aria-label={'Copy invite link'}
+							alignItems={'center'}
+							justifyContent={'center'}
+							_hover={{ bg: 'alpha300' }}
+							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+						/>
+					</Tooltip>
 				</HStack>
 			</Flex>
 
