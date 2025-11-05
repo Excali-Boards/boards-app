@@ -7,9 +7,9 @@ import { ConfirmModal } from '~/components/other/ConfirmModal';
 import { useFetcher, useLoaderData } from '@remix-run/react';
 import { authenticator } from '~/utils/auth.server';
 import MenuBar from '~/components/layout/MenuBar';
+import { FaKey, FaTrash } from 'react-icons/fa';
 import { WebReturnType } from '~/other/types';
 import { useCallback, useState } from 'react';
-import { FaTrash } from 'react-icons/fa';
 import { api } from '~/utils/web.server';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -19,7 +19,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const DBSessions = await api?.sessions.getAllSessions({ auth: token });
 	if (!DBSessions || 'error' in DBSessions) throw makeResponse(DBSessions, 'Failed to get sessions.');
 
-	return DBSessions.data;
+	return {
+		currentSessionToken: token,
+		...DBSessions.data,
+	};
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -53,7 +56,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Sessions() {
-	const { sessions, activeDbId } = useLoaderData<typeof loader>();
+	const { sessions, activeDbId, currentSessionToken } = useLoaderData<typeof loader>();
 	const [confirmModal, setConfirmModal] = useState<{ type: 'single' | 'all'; token?: string; } | null>(null);
 	const toast = useToast();
 
@@ -70,6 +73,24 @@ export default function Sessions() {
 		setConfirmModal(null);
 	}, [fetcher]);
 
+	const copyCurrentSessionToken = useCallback(() => {
+		navigator.clipboard.writeText(currentSessionToken).then(() => {
+			toast({
+				title: 'Session Token Copied',
+				status: 'success',
+				duration: 3000,
+				isClosable: true,
+			});
+		}).catch(() => {
+			toast({
+				title: 'Failed to Copy Session Token',
+				status: 'error',
+				duration: 3000,
+				isClosable: true,
+			});
+		});
+	}, [currentSessionToken, toast]);
+
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }} id='a1'>
 			<Box maxWidth='1000px' width={{ base: '100%', sm: '90%', md: '80%', xl: '60%' }} id='a2'>
@@ -83,6 +104,12 @@ export default function Sessions() {
 						icon: <FaTrash />,
 						label: 'Delete All',
 						tooltip: 'Delete all sessions',
+					}, {
+						type: 'normal',
+						onClick: copyCurrentSessionToken,
+						icon: <FaKey />,
+						label: 'Copy Current Session Token',
+						tooltip: 'Copy current session token to clipboard',
 					}] : []}
 				/>
 
