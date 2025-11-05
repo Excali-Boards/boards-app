@@ -390,10 +390,18 @@ export default function GroupCalendar() {
 		if (!calendar) return;
 
 		const formatSingleEvent = (event: CalendarEvent | Jsonify<FormattedHoliday>): CalendarEventExternal => {
-			const startInstant = Temporal.Instant.from(event.start);
-			const endInstant = Temporal.Instant.from(event.end);
+			let startInstant = Temporal.Instant.from(event.start);
+			let endInstant = Temporal.Instant.from(event.end);
 
 			const userTimeZone = Temporal.Now.timeZoneId();
+			const isHoliday = 'types' in event;
+
+			if (isHoliday) {
+				const userTimeZoneOffset = Math.round(startInstant.toZonedDateTimeISO(userTimeZone).offsetNanoseconds / 1e9 / 60);
+
+				startInstant = startInstant.add({ minutes: -userTimeZoneOffset });
+				endInstant = endInstant.add({ minutes: -userTimeZoneOffset });
+			}
 
 			return {
 				id: event.id,
