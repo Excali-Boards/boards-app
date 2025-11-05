@@ -19,6 +19,7 @@ export type ObjectWithout<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 export type WebReturnType<T> = { status: 200; data: T; } | { status: 400 | 401 | 403 | 500; error: string; };
 
 export const themeColor = '#6966db';
+export const themeColorLight = '#A6A4F0';
 export const bgColor = '#1a1a1a';
 
 declare global {

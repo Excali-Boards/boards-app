@@ -1,7 +1,7 @@
 import { AssetRecordType, Editor, getHashForString, TLAssetStore, TLBookmarkAsset, TLRecord, TLUserPreferences, useTldrawUser } from 'tldraw';
 import { TLPersistentClientSocket, TLSocketStatusChangeEvent, useSync } from '@tldraw/sync';
 import { ClientToServerEvents, ServerToClientEvents } from '~/other/types';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import msgPack from 'socket.io-msgpack-parser';
 import { io, Socket } from 'socket.io-client';
 import { apiClient } from '~/other/apiClient';
@@ -18,6 +18,10 @@ export function TldrawBoard(props: TldrawBoardProps) {
 	const [isFirstTime, setIsFirstTime] = useState(true);
 	const [isKicked, setIsKicked] = useState(false);
 
+	const isVisible = useRef(true);
+	const reconnectAttempts = useRef(0);
+	const maxReconnectAttempts = 5;
+
 	const colorScheme = useMemo(() => {
 		return props.useOppositeColorForBoard
 			? (props.colorMode === 'light' ? 'dark' : 'light')
@@ -30,17 +34,52 @@ export function TldrawBoard(props: TldrawBoardProps) {
 		colorScheme: colorScheme,
 	});
 
+	useEffect(() => {
+		const handleVisibilityChange = () => {
+			isVisible.current = !document.hidden;
+
+			if (!document.hidden) {
+				console.log('Tab became visible, resetting reconnect attempts');
+				reconnectAttempts.current = 0;
+			}
+		};
+
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+		return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+	}, []);
+
 	const connectFunction = useCallback(() => {
 		const ioSocket: Socket<ServerToClientEvents, ClientToServerEvents> = io(socketUrl, {
 			auth: { token: token, room: boardId },
 			parser: msgPack,
+
+			reconnection: true,
+			reconnectionDelay: 1000,
+			reconnectionDelayMax: 5000,
+			reconnectionAttempts: maxReconnectAttempts,
+			timeout: 20000,
 		});
 
 		ioSocket.on('kick', () => {
 			setIsKicked(true);
+			ioSocket.disconnect();
 		});
 
-		const tldrawSocket = socketIoToTldrawSocket(ioSocket);
+		ioSocket.io.on('reconnect_attempt', (attempt) => {
+			console.log(`Reconnection attempt ${attempt}`);
+			reconnectAttempts.current = attempt;
+		});
+
+		ioSocket.io.on('reconnect', (attempt) => {
+			console.log(`Reconnected after ${attempt} attempts`);
+			reconnectAttempts.current = 0;
+		});
+
+		ioSocket.io.on('reconnect_failed', () => {
+			console.error('Failed to reconnect after maximum attempts');
+		});
+
+		const tldrawSocket = socketIoToTldrawSocket(ioSocket, isVisible);
 
 		tldrawSocket.onStatusChange((event) => {
 			switch (event.status) {
@@ -48,6 +87,7 @@ export function TldrawBoard(props: TldrawBoardProps) {
 					console.log('Tldraw socket status: online');
 					setIsConnected(true);
 					setIsFirstTime(false);
+					reconnectAttempts.current = 0;
 					break;
 				}
 				case 'offline': {
@@ -58,6 +98,12 @@ export function TldrawBoard(props: TldrawBoardProps) {
 				case 'error': {
 					console.error('Tldraw socket status: error', event.reason);
 					setIsConnected(false);
+
+					if (isVisible.current && reconnectAttempts.current < maxReconnectAttempts) {
+						console.log('Attempting to restart connection..');
+						setTimeout(() => { tldrawSocket.restart(); }, Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000));
+					}
+
 					break;
 				}
 			}
@@ -135,20 +181,24 @@ export function TldrawBoard(props: TldrawBoardProps) {
 	);
 }
 
-function socketIoToTldrawSocket(ioSocket: Socket<ServerToClientEvents, ClientToServerEvents>): TLPersistentClientSocket<TLRecord> {
+function socketIoToTldrawSocket(ioSocket: Socket<ServerToClientEvents, ClientToServerEvents>, isVisible: React.MutableRefObject<boolean>): TLPersistentClientSocket<TLRecord> {
 	const statusChangeListeners = new Set<(event: TLSocketStatusChangeEvent) => void>();
 
 	let messageQueue: string[] = [];
 	let serverInitialized = false;
+	let isClosing = false;
 
 	const tldrawSocket: TLPersistentClientSocket<TLRecord> = {
 		connectionStatus: 'offline',
 
 		sendMessage: (message) => {
+			if (isClosing) return;
+
 			const messageString = JSON.stringify(message);
 
 			if (!serverInitialized) messageQueue.push(messageString);
-			else ioSocket.emit('tldraw', messageString);
+			else if (ioSocket.connected) ioSocket.emit('tldraw', messageString);
+			else messageQueue.push(messageString);
 		},
 
 		onReceiveMessage: (callback) => {
@@ -176,16 +226,28 @@ function socketIoToTldrawSocket(ioSocket: Socket<ServerToClientEvents, ClientToS
 		},
 
 		restart: () => {
-			console.log('Restarting Socket.IO connection..');
+			if (!isVisible.current || isClosing) {
+				console.log('Skipping restart: tab not visible or socket closing');
+				return;
+			}
+
+			console.log('Restarting Socket.IO connection...');
+			serverInitialized = false;
+			messageQueue = [];
+
 			ioSocket.disconnect();
-			ioSocket.connect();
+
+			setTimeout(() => {
+				if (!isClosing) ioSocket.connect();
+			}, 500);
 		},
 
 		close: () => {
+			isClosing = true;
 			ioSocket.off('connect', connectHandler);
 			ioSocket.off('disconnect', disconnectHandler);
 			ioSocket.off('connect_error', errorHandler);
-			ioSocket.off('init');
+			ioSocket.off('init', initHandler);
 			clearTimeout(initialStatusTimeout);
 			ioSocket.disconnect();
 		},
@@ -193,48 +255,51 @@ function socketIoToTldrawSocket(ioSocket: Socket<ServerToClientEvents, ClientToS
 
 	const connectHandler = () => {
 		tldrawSocket.connectionStatus = 'online';
-		statusChangeListeners.forEach((cb) => cb({ status: 'online' }));
+		for (const cb of statusChangeListeners) cb({ status: 'online' });
 	};
 
-	const disconnectHandler = () => {
+	const disconnectHandler = (reason: string) => {
+		console.log('Socket disconnected:', reason);
 		tldrawSocket.connectionStatus = 'offline';
-		statusChangeListeners.forEach((cb) => cb({ status: 'offline' }));
+		serverInitialized = false;
+
+		for (const cb of statusChangeListeners) cb({ status: 'offline' });
 	};
 
 	const errorHandler = (error: Error) => {
+		console.error('Socket connection error:', error);
 		tldrawSocket.connectionStatus = 'error';
-		statusChangeListeners.forEach((cb) =>
-			cb({
-				status: 'error',
-				reason: error.message || 'Connection error',
-			}),
-		);
+
+		for (const cb of statusChangeListeners) cb({
+			status: 'error',
+			reason: error.message || 'Connection error',
+		});
+	};
+
+	const initHandler = () => {
+		console.log('Board Socket.IO server initialized with data.');
+		serverInitialized = true;
+
+		if (messageQueue.length > 0 && ioSocket.connected) {
+			console.log(`Flushing ${messageQueue.length} queued messages`);
+			const queueToSend = [...messageQueue];
+			messageQueue = [];
+
+			for (const queuedMessage of queueToSend) {
+				ioSocket.emit('tldraw', queuedMessage);
+			}
+		}
 	};
 
 	ioSocket.on('connect', connectHandler);
 	ioSocket.on('disconnect', disconnectHandler);
 	ioSocket.on('connect_error', errorHandler);
-
-	ioSocket.on('init', () => {
-		console.log('Board Socket.IO server initialized with data.');
-
-		serverInitialized = true;
-
-		if (messageQueue.length > 0) {
-			console.log(`Flushing ${messageQueue.length} queued messages`);
-			messageQueue.forEach((queuedMessage) => {
-				console.log('Sending queued message:', queuedMessage);
-				ioSocket.emit('tldraw', queuedMessage);
-			});
-
-			messageQueue = [];
-		}
-	});
+	ioSocket.on('init', initHandler);
 
 	const initialStatusTimeout = setTimeout(() => {
 		if (ioSocket.connected) {
 			tldrawSocket.connectionStatus = 'online';
-			statusChangeListeners.forEach((cb) => cb({ status: 'online' }));
+			for (const cb of statusChangeListeners) cb({ status: 'online' });
 		}
 	}, 0);
 

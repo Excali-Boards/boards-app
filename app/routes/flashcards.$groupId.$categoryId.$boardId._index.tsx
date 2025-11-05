@@ -1,14 +1,14 @@
-import { Box, Button, Flex, HStack, IconButton, Slider, SliderFilledTrack, SliderThumb, SliderTrack, Text, Tooltip, VStack } from '@chakra-ui/react';
+import { Box, BoxProps, Button, Flex, HStack, IconButton, Slider, SliderFilledTrack, SliderThumb, SliderTrack, Text, Tooltip, useColorModeValue, VStack } from '@chakra-ui/react';
+import { FaArrowLeft, FaArrowRight, FaBookOpen, FaCog, FaList, FaRandom } from 'react-icons/fa';
 import { ActionFunctionArgs, LinkDescriptor, LoaderFunctionArgs } from '@remix-run/node';
-import { FaArrowLeft, FaArrowRight, FaBookOpen, FaCog, FaRandom } from 'react-icons/fa';
+import { themeColor, themeColorLight, WebReturnType } from '~/other/types';
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
+import { IconLinkButton, LinkButton } from '~/components/Button';
 import { ConfettiContainer } from '~/components/other/Confetti';
 import { useFetcher, useLoaderData } from '@remix-run/react';
-import { themeColor, WebReturnType } from '~/other/types';
 import { canEdit, validateParams } from '~/other/utils';
 import { TextParser } from '~/components/TextParser';
-import { IconLinkButton } from '~/components/Button';
 import { authenticator } from '~/utils/auth.server';
 import { useHotkeys } from '~/hooks/useHotkey';
 import { FaDeleteLeft } from 'react-icons/fa6';
@@ -63,6 +63,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
 export default function Flashcards() {
 	const { deck, groupId, categoryId, boardId } = useLoaderData<typeof loader>();
+	const colorBg = useColorModeValue(themeColorLight, themeColor);
 
 	const [hasShownConfetti, setHasShownConfetti] = useState(false);
 	const [showConfetti, setShowConfetti] = useState(false);
@@ -355,6 +356,20 @@ export default function Flashcards() {
 										Previous
 									</Button>
 
+									{allCards.length > 5 && (
+										<LinkButton
+											leftIcon={<FaList />}
+											to={`/flashcards/${groupId}/${categoryId}/${boardId}/grid`}
+											reloadDocument={true}
+											variant={'solid'}
+											rounded={'full'}
+											bg={colorBg}
+											px={6}
+										>
+											View All Cards
+										</LinkButton>
+									)}
+
 									<Button
 										rightIcon={<FaArrowRight />}
 										onClick={handleNext}
@@ -399,9 +414,11 @@ export type FlipCardProps = {
 
 	rotation: number;
 	onFlip: () => void;
-};
 
-export function FlipCard({ front, back, rotation, onFlip }: FlipCardProps) {
+	colorAnswer?: boolean;
+} & BoxProps
+
+export function FlipCard({ front, back, rotation, onFlip, ...props }: FlipCardProps) {
 	return (
 		<Box sx={{ perspective: '1500px' }} w='100%'>
 			<Box
@@ -409,10 +426,12 @@ export function FlipCard({ front, back, rotation, onFlip }: FlipCardProps) {
 				rounded='lg'
 				cursor='pointer'
 				userSelect='none'
+				minH='fit-content'
 				position='relative'
 				transition='transform 0.6s ease'
 				h={{ base: '300px', md: '400px' }}
 				onClick={onFlip}
+				{...props}
 				sx={{
 					transformStyle: 'preserve-3d',
 					transform: `rotateX(${rotation}deg)`,
