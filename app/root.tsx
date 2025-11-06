@@ -1,16 +1,16 @@
 import { Outlet, isRouteErrorResponse, useLoaderData, useMatches, useRouteError } from '@remix-run/react';
 import { LoaderFunctionArgs, LinksFunction, MetaFunction } from '@remix-run/node';
 import { allowedPlatforms as allowedLoginPlatforms } from '~/utils/config.server';
+import Layout, { BoardInfo, SidebarObject } from '~/components/Layout';
 import { CachedResponse, getCachedUser } from './utils/session.server';
 import { CollabUser } from '@excali-boards/boards-api-client';
-import Layout, { BoardInfo } from '~/components/Layout';
 import { ChakraProvider, Flex } from '@chakra-ui/react';
 import { cssBundleHref } from '@remix-run/css-bundle';
+import { useEffect, useMemo, useState } from 'react';
 import { authenticator } from './utils/auth.server';
 import { RootContext } from '~/components/Context';
 import InfoComponent from '~/components/Info';
 import theme from '~/components/theme/base';
-import { useEffect, useState } from 'react';
 import { themeColor } from './other/types';
 import isMobileDetect from 'is-mobile';
 import { Document } from '~/document';
@@ -58,9 +58,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 		isMobile: isMobileDetect({ ua: request.headers.get('user-agent') || '' }),
 		allowedPlatforms: allowedLoginPlatforms,
 		nullHeader: [
-			'routes/groups.$groupId.$categoryId.$boardId._index',
-			'routes/groups.$groupId.calendar._index',
-		],
+			{ t: 'board', r: 'routes/groups.$groupId.$categoryId.$boardId._index' },
+			{ t: 'calendar', r: 'routes/groups.$groupId.calendar._index' },
+		] as SidebarObject[],
 	};
 };
 
@@ -76,10 +76,20 @@ export default function App() {
 
 	const matches = useMatches();
 
+	const sideBarType = useMemo(() => {
+		const match = matches.find((m) => nullHeader?.some((nh) => nh.r === m.id));
+		if (match) {
+			const nullHeaderItem = nullHeader?.find((nh) => nh.r === match.id);
+			if (nullHeaderItem) return nullHeaderItem.t;
+		}
+
+		return null;
+	}, [matches, nullHeader]);
+
 	useEffect(() => {
-		if (matches.some((match) => nullHeader?.includes(match.id))) setSiteBarHeader(isMobile ? 'none' : 'sidebar');
+		if (sideBarType) setSiteBarHeader(isMobile ? 'none' : 'sidebar');
 		else setSiteBarHeader('header');
-	}, [isMobile, matches, nullHeader]);
+	}, [isMobile, sideBarType, nullHeader]);
 
 	return (
 		<Document>
@@ -92,6 +102,7 @@ export default function App() {
 					boardInfo, setBoardInfo,
 					canInvite, setCanInvite,
 					allowedPlatforms,
+					sideBarType,
 					token,
 					user,
 				}}>

@@ -214,12 +214,18 @@ export type BoardInfo = {
 	hideCollaborators: boolean;
 };
 
+export type SidebarType = 'board' | 'calendar';
+export type SidebarObject = {
+	t: SidebarType;
+	r: string;
+};
+
 export type SidebarProps = {
 	user: GetUsersOutput | null;
 };
 
 export function Sidebar({ user }: SidebarProps) {
-	const { setUseOppositeColorForBoard, useOppositeColorForBoard, boardActiveCollaborators = [], boardInfo, setBoardInfo } = useContext(RootContext) || {};
+	const { setUseOppositeColorForBoard, useOppositeColorForBoard, boardActiveCollaborators = [], boardInfo, sideBarType, setBoardInfo } = useContext(RootContext) || {};
 	const [kickModalOpen, setKickModalOpen] = useState(false);
 	const { toggleColorMode, colorMode } = useColorMode();
 
@@ -305,74 +311,78 @@ export function Sidebar({ user }: SidebarProps) {
 				gap={2}
 				mb={2}
 			>
-				{boardInfo && canManage(boardInfo.accessLevel) && (
-					<Tooltip
-						label='Kick collaborators'
-						aria-label='Kick collaborators'
-						placement='right'
-						hasArrow
-					>
-						<IconButton
-							onClick={() => setKickModalOpen(true)}
-							variant={'ghost'}
-							rounded={'full'}
-							aria-label='Kick collaborators'
-							boxSize={10}
-							alignItems={'center'}
-							justifyContent={'center'}
-							display={'flex'}
-							bg={'transparent'}
-							icon={<FaUserSlash />}
-							_hover={{ bg: 'alpha300' }}
-						/>
-					</Tooltip>
-				)}
+				{sideBarType === 'board' && (
+					<Fragment>
+						{boardInfo && canManage(boardInfo.accessLevel) && (
+							<Tooltip
+								label='Kick collaborators'
+								aria-label='Kick collaborators'
+								placement='right'
+								hasArrow
+							>
+								<IconButton
+									onClick={() => setKickModalOpen(true)}
+									variant={'ghost'}
+									rounded={'full'}
+									aria-label='Kick collaborators'
+									boxSize={10}
+									alignItems={'center'}
+									justifyContent={'center'}
+									display={'flex'}
+									bg={'transparent'}
+									icon={<FaUserSlash />}
+									_hover={{ bg: 'alpha300' }}
+								/>
+							</Tooltip>
+						)}
 
-				<Tooltip
-					label='Hide collaborators'
-					aria-label='Hide collaborators'
-					placement='right'
-					hasArrow
-				>
-					<IconButton
-						onClick={() => setBoardInfo?.((prev) => prev ? { ...prev, hideCollaborators: !prev.hideCollaborators } : null)}
-						variant={'ghost'}
-						rounded={'full'}
-						aria-label='Hide collaborators'
-						boxSize={10}
-						alignItems={'center'}
-						justifyContent={'center'}
-						display={'flex'}
-						bg={'transparent'}
-						icon={<MdPrivacyTip />}
-						_hover={{ bg: 'alpha300' }}
-					/>
-				</Tooltip>
+						<Tooltip
+							label='Hide collaborators'
+							aria-label='Hide collaborators'
+							placement='right'
+							hasArrow
+						>
+							<IconButton
+								onClick={() => setBoardInfo?.((prev) => prev ? { ...prev, hideCollaborators: !prev.hideCollaborators } : null)}
+								variant={'ghost'}
+								rounded={'full'}
+								aria-label='Hide collaborators'
+								boxSize={10}
+								alignItems={'center'}
+								justifyContent={'center'}
+								display={'flex'}
+								bg={'transparent'}
+								icon={<MdPrivacyTip />}
+								_hover={{ bg: 'alpha300' }}
+							/>
+						</Tooltip>
 
-				<Tooltip
-					label={flashTooltip}
-					aria-label='Flashcards'
-					placement='right'
-					hasArrow
-				>
-					<span>
-						<IconLinkButton
-							variant={'ghost'}
-							rounded={'full'}
+						<Tooltip
+							label={flashTooltip}
 							aria-label='Flashcards'
-							boxSize={10}
-							target='_blank'
-							alignItems={'center'}
-							justifyContent={'center'}
-							display={'flex'}
-							bg={'transparent'}
-							icon={<IoFlash />}
-							_hover={{ bg: 'alpha300' }}
-							isDisabled={flashDisabled || !boardInfo}
-							to={flashTo}
-						/>
-					</span>
-				</Tooltip>
+							placement='right'
+							hasArrow
+						>
+							<span>
+								<IconLinkButton
+									variant={'ghost'}
+									rounded={'full'}
+									aria-label='Flashcards'
+									boxSize={10}
+									target='_blank'
+									alignItems={'center'}
+									justifyContent={'center'}
+									display={'flex'}
+									bg={'transparent'}
+									icon={<IoFlash />}
+									_hover={{ bg: 'alpha300' }}
+									isDisabled={flashDisabled || !boardInfo}
+									to={flashTo}
+								/>
+							</span>
+						</Tooltip>
+					</Fragment>
+				)}
 
 				<Tooltip
 					label='Use opposite color for board'

@@ -1,6 +1,6 @@
 import { CollabUser, GetUsersOutput } from '@excali-boards/boards-api-client';
+import { BoardInfo, SidebarType } from './Layout';
 import { createContext } from 'react';
-import { BoardInfo } from './Layout';
 
 export type RootContextType = null | {
 	sideBarHeader: 'header' | 'sidebar' | 'none';
@@ -22,6 +22,8 @@ export type RootContextType = null | {
 	setBoardInfo: React.Dispatch<React.SetStateAction<BoardInfo | null>>;
 
 	allowedPlatforms: string[];
+	sideBarType: SidebarType | null;
+
 	user: GetUsersOutput | null;
 	token: string | null;
 };
