@@ -352,10 +352,14 @@ export function ManageModal({ isOpen, onClose, type, fetcher, selectedCard, allC
 
 	const separators = useMemo(() => [
 		{ label: 'New Line (\\n)', value: '\\n' },
+		{ label: 'Tab (\\t)', value: '\\t' },
 		{ label: 'Comma (,)', value: ',' },
 		{ label: 'Semicolon (;)', value: ';' },
 		{ label: 'Pipe (|)', value: '|' },
 		{ label: 'Dash (-)', value: '-' },
+		{ label: 'Bullet (•)', value: '•' },
+		{ label: 'Tilde (~)', value: '~' },
+		{ label: 'Section (§)', value: '§' },
 	], []);
 
 	useEffect(() => {
