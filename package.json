@@ -71,6 +71,7 @@
 		"buffer": "6.0.3",
 		"chakra-react-select": "4.9.2",
 		"cross-env": "7.0.3",
+		"dompurify": "^3.3.0",
 		"dotenv": "16.4.5",
 		"dotenv-cli": "8.0.0",
 		"framer-motion": "11.5.4",
