@@ -1,6 +1,6 @@
 import { Text, Link, Code, TextProps } from '@chakra-ui/react';
 import { themeColor } from '~/other/types';
-import DOMPurify from 'dompurify';
+import createDOMPurify from 'dompurify';
 import React from 'react';
 import katex from 'katex';
 
@@ -8,12 +8,14 @@ export type TextParserProps = {
 	children: string | string[];
 } & TextProps;
 
+const DOMPurify = typeof window !== 'undefined' ? createDOMPurify(window) : null;
+
 export function TextParser({ children, ...props }: TextParserProps) {
 	const content = Array.isArray(children) ? children.join('\n\n') : children;
 
 	const renderMath = (expr: string) => {
 		const html = katex.renderToString(expr, { throwOnError: false, strict: false });
-		const safeHtml = DOMPurify.sanitize(html);
+		const safeHtml = DOMPurify ? DOMPurify.sanitize(html) : html;
 
 		return (
 			<Text
@@ -102,5 +104,5 @@ export function TextParser({ children, ...props }: TextParserProps) {
 		});
 	};
 
-	return <>{parseInline(content)}</>;
+	return <>{parseInline(content).flat(Infinity)}</>;
 }
