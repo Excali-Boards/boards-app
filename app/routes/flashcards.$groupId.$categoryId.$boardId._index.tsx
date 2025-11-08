@@ -179,12 +179,13 @@ export default function Flashcards() {
 		});
 	}, [currentIndex]);
 
-	useHotkeys(['A', 'D', 'W', 'S', ' '], (k) => {
+	useHotkeys(['A', 'D', 'W', 'S', 'R', ' '], (k) => {
 		switch (k) {
 			case 'A': handlePrevious(); break;
 			case 'D': handleNext(); break;
 			case 'W': handleFlip(); break;
 			case 'S': handleFlip(true); break;
+			case 'R': handleRandom(); break;
 			case ' ': handleFlip(); break;
 		}
 	});
