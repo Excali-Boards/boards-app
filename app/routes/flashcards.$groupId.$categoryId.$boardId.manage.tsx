@@ -379,7 +379,7 @@ export function ManageModal({ isOpen, onClose, type, fetcher, selectedCard, allC
 	const previewCards = useCallback(() => {
 		if (!importData.trim()) return [];
 
-		const lines = importData.split(lineSeparator === '\\n' ? '\n' : lineSeparator);
+		const lines = importData.split(lineSeparator === '\\n' ? '\n' : lineSeparator === '\\t' ? '\t' : lineSeparator);
 		return lines
 			.map((line) => line.trim())
 			.filter((line) => line.length > 0)
