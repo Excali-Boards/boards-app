@@ -1,6 +1,8 @@
 import { Flex, Button, Text, IconButton, HStack, useColorMode, Menu, MenuButton, MenuList, MenuItem, Portal, useBreakpointValue } from '@chakra-ui/react';
 import { ChevronLeftIcon, ChevronRightIcon, AddIcon, SettingsIcon } from '@chakra-ui/icons';
 import { BsCalendarWeek, BsCalendarMonth, BsCalendar3 } from 'react-icons/bs';
+import { AccessLevel } from '@excali-boards/boards-api-client';
+import { canEdit, canManage } from '~/other/utils';
 import 'temporal-polyfill/global';
 import { useMemo } from 'react';
 
@@ -10,6 +12,7 @@ export type CalendarHeaderProps = {
 	groupName: string;
 	currentDate: Temporal.PlainDate;
 	currentView: CalendarView;
+	accessLevel: AccessLevel;
 	handleButton: (date: 'prev' | 'next') => void;
 	onViewChange: (view: CalendarView) => void;
 	onCreateEvent: () => void;
@@ -27,6 +30,7 @@ export function CalendarHeader({
 	groupName,
 	currentDate,
 	currentView,
+	accessLevel,
 	handleButton,
 	onViewChange,
 	onCreateEvent,
@@ -150,13 +154,15 @@ export function CalendarHeader({
 			</Text>
 
 			<HStack spacing={2} minW='200px' justify='flex-end' zIndex={1}>
-				<IconButton
-					size='sm'
-					variant='outline'
-					icon={<SettingsIcon />}
-					aria-label='Country Settings'
-					onClick={onCountrySettings}
-				/>
+				{canManage(accessLevel) && (
+					<IconButton
+						size='sm'
+						variant='outline'
+						icon={<SettingsIcon />}
+						aria-label='Country Settings'
+						onClick={onCountrySettings}
+					/>
+				)}
 
 				<Menu>
 					<MenuButton
@@ -213,14 +219,16 @@ export function CalendarHeader({
 					</Portal>
 				</Menu>
 
-				<Button
-					size='sm'
-					variant='solid'
-					leftIcon={<AddIcon />}
-					onClick={onCreateEvent}
-				>
-					Create Event
-				</Button>
+				{canEdit(accessLevel) && (
+					<Button
+						size='sm'
+						variant='solid'
+						leftIcon={<AddIcon />}
+						onClick={onCreateEvent}
+					>
+						Create Event
+					</Button>
+				)}
 			</HStack>
 		</Flex>
 	);
