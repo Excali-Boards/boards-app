@@ -1,7 +1,6 @@
 import type { ExcalidrawElement, ExcalidrawElementType, ExcalidrawFreeDrawElement, ExcalidrawLinearElement, OrderedExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState, ElementOrToolType, NormalizedZoomValue, PointerCoords, Zoom } from '@excalidraw/excalidraw/types';
 import type { ReconciledExcalidrawElement } from '@excalidraw/excalidraw/data/reconcile';
-import type { ElementUpdate } from '@excalidraw/excalidraw/element/mutateElement';
 import type { SceneBounds } from '@excalidraw/excalidraw/element/bounds';
 import type { MakeBrand } from '@excalidraw/excalidraw/utility-types';
 import loadable from '@loadable/component';
@@ -28,21 +27,6 @@ export const WelcomeScreen = {
 	})),
 	CenterLogo: memo(loadable(() => import('@excalidraw/excalidraw'), {
 		resolveComponent: (module) => module.WelcomeScreen.Center.Logo,
-		ssr: false,
-	})),
-};
-
-export const MainMenu = {
-	Main: memo(loadable(() => import('@excalidraw/excalidraw'), {
-		resolveComponent: (module) => module.MainMenu,
-		ssr: false,
-	})),
-	Item: memo(loadable(() => import('@excalidraw/excalidraw'), {
-		resolveComponent: (module) => module.MainMenu.Item,
-		ssr: false,
-	})),
-	Footer: memo(loadable(() => import('@excalidraw/excalidraw'), {
-		resolveComponent: (module) => module.Footer,
 		ssr: false,
 	})),
 };
@@ -308,7 +292,7 @@ export const centerScrollOn = ({
 
 export const newElementWith = <TElement extends ExcalidrawElement>(
 	element: TElement,
-	updates: ElementUpdate<TElement>,
+	updates: Partial<TElement>,
 	force = false,
 ): TElement => {
 	let didChange = false;

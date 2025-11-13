@@ -70,6 +70,7 @@
 		"axios": "1.12.2",
 		"buffer": "6.0.3",
 		"chakra-react-select": "4.9.2",
+		"clsx": "^2.1.1",
 		"cross-env": "7.0.3",
 		"dompurify": "^3.3.0",
 		"dotenv": "16.4.5",

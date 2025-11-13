@@ -40,12 +40,13 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		this.apiClient = new BoardsManager(props.socketUrl);
 
 		this.state = {
-			isInitialized: false,
-			isFirstTime: true,
 			connectedBefore: false,
+			isInitialized: false,
 			isConnected: false,
+			isFirstTime: true,
 			isKicked: false,
 			isSaved: false,
+
 			excalidrawAPI: null,
 			socketIO: null,
 		};
@@ -58,14 +59,15 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		this.idleTimeoutId = null;
 	}
 
-	componentDidMount() {
+	componentDidMount = () => {
 		window.addEventListener('pointermove', this.onPointerMove);
 		window.addEventListener('beforeunload', (event) => this.handleBeforeUnload(event, this.state.isSaved));
 		window.addEventListener('visibilitychange', this.onVisibilityChange);
 		window.addEventListener('resize', () => this.relayVisibleSceneBounds());
-	}
+		window.addEventListener('keydown', this.handleKeyDown);
+	};
 
-	componentWillUnmount() {
+	componentWillUnmount = () => {
 		this.onUmmount?.();
 		this.state.socketIO?.close();
 
@@ -73,13 +75,14 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		window.removeEventListener('beforeunload', (event) => this.handleBeforeUnload(event, this.state.isSaved));
 		window.removeEventListener('visibilitychange', this.onVisibilityChange);
 		window.removeEventListener('resize', () => this.relayVisibleSceneBounds());
+		window.removeEventListener('keydown', this.handleKeyDown);
 
 		this.updateUserPointer.cancel();
 		this.loadImageFiles.cancel();
 		this.queueSave.cancel();
-	}
+	};
 
-	componentDidUpdate(prevProps: BoardProps, prevState: BoardExcalidrawState) {
+	componentDidUpdate = (prevProps: BoardProps, prevState: BoardExcalidrawState) => {
 		if (prevState.excalidrawAPI !== this.state.excalidrawAPI) {
 			this.connectSocket(); this.setupEvents();
 		}
@@ -92,9 +95,9 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		if (prevProps.hideCollaborators !== this.props.hideCollaborators) {
 			this.toggleShowCollaborators(this.props.hideCollaborators);
 		}
-	}
+	};
 
-	handleBeforeUnload(event: BeforeUnloadEvent, isSaved: boolean) {
+	handleBeforeUnload = (event: BeforeUnloadEvent, isSaved: boolean) => {
 		if (!isSaved) {
 			event.preventDefault();
 			this.queueSave?.();
@@ -102,9 +105,9 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 			event.returnValue = 'no';
 			return event.returnValue;
 		}
-	}
+	};
 
-	setupEvents() {
+	setupEvents = () => {
 		const unsubOnUserFollow = this.state.excalidrawAPI?.onUserFollow((payload) => {
 			this.state.socketIO?.emit('userFollow', {
 				...payload, action: payload.action.toLowerCase() as 'follow' | 'unfollow',
@@ -119,19 +122,19 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 			unsubOnUserFollow?.();
 			unsubOnScrollChange?.();
 		};
-	}
+	};
 
-	getAppStateProps<K extends keyof AppState>(override?: Pick<AppState, K>) {
+	getAppStateProps = <K extends keyof AppState>(override?: Pick<AppState, K>) => {
 		return {
 			isLoading: !this.state.isInitialized || !this.state.isConnected,
-			viewModeEnabled: !this.props.canEdit,
 			gridModeEnabled: this.props.canEdit && !this.props.isMobile,
+			viewModeEnabled: !this.props.canEdit,
 
 			...(override || {}),
 		} satisfies Partial<Record<keyof AppState, AppState[keyof AppState]>>;
-	}
+	};
 
-	connectSocket() {
+	connectSocket = () => {
 		const { boardId, token, socketUrl } = this.props;
 
 		const socketIO: Socket<ServerToClientEvents, ClientToServerEvents> = io(socketUrl, {
@@ -201,7 +204,7 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		});
 
 		this.setState({ socketIO });
-	}
+	};
 
 	toggleSave = (state: boolean) => {
 		if (this.state.isSaved !== state) console.log(`Board ${this.props.boardId} is ${state ? 'saved' : 'unsaved'}.`);
@@ -220,9 +223,14 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 			appState,
 		);
 
+		const mappedElements = !this.props.canEdit ? reconciledElements.map((element) => {
+			if (element.customData?.hideFromViewOnly) return newElementWith(element, { isDeleted: true });
+			return element;
+		}) : reconciledElements;
+
 		if (this.initialDataResolve) {
 			this.initialDataResolve({
-				elements: reconciledElements,
+				elements: mappedElements,
 				appState: this.getAppStateProps(),
 			});
 
@@ -230,7 +238,7 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 			this.initialDataPromise = null;
 		} else {
 			this.state.excalidrawAPI.updateScene({
-				elements: reconciledElements,
+				elements: mappedElements,
 				appState: this.getAppStateProps(),
 			});
 		}
@@ -279,7 +287,7 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		}
 	};
 
-	async fetchImageFilesWithElements(elements: readonly OrderedExcalidrawElement[], forceFetchFiles?: boolean) {
+	fetchImageFilesWithElements = async (elements: readonly OrderedExcalidrawElement[], forceFetchFiles?: boolean) => {
 		const unfetchedImages = elements
 			.filter((element) => {
 				return (
@@ -290,9 +298,9 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 			}).map((element) => (element as InitializedExcalidrawImageElement).fileId);
 
 		return this.fetchImageFiles(unfetchedImages);
-	}
+	};
 
-	async fetchImageFiles(fileIds: string[]) {
+	fetchImageFiles = async (fileIds: string[]) => {
 		const loadedFiles: BinaryFileData[] = [];
 		const erroredFiles: string[] = [];
 
@@ -335,7 +343,7 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		);
 
 		return { loadedFiles, erroredFiles };
-	}
+	};
 
 	loadImageFilesWithElements: ReturnType<typeof throttle> = throttle(async (forceFetchFiles = false, elements?: OrderedExcalidrawElement[], stats?: StatsData) => {
 		if (!this.state.excalidrawAPI) return;
@@ -366,7 +374,7 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		this.updateFiles(loadedFiles, erroredFiles);
 	}, 500);
 
-	async updateFiles(loadedFiles: BinaryFileData[], erroredFiles: string[], updateScene = true) {
+	updateFiles = async (loadedFiles: BinaryFileData[], erroredFiles: string[], updateScene = true) => {
 		if (!this.state.excalidrawAPI) return;
 
 		if (loadedFiles.length > 0) {
@@ -402,7 +410,7 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 					}),
 			});
 		}
-	}
+	};
 
 	handleSetCollaborators = (collaborators: Collaborator[]) => {
 		if (!this.state.excalidrawAPI) return;
@@ -493,7 +501,13 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		if (version <= this.lastBoardcastedOrReceivedSceneVersion) return;
 		this.lastBoardcastedOrReceivedSceneVersion = version;
 
-		this.state.excalidrawAPI.updateScene({ elements: reconciledElements });
+		this.state.excalidrawAPI.updateScene({
+			elements: !this.props.canEdit ? reconciledElements.map((element) => {
+				if (element.customData?.hideFromViewOnly) return newElementWith(element, { isDeleted: true });
+				return element;
+			}) : reconciledElements,
+		});
+
 	};
 
 	onSceneChange = (elements: readonly OrderedExcalidrawElement[]) => {
@@ -692,6 +706,49 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		else console.log('Successfully deleted files.');
 	};
 
+	toggleHideFromViewOnly = () => {
+		if (!this.state.excalidrawAPI) return;
+
+		const appState = this.state.excalidrawAPI.getAppState();
+		const selectedElementIds = Object.keys(appState.selectedElementIds);
+		if (selectedElementIds.length === 0) return;
+
+		const allElements = this.state.excalidrawAPI.getSceneElementsIncludingDeleted();
+		const allHidden = allElements.filter((element) => selectedElementIds.includes(element.id)).every((element) => element.customData?.hideFromViewOnly);
+
+		this.state.excalidrawAPI.updateScene({
+			elements: this.state.excalidrawAPI.getSceneElementsIncludingDeleted().map((element) => {
+				if (selectedElementIds.includes(element.id)) {
+					const customData = {
+						...element.customData,
+						hideFromViewOnly: !allHidden,
+					};
+
+					return newElementWith(element, { customData }, true);
+				}
+
+				return element;
+			}),
+		});
+
+		this.state.excalidrawAPI.setToast({
+			message: `${allHidden ? 'Unhidden' : 'Hidden'} ${selectedElementIds.length} element${selectedElementIds.length > 1 ? 's' : ''} from view-only users.`,
+			closable: true, duration: 1000,
+		});
+	};
+
+	handleKeyDown = (event: KeyboardEvent) => {
+		if (!this.props.canEdit || !this.state.excalidrawAPI) return;
+
+		const isMac = /(Mac|iPhone|iPod|iPad)/i.test(navigator?.platform);
+		const ctrlOrMeta = isMac ? event.metaKey : event.ctrlKey;
+
+		if (ctrlOrMeta && event.shiftKey && event.key.toLowerCase() === 'o') {
+			event.preventDefault();
+			this.toggleHideFromViewOnly();
+		}
+	};
+
 	render() {
 		return (
 			<Flex direction={'column'} w={'100%'} h={'100vh'} overflow={'hidden'}>
@@ -719,7 +776,7 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 						<Excalidraw
 							theme={this.props.useOppositeColorForBoard ? (this.props.colorMode === 'light' ? 'dark' : 'light') : this.props.colorMode}
 							excalidrawAPI={(api) => this.setState({ excalidrawAPI: api })}
-							viewModeEnabled={this.props.canEdit ? false : undefined}
+							viewModeEnabled={this.props.canEdit ? undefined : true}
 							onPointerUpdate={this.updateUserPointer}
 							libraryReturnUrl={this.props.currentUrl}
 							initialData={this.initialDataPromise}
