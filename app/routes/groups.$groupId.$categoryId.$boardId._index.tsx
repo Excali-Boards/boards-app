@@ -15,6 +15,9 @@ import { api } from '~/utils/web.server';
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const { boardId, groupId, categoryId } = validateParams(params, ['boardId', 'groupId', 'categoryId']);
 
+	const previewQuery = new URL(request.url).searchParams.get('preview');
+	const isPreview = previewQuery === 'true';
+
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
@@ -29,6 +32,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 		socketUrl: configServer.apiUrl,
 		s3Bucket: configServer.s3Bucket,
 		s3Url: configServer.s3Url,
+		isPreview,
 	};
 };
 
@@ -55,7 +59,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 };
 
 export default function Board() {
-	const { socketUrl, board, category, group, webUrl, currentUrl, s3Url, s3Bucket, licenseKey } = useLoaderData<typeof loader>();
+	const { socketUrl, board, category, group, webUrl, currentUrl, s3Url, s3Bucket, licenseKey, isPreview } = useLoaderData<typeof loader>();
 	const { useOppositeColorForBoard, boardInfo, user, token, setBoardActiveCollaborators, setBoardInfo } = useContext(RootContext) || {};
 	const isMobile = useBreakpointValue({ base: true, md: false });
 	const { colorMode } = useColorMode();
@@ -83,8 +87,8 @@ export default function Board() {
 			updateCollaborators={setBoardActiveCollaborators || (() => { })}
 			useOppositeColorForBoard={useOppositeColorForBoard || false}
 			hideCollaborators={boardInfo?.hideCollaborators || false}
+			canEdit={isPreview ? false : canEdit(board.accessLevel)}
 			name={`${category.name} - ${board.name}`}
-			canEdit={canEdit(board.accessLevel)}
 			licenseKey={licenseKey || undefined}
 			isMobile={isMobile || false}
 			categoryId={category.id}
