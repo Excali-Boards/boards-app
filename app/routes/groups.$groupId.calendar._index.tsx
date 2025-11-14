@@ -458,6 +458,7 @@ export default function GroupCalendar() {
 					groupName={group.name}
 					currentDate={currentDate}
 					currentView={currentView}
+					accessLevel={group.accessLevel}
 					onToday={() => setCurrentDate(Temporal.Now.plainDateISO())}
 					handleButton={handleButton}
 					onViewChange={setCurrentView}
