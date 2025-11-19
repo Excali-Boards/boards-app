@@ -8,12 +8,13 @@ export type BoardProps = {
 	useOppositeColorForBoard: boolean;
 	colorMode: 'light' | 'dark';
 	hideCollaborators: boolean;
+	canReallyEdit: boolean;
 	user: GetUsersOutput;
+	categoryId: string;
 	currentUrl: string;
 	isMobile: boolean;
 	socketUrl: string;
 	canEdit: boolean;
-	categoryId: string;
 	s3Bucket: string;
 	boardId: string;
 	groupId: string;

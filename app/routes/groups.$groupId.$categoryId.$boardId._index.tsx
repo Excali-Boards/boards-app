@@ -88,6 +88,7 @@ export default function Board() {
 			useOppositeColorForBoard={useOppositeColorForBoard || false}
 			hideCollaborators={boardInfo?.hideCollaborators || false}
 			canEdit={isPreview ? false : canEdit(board.accessLevel)}
+			canReallyEdit={canEdit(board.accessLevel)}
 			name={`${category.name} - ${board.name}`}
 			licenseKey={licenseKey || undefined}
 			isMobile={isMobile || false}

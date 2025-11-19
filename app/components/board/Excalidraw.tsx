@@ -789,7 +789,7 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 							UIOptions={{
 								canvasActions: {
 									clearCanvas: false,
-									...(this.props.canEdit ? {} : {
+									...((this.props.canEdit || this.props.canReallyEdit) ? {} : {
 										export: false,
 										saveAsImage: false,
 										saveToActiveFile: false,
