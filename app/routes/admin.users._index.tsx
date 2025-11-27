@@ -1,13 +1,13 @@
-import { VStack, Box, Flex, Text, Avatar, IconButton, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Button, useColorMode, Badge, HStack, Divider, useToast } from '@chakra-ui/react';
-import { FaClipboard, FaEye, FaFolder, FaLock, FaQuestionCircle, FaTrash, FaUsers } from 'react-icons/fa';
+import { VStack, Box, Flex, Text, Avatar, IconButton, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Button, useColorMode, Badge, HStack, Divider, useToast, FormControl, FormLabel, Input } from '@chakra-ui/react';
+import { FaClipboard, FaEye, FaFolder, FaLock, FaPen, FaQuestionCircle, FaTrash, FaUsers } from 'react-icons/fa';
 import { GrantedEntry, PermUser, ResourceType } from '@excali-boards/boards-api-client';
 import { makeResObject, makeResponse, securityUtils } from '~/utils/functions.server';
+import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
 import { firstToUpperCase, getGrantInfo, getRoleColor } from '~/other/utils';
 import { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
+import { Fragment, useCallback, useMemo, useState } from 'react';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
-import { useFetcher, useLoaderData } from '@remix-run/react';
 import { SearchBar } from '~/components/layout/SearchBar';
-import { useCallback, useMemo, useState } from 'react';
 import { useDebounced } from '~/hooks/useDebounced';
 import { authenticator } from '~/utils/auth.server';
 import MenuBar from '~/components/layout/MenuBar';
@@ -62,6 +62,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 			return makeResObject(result, 'Failed to revoke permission.');
 		}
+		case 'updateUserUsername': {
+			const userId = formData.get('userId') as string;
+			const newUsername = formData.get('newUsername') as string;
+
+			if (!userId || !newUsername) return { status: 400, error: 'Missing required fields.' };
+
+			const result = await api?.users.updateUser({
+				auth: token, userId,
+				body: { displayName: newUsername },
+			});
+
+			return makeResObject(result, 'Failed to update username.');
+		}
 		default: {
 			return { status: 400, error: 'Invalid request.' };
 		}
@@ -74,6 +87,7 @@ export default function AdminUsers() {
 	const [search, setSearch] = useState('');
 	const dbcSearch = useDebounced(search, [search], 300);
 
+	const [modalShown, setModalShown] = useState<'permissions' | 'displayName' | null>(null);
 	const [selectedUser, setSelectedUser] = useState<typeof allUsers[0] | null>(null);
 
 	const fetcher = useFetcher<WebReturnType<string>>();
@@ -164,8 +178,25 @@ export default function AdminUsers() {
 										variant={'ghost'}
 										rounded={'full'}
 										bg={'alpha100'}
+										icon={<FaPen />}
+										onClick={() => {
+											setSelectedUser(user);
+											setModalShown('displayName');
+										}}
+										aria-label='Change Display Name'
+										_hover={{ bg: 'alpha300' }}
+										_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+									/>
+
+									<IconButton
+										variant={'ghost'}
+										rounded={'full'}
+										bg={'alpha100'}
 										icon={<FaEye />}
-										onClick={() => setSelectedUser(user)}
+										onClick={() => {
+											setSelectedUser(user);
+											setModalShown('permissions');
+										}}
 										aria-label='View Permissions'
 										_hover={{ bg: 'alpha300' }}
 										_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
@@ -190,20 +221,30 @@ export default function AdminUsers() {
 			</Box>
 
 			{selectedUser && (
-				<UserPermissionsModal
-					isOpen={selectedUser !== null}
-					onClose={() => setSelectedUser(null)}
-					userData={userPermissions[selectedUser!.userId]!}
-					onRevoke={(entry) => {
-						fetcher.submit({
-							type: 'revokePermission',
-							userId: selectedUser.userId,
-							resourceType: entry.type,
-							resourceId: entry.resourceId,
-						}, { method: 'post' });
-					}}
-				/>
+				<Fragment>
+					<UserPermissionsModal
+						isOpen={selectedUser !== null && modalShown === 'permissions'}
+						onClose={() => setSelectedUser(null)}
+						userData={userPermissions[selectedUser!.userId]!}
+						onRevoke={(entry) => {
+							fetcher.submit({
+								type: 'revokePermission',
+								userId: selectedUser.userId,
+								resourceType: entry.type,
+								resourceId: entry.resourceId,
+							}, { method: 'post' });
+						}}
+					/>
+
+					<UpdateUserDisplayNameModal
+						isOpen={selectedUser !== null && modalShown === 'displayName'}
+						onClose={() => setSelectedUser(null)}
+						currentDisplayName={selectedUser.displayName}
+						fetcher={fetcher}
+					/>
+				</Fragment>
 			)}
+
 		</VStack>
 	);
 }
@@ -215,7 +256,7 @@ export type UserPermissionsModalProps = {
 	onRevoke: (entry: GrantedEntry) => void;
 };
 
-function UserPermissionsModal({ isOpen, onClose, userData, onRevoke }: UserPermissionsModalProps) {
+export function UserPermissionsModal({ isOpen, onClose, userData, onRevoke }: UserPermissionsModalProps) {
 	const { colorMode } = useColorMode();
 
 	const getResourceTypeIcon = useCallback((type: string) => {
@@ -336,6 +377,68 @@ function UserPermissionsModal({ isOpen, onClose, userData, onRevoke }: UserPermi
 				<ModalFooter>
 					<Button colorScheme='gray' onClick={onClose} w='100%'>
 						Close
+					</Button>
+				</ModalFooter>
+			</ModalContent>
+		</Modal>
+	);
+}
+
+export type UpdateUserDisplayNameModalProps = {
+	isOpen: boolean;
+	onClose: () => void;
+	currentDisplayName: string;
+	fetcher: FetcherWithComponents<unknown>;
+};
+
+export function UpdateUserDisplayNameModal({ isOpen, onClose, currentDisplayName, fetcher }: UpdateUserDisplayNameModalProps) {
+	const [newDisplayName, setNewDisplayName] = useState<string>(currentDisplayName);
+
+	const { colorMode } = useColorMode();
+
+	const submitForm = useCallback(() => {
+		const trimmedDisplayName = newDisplayName.trim();
+		if (trimmedDisplayName.length === 0 || trimmedDisplayName === currentDisplayName) {
+			onClose();
+			return;
+		}
+
+		fetcher.submit({ type: 'updateUserUsername', userId: '', newUsername: trimmedDisplayName }, { method: 'post' });
+	}, [newDisplayName, currentDisplayName, fetcher, onClose]);
+
+	return (
+		<Modal isOpen={isOpen} onClose={onClose} isCentered size='md'>
+			<ModalOverlay />
+			<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
+				<ModalHeader>Change Display Name</ModalHeader>
+				<ModalCloseButton />
+				<ModalBody>
+					<VStack spacing={4}>
+						<FormControl>
+							<FormLabel>Display Name</FormLabel>
+							<Input
+								value={newDisplayName}
+								placeholder='Enter new display name..'
+								onChange={(e) => setNewDisplayName(e.target.value)}
+							/>
+						</FormControl>
+					</VStack>
+				</ModalBody>
+				<ModalFooter display={'flex'} gap={1}>
+					<Button
+						flex={1}
+						colorScheme='gray'
+						onClick={onClose}
+					>
+						Cancel
+					</Button>
+					<Button
+						flex={1}
+						isLoading={fetcher.state === 'loading' || fetcher.state === 'submitting'}
+						colorScheme='blue'
+						onClick={submitForm}
+					>
+						Save Changes
 					</Button>
 				</ModalFooter>
 			</ModalContent>

@@ -27,7 +27,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const DBUser = await api?.users.getCurrentUser({ auth: token });
+	const DBUser = await api?.users.getUser({ auth: token });
 	if (!DBUser || 'error' in DBUser) throw makeResponse(DBUser, 'Failed to get user data.');
 
 	const DBGroups = await api?.groups.getGroups({ auth: token });
@@ -86,7 +86,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 export default function Profile() {
 	const [modalShown, setModalShown] = useState<'logout' | 'change' | 'delete' | null>(null);
-
 	const [showEmail, setShowEmail] = useState(false);
 
 	const { allowedPlatforms } = useContext(RootContext) || {};
@@ -230,13 +229,14 @@ export default function Profile() {
 			/>
 
 			<UpdateUserModal
+				groups={groups}
 				fetcher={fetcher}
+				displayName={user.displayName}
 				isOpen={modalShown === 'change'}
 				onClose={() => setModalShown(null)}
 				currentMainPlatform={user?.mainLoginType}
 				currentMainGroupId={user?.mainGroupId || null}
 				linkedPlatforms={platforms.filter((p) => p.isConnected).map((p) => p.key)}
-				groups={groups}
 			/>
 
 			{modalShown === 'delete' && (
@@ -323,6 +323,7 @@ export function Platform({ icon, title, isConnected, manageUrl, text, addDivider
 export type UpdateUserModalProps = {
 	isOpen: boolean;
 	onClose: () => void;
+	displayName: string;
 	linkedPlatforms: Platforms[];
 	currentMainPlatform: Platforms;
 	currentMainGroupId: string | null;
@@ -330,9 +331,10 @@ export type UpdateUserModalProps = {
 	groups: { id: string; name: string; }[];
 };
 
-export function UpdateUserModal({ isOpen, onClose, currentMainPlatform, linkedPlatforms, groups, currentMainGroupId, fetcher }: UpdateUserModalProps) {
+export function UpdateUserModal({ isOpen, onClose, displayName, currentMainPlatform, linkedPlatforms, groups, currentMainGroupId, fetcher }: UpdateUserModalProps) {
 	const [mainPlatform, setMainPlatform] = useState<Platforms>(currentMainPlatform);
 	const [mainGroup, setMainGroup] = useState<string | null>(currentMainGroupId);
+	const [newDisplayName, setNewDisplayName] = useState<string>(displayName);
 
 	const { colorMode } = useColorMode();
 
@@ -341,13 +343,16 @@ export function UpdateUserModal({ isOpen, onClose, currentMainPlatform, linkedPl
 		if (mainPlatform !== currentMainPlatform) userData.platform = mainPlatform;
 		if (mainGroup !== currentMainGroupId) userData.mainGroupId = mainGroup === 'none' ? null : mainGroup;
 
+		const trimmedDisplayName = newDisplayName.trim();
+		if (trimmedDisplayName.length > 0 && trimmedDisplayName !== displayName) userData.displayName = trimmedDisplayName;
+
 		if (Object.keys(userData).length === 0) {
 			onClose();
 			return;
 		}
 
 		fetcher.submit({ type: 'updateUser', userData: JSON.stringify(userData) }, { method: 'post' });
-	}, [mainGroup, mainPlatform, fetcher, currentMainGroupId, currentMainPlatform, onClose]);
+	}, [mainPlatform, currentMainPlatform, mainGroup, currentMainGroupId, newDisplayName, displayName, fetcher, onClose]);
 
 	const groupOptions = useMemo(() => {
 		return [{ value: 'none', label: 'None' }, ...groups.map((g) => ({ value: g.id, label: g.name }))];
@@ -361,6 +366,17 @@ export function UpdateUserModal({ isOpen, onClose, currentMainPlatform, linkedPl
 				<ModalCloseButton />
 				<ModalBody>
 					<VStack spacing={4}>
+						<FormControl>
+							<FormLabel>Display Name</FormLabel>
+							<Input
+								value={newDisplayName}
+								placeholder='Enter new display name..'
+								onChange={(e) => setNewDisplayName(e.target.value)}
+							/>
+						</FormControl>
+
+						<Divider />
+
 						<Text fontSize='sm' color='gray.500' mt={-2} mb={2}>
 							Your main platform is the one used to display your username and profile picture. They will be loaded from this platform when you log in next time.
 						</Text>

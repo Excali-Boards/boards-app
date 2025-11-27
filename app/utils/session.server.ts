@@ -24,7 +24,7 @@ export async function getCachedUser(request: Request): Promise<CachedResponse> {
 	if (cached && cached.expiry > now) return { data: cached.data, token };
 	if (cached) userCache.delete(token);
 
-	const result = await api?.users.getCurrentUser({ auth: token });
+	const result = await api?.users.getUser({ auth: token });
 	if (!result) return;
 
 	userCache.set(token, {
