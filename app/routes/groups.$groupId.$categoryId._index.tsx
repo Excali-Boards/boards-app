@@ -75,6 +75,13 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 			const result = await api?.boards.scheduleBoardDeletion({ auth: token, boardId, groupId, categoryId });
 			return makeResObject(result, 'Failed to delete board.');
 		}
+		case 'forceDeleteBoard': {
+			const boardId = formData.get('boardId') as string;
+			if (!boardId) return { status: 400, error: 'Invalid board id.' };
+
+			const result = await api?.boards.forceDeleteBoard({ auth: token, boardId, groupId, categoryId });
+			return makeResObject(result, 'Failed to permanently delete board.');
+		}
 		case 'cancelDeletion': {
 			const boardId = formData.get('boardId') as string;
 			if (!boardId) return { status: 400, error: 'Invalid board id.' };
@@ -159,6 +166,10 @@ export default function Boards() {
 						setModalOpen('deleteBoard');
 						setBoardId(finalBoards[index]!.id);
 					} : undefined}
+					onForceDelete={editorMode && user?.isDev ? (index) => {
+						setModalOpen('forceDeleteBoard');
+						setBoardId(finalBoards[index]!.id);
+					} : undefined}
 					onEdit={editorMode ? (index) => {
 						setModalOpen('updateBoard');
 						setBoardId(finalBoards[index]!.id);
@@ -220,7 +231,7 @@ export default function Boards() {
 	);
 }
 
-export type ModalOpen = 'createBoard' | 'updateBoard' | 'deleteBoard' | null;
+export type ModalOpen = 'createBoard' | 'updateBoard' | 'deleteBoard' | 'forceDeleteBoard' | null;
 export type ManageBoardProps = {
 	isOpen: boolean;
 	onClose: () => void;
@@ -303,6 +314,15 @@ export function ManageBoard({ isOpen, onClose, type, fetcher, defaultName, board
 									This action cannot be undone.
 								</>
 							)}
+
+							{type === 'forceDeleteBoard' && (
+								<>
+									<VisuallyHiddenInput onChange={() => { }} name='type' value='forceDeleteBoard' />
+									<VisuallyHiddenInput onChange={() => { }} name='boardId' value={boardId || ''} />
+									Are you sure you want to permanently delete this board? <br />
+									This action cannot be undone. All data will be lost.
+								</>
+							)}
 						</Flex>
 					</ModalBody>
 					<ModalFooter display={'flex'} gap={1}>
@@ -316,7 +336,7 @@ export function ManageBoard({ isOpen, onClose, type, fetcher, defaultName, board
 						<Button
 							flex={1}
 							isLoading={fetcher.state === 'loading' || fetcher.state === 'submitting'}
-							colorScheme={type === 'deleteBoard' ? 'red' : 'blue'}
+							colorScheme={type === 'deleteBoard' || type === 'forceDeleteBoard' ? 'red' : 'blue'}
 							type='submit'
 						>
 							{type.split(/(?=[A-Z])/).map((word) => word.charAt(0).toUpperCase() + word.slice(1))[0]}

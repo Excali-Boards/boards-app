@@ -12,6 +12,7 @@ export type CardListProps = {
 	onDelete?: (index: number) => void;
 	onReorder?: (orderedIds: string[]) => void;
 	onFlashCreate?: (index: number) => void;
+	onForceDelete?: (index: number) => void;
 	onCancelDeletion?: (index: number) => void;
 };
 
@@ -22,6 +23,7 @@ export default function CardList({
 	onDelete,
 	onReorder,
 	onFlashCreate,
+	onForceDelete,
 	onCancelDeletion,
 }: CardListProps) {
 	const [items, setItems] = useState(cards.map((card) => card.id));
@@ -81,6 +83,7 @@ export default function CardList({
 							<SortableItem key={id + '|' + i} id={id}>
 								<Card
 									onCancelDeletion={onCancelDeletion ? () => onCancelDeletion(i) : undefined}
+									onForceDelete={onForceDelete ? () => onForceDelete(i) : undefined}
 									onFlashCreate={onFlashCreate ? () => onFlashCreate(i) : undefined}
 									onDelete={onDelete ? () => onDelete(i) : undefined}
 									onEdit={onEdit ? () => onEdit(i) : undefined}

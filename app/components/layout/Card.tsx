@@ -1,9 +1,10 @@
-import { Flex, Text, HStack, Divider, IconButton, FlexProps, useColorMode, Badge, useBreakpointValue, Tooltip } from '@chakra-ui/react';
-import { FaLink, FaPen, FaTrash, FaTrashRestore, FaUsers } from 'react-icons/fa';
+import { Flex, Text, HStack, Divider, IconButton, FlexProps, useColorMode, Badge, useBreakpointValue, Tooltip, Menu, MenuButton, MenuList, MenuItem } from '@chakra-ui/react';
+import { FaLink, FaList, FaPen, FaTrash, FaTrashRestore, FaUsers } from 'react-icons/fa';
 import { formatBytes, getCardDeletionTime } from '~/other/utils';
+import { Fragment, useContext, useState } from 'react';
 import { IconLinkButton } from '~/components/Button';
 import { IoFlash } from 'react-icons/io5';
-import { useState } from 'react';
+import { RootContext } from '../Context';
 
 export type CardProps = {
 	id: string;
@@ -24,7 +25,9 @@ export type CardProps = {
 	isScheduledForDeletionText?: string;
 
 	onCancelDeletion?: () => void;
+	onForceDelete?: () => void;
 	onFlashCreate?: () => void;
+	onRestore?: () => void;
 	onDelete?: () => void;
 	onEdit?: () => void;
 };
@@ -42,12 +45,15 @@ export function Card({
 	isScheduledForDeletion,
 	isScheduledForDeletionText,
 	onCancelDeletion,
+	onForceDelete,
 	onFlashCreate,
 	onDelete,
 	onEdit,
 }: CardProps & FlexProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const { colorMode } = useColorMode();
+
+	const { user } = useContext(RootContext) || {};
 
 	const isDeletedSoon = getCardDeletionTime(isScheduledForDeletion || null, colorMode);
 	const isMobile = useBreakpointValue({ base: true, md: false }) || false;
@@ -111,21 +117,57 @@ export function Card({
 
 				<HStack spacing={2}>
 					{onCancelDeletion && isScheduledForDeletion && (
-						<Tooltip label='Restore' hasArrow>
-							<IconButton
-								onClick={onCancelDeletion}
-								variant={'ghost'}
-								rounded={'full'}
-								bg={'alpha100'}
-								icon={<FaTrashRestore />}
-								colorScheme='blue'
-								aria-label={'Cancel deletion'}
-								alignItems={'center'}
-								justifyContent={'center'}
-								_hover={{ bg: 'alpha300' }}
-								_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-							/>
-						</Tooltip>
+						<Fragment>
+							{user?.isDev && onForceDelete ? (
+								<Tooltip label='Restore' hasArrow>
+									<Menu>
+										<MenuButton as={IconButton}
+											variant={'ghost'}
+											rounded={'full'}
+											bg={'alpha100'}
+											icon={<FaList />}
+											alignItems={'center'}
+											justifyContent={'center'}
+											_hover={{ bg: 'alpha300' }}
+											aria-label={'Restore actions'}
+											_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+										/>
+										<MenuList>
+											<MenuItem
+												icon={<FaTrashRestore />}
+												onClick={onCancelDeletion}
+											>
+												Restore Board
+											</MenuItem>
+											{onForceDelete && (
+												<MenuItem
+													bg='red.500'
+													icon={<FaTrash />}
+													onClick={onForceDelete}
+												>
+													Force Delete
+												</MenuItem>
+											)}
+										</MenuList>
+									</Menu>
+								</Tooltip>
+							) : (
+								<Tooltip label='Restore' hasArrow>
+									<IconButton
+										onClick={onCancelDeletion}
+										variant={'ghost'}
+										rounded={'full'}
+										bg={'alpha100'}
+										icon={<FaTrashRestore />}
+										aria-label={'Restore'}
+										alignItems={'center'}
+										justifyContent={'center'}
+										_hover={{ bg: 'alpha300' }}
+										_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+									/>
+								</Tooltip>
+							)}
+						</Fragment>
 					)}
 
 					{onDelete && !isScheduledForDeletion && (
