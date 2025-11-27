@@ -135,7 +135,7 @@ export default function Profile() {
 					<Flex flexDir={'column'} gap={4}>
 						<Flex gap={1}>
 							<Flex flexDir={'column'} gap={2} flex={1}>
-								<Text fontWeight='bold'>Username</Text>
+								<Text fontWeight='bold'>Display Name</Text>
 								<Input value={user?.displayName} isReadOnly />
 							</Flex>
 
@@ -365,29 +365,26 @@ export function UpdateUserModal({ isOpen, onClose, displayName, currentMainPlatf
 				<ModalHeader>Account Settings</ModalHeader>
 				<ModalCloseButton />
 				<ModalBody>
-					<VStack spacing={4}>
+					<VStack spacing={4} align='stretch'>
 						<FormControl>
 							<FormLabel>Display Name</FormLabel>
 							<Input
 								value={newDisplayName}
 								placeholder='Enter new display name..'
 								onChange={(e) => setNewDisplayName(e.target.value)}
+								maxLength={40}
+								minLength={3}
 							/>
 						</FormControl>
 
-						<Divider />
-
 						<Text fontSize='sm' color='gray.500' mt={-2} mb={2}>
-							Your main platform is the one used to display your username and profile picture. They will be loaded from this platform when you log in next time.
+							Your display name is shown to other users and on your content.
 						</Text>
 
-						<FormControl>
-							<FormLabel>Current main platform</FormLabel>
-							<Input value={currentMainPlatform} isReadOnly />
-						</FormControl>
+						<Divider />
 
 						<FormControl>
-							<FormLabel>New main platform</FormLabel>
+							<FormLabel>Main platform</FormLabel>
 							<Select
 								name='mainPlatform'
 								colorScheme='brand'
@@ -399,19 +396,14 @@ export function UpdateUserModal({ isOpen, onClose, displayName, currentMainPlatf
 							/>
 						</FormControl>
 
-						<Divider />
-
 						<Text fontSize='sm' color='gray.500' mt={-2} mb={2}>
-							Your main group is the one that opens when you navigate to the home page. You can set it to &apos;None&apos; to show all groups.
+							Your main platform is the one used to display your username and profile picture. They will be loaded from this platform when you log in next time.
 						</Text>
 
-						<FormControl>
-							<FormLabel>Current main group</FormLabel>
-							<Input value={currentMainGroupId ? groups.find((g) => g.id === currentMainGroupId)?.name || 'Unknown' : 'None'} isReadOnly />
-						</FormControl>
+						<Divider />
 
 						<FormControl>
-							<FormLabel>New main group</FormLabel>
+							<FormLabel>Main group</FormLabel>
 							<Select
 								name='mainGroup'
 								colorScheme='brand'
@@ -421,6 +413,10 @@ export function UpdateUserModal({ isOpen, onClose, displayName, currentMainPlatf
 								options={groupOptions}
 							/>
 						</FormControl>
+
+						<Text fontSize='sm' color='gray.500' mt={-2} mb={2}>
+							Your main group is the one that opens when you navigate to the home page. You can set it to &apos;None&apos; to show all groups.
+						</Text>
 					</VStack>
 				</ModalBody>
 				<ModalFooter display={'flex'} gap={1}>
