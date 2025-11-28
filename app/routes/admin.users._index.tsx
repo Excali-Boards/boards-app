@@ -316,7 +316,7 @@ export function UserPermissionsModal({ isOpen, onClose, userData, isUserDev, onR
 				</ModalHeader>
 				<ModalCloseButton />
 				<ModalBody>
-					{explicitPermissions.length === 0 && isUserDev ? (
+					{isUserDev ? (
 						<Flex flexDir='column' gap={2} py={4} align='center'>
 							<Text fontSize='lg' fontWeight='medium' color='green.600'>
 								<FaUnlock />
