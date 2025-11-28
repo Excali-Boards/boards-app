@@ -7,7 +7,7 @@ import { firstToUpperCase, getGrantInfo, getRoleColor } from '~/other/utils';
 import { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { Fragment, useCallback, useMemo, useState } from 'react';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
-import ConfirmModal from '~/components/other/ConfirmModal';
+import { ConfirmModal } from '~/components/other/ConfirmModal';
 import { SearchBar } from '~/components/layout/SearchBar';
 import { useDebounced } from '~/hooks/useDebounced';
 import { authenticator } from '~/utils/auth.server';
@@ -217,21 +217,7 @@ export default function AdminUsers() {
 
 								<HStack spacing={2}>
 									{editMode && (
-										<>
-											<IconButton
-												variant={'ghost'}
-												rounded={'full'}
-												bg={'alpha100'}
-												icon={<FaPen />}
-												onClick={() => {
-													setSelectedUser(user);
-													setModalShown('displayName');
-												}}
-												aria-label='Change Display Name'
-												_hover={{ bg: 'alpha300' }}
-												_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-											/>
-
+										<Fragment>
 											<IconButton
 												variant={'ghost'}
 												rounded={'full'}
@@ -246,7 +232,21 @@ export default function AdminUsers() {
 												_hover={{ bg: 'alpha300' }}
 												_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
 											/>
-										</>
+
+											<IconButton
+												variant={'ghost'}
+												rounded={'full'}
+												bg={'alpha100'}
+												icon={<FaPen />}
+												onClick={() => {
+													setSelectedUser(user);
+													setModalShown('displayName');
+												}}
+												aria-label='Change Display Name'
+												_hover={{ bg: 'alpha300' }}
+												_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+											/>
+										</Fragment>
 									)}
 
 									<IconButton

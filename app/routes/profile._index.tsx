@@ -145,7 +145,7 @@ export default function Profile() {
 							</Flex>
 
 							<Flex flexDir={'column'} gap={2} justifyContent='flex-end'>
-								<Tooltip label='Change main platform or main group' hasArrow>
+								<Tooltip label='Change Account Settings' hasArrow>
 									<IconButton
 										aria-label={'Change'}
 										icon={<GrConfigure size={20} />}
@@ -389,8 +389,8 @@ export function UpdateUserModal({ isOpen, onClose, displayName, currentMainPlatf
 								name='mainPlatform'
 								colorScheme='brand'
 								value={mainPlatform}
-								placeholder='Select main platform..'
 								options={linkedPlatforms}
+								placeholder='Select main platform..'
 								onChange={(e) => setMainPlatform(e as Platforms)}
 								isDisabled={linkedPlatforms.length < 2}
 							/>
