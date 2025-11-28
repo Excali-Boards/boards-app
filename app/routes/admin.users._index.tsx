@@ -1,5 +1,5 @@
 import { VStack, Box, Flex, Text, Avatar, IconButton, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Button, useColorMode, Badge, HStack, Divider, useToast, FormControl, FormLabel, Input } from '@chakra-ui/react';
-import { FaClipboard, FaEye, FaFolder, FaLock, FaPen, FaQuestionCircle, FaTrash, FaUnlock, FaUsers } from 'react-icons/fa';
+import { FaClipboard, FaEye, FaFolder, FaLock, FaPen, FaQuestionCircle, FaTools, FaTrash, FaUnlock, FaUsers } from 'react-icons/fa';
 import { GrantedEntry, PermUser, ResourceType } from '@excali-boards/boards-api-client';
 import { makeResObject, makeResponse, securityUtils } from '~/utils/functions.server';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
@@ -7,6 +7,7 @@ import { firstToUpperCase, getGrantInfo, getRoleColor } from '~/other/utils';
 import { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { Fragment, useCallback, useMemo, useState } from 'react';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
+import ConfirmModal from '~/components/other/ConfirmModal';
 import { SearchBar } from '~/components/layout/SearchBar';
 import { useDebounced } from '~/hooks/useDebounced';
 import { authenticator } from '~/utils/auth.server';
@@ -89,6 +90,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 			return makeResObject(result, 'Failed to update username.');
 		}
+		case 'deleteUser': {
+			const userId = formData.get('userId') as string;
+			if (!userId) return { status: 400, error: 'Invalid user id.' };
+
+			const result = await api?.users.deleteAccount({ auth: token, userId });
+			return makeResObject(result, 'Failed to delete user.');
+		}
 		default: {
 			return { status: 400, error: 'Invalid request.' };
 		}
@@ -101,8 +109,9 @@ export default function AdminUsers() {
 	const [search, setSearch] = useState('');
 	const dbcSearch = useDebounced(search, [search], 300);
 
-	const [modalShown, setModalShown] = useState<'permissions' | 'displayName' | null>(null);
+	const [modalShown, setModalShown] = useState<'permissions' | 'displayName' | 'deleteUser' | null>(null);
 	const [selectedUser, setSelectedUser] = useState<typeof allUsers[0] | null>(null);
+	const [editMode, setEditMode] = useState(false);
 
 	const fetcher = useFetcher<WebReturnType<string>>();
 	const toast = useToast();
@@ -121,6 +130,16 @@ export default function AdminUsers() {
 					name={'Manage Users'}
 					description={'View all registered users.'}
 					goBackPath='/admin'
+					customButtons={[{
+						type: 'normal',
+						label: 'Manage users',
+						icon: <FaTools />,
+						isDisabled: allUsers.length === 0,
+						onClick: () => setEditMode(!editMode),
+						isLoading: fetcher.state === 'loading',
+						tooltip: 'Manage users',
+						isActive: editMode,
+					}]}
 				/>
 
 				<SearchBar search={search} setSearch={setSearch} whatSearch={'users'} id='users' dividerMY={4} />
@@ -197,19 +216,38 @@ export default function AdminUsers() {
 								<Divider orientation={'vertical'} color={'red'} height={'50px'} />
 
 								<HStack spacing={2}>
-									<IconButton
-										variant={'ghost'}
-										rounded={'full'}
-										bg={'alpha100'}
-										icon={<FaPen />}
-										onClick={() => {
-											setSelectedUser(user);
-											setModalShown('displayName');
-										}}
-										aria-label='Change Display Name'
-										_hover={{ bg: 'alpha300' }}
-										_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-									/>
+									{editMode && (
+										<>
+											<IconButton
+												variant={'ghost'}
+												rounded={'full'}
+												bg={'alpha100'}
+												icon={<FaPen />}
+												onClick={() => {
+													setSelectedUser(user);
+													setModalShown('displayName');
+												}}
+												aria-label='Change Display Name'
+												_hover={{ bg: 'alpha300' }}
+												_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+											/>
+
+											<IconButton
+												variant={'ghost'}
+												rounded={'full'}
+												bg={'alpha100'}
+												icon={<FaTrash />}
+												onClick={() => {
+													setSelectedUser(user);
+													setModalShown('deleteUser');
+												}}
+												isDisabled={user.isDev}
+												aria-label='Delete User'
+												_hover={{ bg: 'alpha300' }}
+												_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+											/>
+										</>
+									)}
 
 									<IconButton
 										variant={'ghost'}
@@ -266,6 +304,25 @@ export default function AdminUsers() {
 						currentDisplayName={selectedUser.displayName}
 						fetcher={fetcher}
 					/>
+
+					<ConfirmModal
+						isOpen={selectedUser !== null && modalShown === 'deleteUser'}
+						onClose={() => setSelectedUser(null)}
+						onConfirm={() => {
+							fetcher.submit({
+								type: 'deleteUser',
+								userId: selectedUser!.userId,
+							}, { method: 'post' });
+						}}
+						title='Delete User'
+						message={`Are you sure you want to delete the user "${selectedUser.displayName}"? This action is irreversible.`}
+						isLoading={fetcher.state === 'loading' || fetcher.state === 'submitting'}
+						confirmText='Delete User'
+						cancelText='Cancel'
+						icon={<FaTrash />}
+						colorScheme='red'
+					/>
+
 				</Fragment>
 			)}
 
@@ -318,13 +375,13 @@ export function UserPermissionsModal({ isOpen, onClose, userData, isUserDev, onR
 				<ModalBody>
 					{isUserDev ? (
 						<Flex flexDir='column' gap={2} py={4} align='center'>
-							<Text fontSize='lg' fontWeight='medium' color='green.600'>
+							<Text fontSize='lg' fontWeight='medium' color='green.400'>
 								<FaUnlock />
 							</Text>
-							<Text fontSize='lg' fontWeight='medium' color='green.600'>
+							<Text fontSize='lg' fontWeight='medium' color='green.400'>
 								Full Access
 							</Text>
-							<Text fontSize='sm' color='green.500'>
+							<Text fontSize='sm' color='green.300'>
 								This user has developer access to all resources.
 							</Text>
 						</Flex>
