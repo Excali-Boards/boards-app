@@ -300,8 +300,9 @@ export default function AdminUsers() {
 
 					<UpdateUserDisplayNameModal
 						isOpen={selectedUser !== null && modalShown === 'displayName'}
-						onClose={() => setSelectedUser(null)}
 						currentDisplayName={selectedUser.displayName}
+						onClose={() => setSelectedUser(null)}
+						currentUserId={selectedUser.userId}
 						fetcher={fetcher}
 					/>
 
@@ -481,11 +482,12 @@ export function UserPermissionsModal({ isOpen, onClose, userData, isUserDev, onR
 export type UpdateUserDisplayNameModalProps = {
 	isOpen: boolean;
 	onClose: () => void;
+	currentUserId: string;
 	currentDisplayName: string;
 	fetcher: FetcherWithComponents<unknown>;
 };
 
-export function UpdateUserDisplayNameModal({ isOpen, onClose, currentDisplayName, fetcher }: UpdateUserDisplayNameModalProps) {
+export function UpdateUserDisplayNameModal({ isOpen, onClose, currentUserId, currentDisplayName, fetcher }: UpdateUserDisplayNameModalProps) {
 	const [newDisplayName, setNewDisplayName] = useState<string>(currentDisplayName);
 
 	const { colorMode } = useColorMode();
@@ -497,8 +499,8 @@ export function UpdateUserDisplayNameModal({ isOpen, onClose, currentDisplayName
 			return;
 		}
 
-		fetcher.submit({ type: 'updateUserUsername', userId: '', newUsername: trimmedDisplayName }, { method: 'post' });
-	}, [newDisplayName, currentDisplayName, fetcher, onClose]);
+		fetcher.submit({ type: 'updateUserUsername', userId: currentUserId, newUsername: trimmedDisplayName }, { method: 'post' });
+	}, [newDisplayName, currentUserId, currentDisplayName, fetcher, onClose]);
 
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} isCentered size='md'>
