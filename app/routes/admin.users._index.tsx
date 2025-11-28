@@ -1,5 +1,5 @@
 import { VStack, Box, Flex, Text, Avatar, IconButton, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Button, useColorMode, Badge, HStack, Divider, useToast, FormControl, FormLabel, Input } from '@chakra-ui/react';
-import { FaClipboard, FaEye, FaFolder, FaLock, FaPen, FaQuestionCircle, FaTrash, FaUsers } from 'react-icons/fa';
+import { FaClipboard, FaEye, FaFolder, FaLock, FaPen, FaQuestionCircle, FaTrash, FaUnlock, FaUsers } from 'react-icons/fa';
 import { GrantedEntry, PermUser, ResourceType } from '@excali-boards/boards-api-client';
 import { makeResObject, makeResponse, securityUtils } from '~/utils/functions.server';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
@@ -25,12 +25,26 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const allPermissions = await api?.permissions.viewAllPermissions({ auth: token, userIds });
 	if (!allPermissions || 'error' in allPermissions) throw makeResponse(allPermissions, 'Failed to get user permissions.');
 
+	const findInviter = (invitedByUserId: string | null) => {
+		if (!invitedByUserId) return null;
+		return DBUsers.data.find((u) => u.userId === invitedByUserId) || null;
+	};
+
 	return {
 		userPermissions: allPermissions.data,
-		allUsers: DBUsers.data.map((user) => ({
-			...user,
-			decryptedEmail: securityUtils.decrypt(user.email),
-		})).sort((a, b) => {
+		allUsers: DBUsers.data.map((user) => {
+			const inviter = findInviter(user.invitedBy);
+			return {
+				...user,
+				decryptedEmail: securityUtils.decrypt(user.email),
+				inviterDetails: inviter ? {
+					userId: inviter.userId,
+					displayName: inviter.displayName,
+					avatarUrl: inviter.avatarUrl,
+					decryptedEmail: securityUtils.decrypt(inviter.email),
+				} : null,
+			};
+		}).sort((a, b) => {
 			if (a.isDev && !b.isDev) return -1;
 			if (!a.isDev && b.isDev) return 1;
 			return a.displayName.localeCompare(b.displayName);
@@ -162,6 +176,15 @@ export default function AdminUsers() {
 											({user.decryptedEmail})
 										</Text>
 									</Flex>
+
+									{user.inviterDetails && (
+										<HStack spacing={2} mt={1}>
+											<Avatar size='xs' name={user.inviterDetails.displayName} src={user.inviterDetails.avatarUrl || '/logo.webp'} />
+											<Text fontSize='sm' color='gray.400'>
+												Invited by {user.inviterDetails.displayName}
+											</Text>
+										</HStack>
+									)}
 								</Flex>
 							</Flex>
 
@@ -226,6 +249,7 @@ export default function AdminUsers() {
 						isOpen={selectedUser !== null && modalShown === 'permissions'}
 						onClose={() => setSelectedUser(null)}
 						userData={userPermissions[selectedUser!.userId]!}
+						isUserDev={selectedUser.isDev}
 						onRevoke={(entry) => {
 							fetcher.submit({
 								type: 'revokePermission',
@@ -253,10 +277,11 @@ export type UserPermissionsModalProps = {
 	isOpen: boolean;
 	onClose: () => void;
 	userData: PermUser;
+	isUserDev: boolean;
 	onRevoke: (entry: GrantedEntry) => void;
 };
 
-export function UserPermissionsModal({ isOpen, onClose, userData, onRevoke }: UserPermissionsModalProps) {
+export function UserPermissionsModal({ isOpen, onClose, userData, isUserDev, onRevoke }: UserPermissionsModalProps) {
 	const { colorMode } = useColorMode();
 
 	const getResourceTypeIcon = useCallback((type: string) => {
@@ -291,7 +316,19 @@ export function UserPermissionsModal({ isOpen, onClose, userData, onRevoke }: Us
 				</ModalHeader>
 				<ModalCloseButton />
 				<ModalBody>
-					{explicitPermissions.length === 0 ? (
+					{explicitPermissions.length === 0 && isUserDev ? (
+						<Flex flexDir='column' gap={2} py={4} align='center'>
+							<Text fontSize='lg' fontWeight='medium' color='green.600'>
+								<FaUnlock />
+							</Text>
+							<Text fontSize='lg' fontWeight='medium' color='green.600'>
+								Full Access
+							</Text>
+							<Text fontSize='sm' color='green.500'>
+								This user has developer access to all resources.
+							</Text>
+						</Flex>
+					) : explicitPermissions.length === 0 ? (
 						<Flex flexDir='column' gap={2} py={4} align='center'>
 							<Text fontSize='lg' fontWeight='medium' color='gray.600'>
 								<FaLock />
