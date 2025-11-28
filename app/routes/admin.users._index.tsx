@@ -144,8 +144,8 @@ export default function AdminUsers() {
 							<Flex gap={4} alignItems={'center'} flex={1}>
 								<Avatar
 									size={{ base: 'md', md: 'lg' }}
+									src={user.avatarUrl || undefined}
 									name={user.displayName}
-									src={user.avatarUrl || '/logo.webp'}
 								/>
 
 								<Flex
@@ -179,7 +179,7 @@ export default function AdminUsers() {
 
 									{user.inviterDetails && (
 										<HStack spacing={2} mt={1}>
-											<Avatar size='xs' name={user.inviterDetails.displayName} src={user.inviterDetails.avatarUrl || '/logo.webp'} />
+											<Avatar size='xs' src={user.inviterDetails.avatarUrl || undefined} name={user.inviterDetails.displayName} />
 											<Text fontSize='sm' color='gray.400'>
 												Invited by {user.inviterDetails.displayName}
 											</Text>
