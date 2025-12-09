@@ -4,11 +4,12 @@ import InfoComponent from '~/components/Info';
 import { Flex } from '@chakra-ui/react';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-	const query = new URLSearchParams(request.url.split('?')[1]);
-	const code = query.get('code');
+	const url = new URL(request.url);
+	const code = url.searchParams.get('code');
+	const error = url.searchParams.get('error');
 
-	if (code) return new Response(null, { status: 500 });
-	else return new Response(null, { status: 404 });
+	if (error || (code && url.pathname.startsWith('/err'))) return new Response(null, { status: 500 });
+	return new Response(null, { status: 404 });
 };
 
 export default function ErrorPage() {

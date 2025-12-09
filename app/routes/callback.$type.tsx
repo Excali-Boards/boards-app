@@ -12,15 +12,19 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const backToCookie = await loginInfo.parse(cookieHeader) || {};
 
 	const backTo = backToCookie?.backTo || '/';
-	if (backTo) backToCookie.backTo = undefined;
 
 	const check = await authenticator.isAuthenticated(request);
-	if (check) return redirect(backTo);
+	if (check) {
+		backToCookie.backTo = undefined;
+		return redirect(backTo, { headers: { 'Set-Cookie': await loginInfo.serialize(backToCookie) } });
+	}
 
 	const addToUser = backToCookie.currentUserId;
 	if (addToUser) backToCookie.currentUserId = undefined;
 
 	try {
+		backToCookie.backTo = undefined;
+
 		return await authenticator.authenticate(type, request, {
 			successRedirect: backTo,
 			failureRedirect: '/login',
