@@ -1,7 +1,5 @@
-import { ExcalidrawElement, InitializedExcalidrawImageElement, ExcalidrawImageElement } from '@excalidraw/excalidraw/element/types';
 import { AccessLevel, SimplePermissionHierarchy } from '@excali-boards/boards-api-client';
 import { bgColor, FindConflictsProps, TimeUnits } from '~/other/types';
-import { ResolvablePromise } from '@excalidraw/excalidraw/utils';
 import { ColorMode } from '@chakra-ui/react';
 import { z, ZodError } from 'zod';
 
@@ -327,87 +325,3 @@ export function getGrantInfo(grantType: 'explicit' | 'implicit') {
 			};
 	}
 }
-
-// Excalidraw.
-export const throttleRAF = <T extends unknown[]>(
-	fn: (...args: T) => void,
-	opts?: { trailing?: boolean },
-) => {
-	let timerId: number | null = null;
-	let lastArgs: T | null = null;
-	let lastArgsTrailing: T | null = null;
-
-	const scheduleFunc = (args: T) => {
-		timerId = window.requestAnimationFrame(() => {
-			timerId = null;
-			fn(...args);
-			lastArgs = null;
-
-			if (lastArgsTrailing) {
-				lastArgs = lastArgsTrailing;
-				lastArgsTrailing = null;
-				scheduleFunc(lastArgs);
-			}
-		});
-	};
-
-	const ret = (...args: T) => {
-		if (import.meta.env.MODE === 'test') {
-			fn(...args);
-			return;
-		}
-
-		lastArgs = args;
-
-		if (timerId === null) scheduleFunc(lastArgs);
-		else if (opts?.trailing) lastArgsTrailing = args;
-	};
-
-	ret.flush = () => {
-		if (timerId !== null) {
-			cancelAnimationFrame(timerId);
-			timerId = null;
-		}
-
-		if (lastArgs) {
-			fn(...(lastArgsTrailing || lastArgs));
-			lastArgs = lastArgsTrailing = null;
-		}
-	};
-
-	ret.cancel = () => {
-		lastArgs = lastArgsTrailing = null;
-
-		if (timerId !== null) {
-			cancelAnimationFrame(timerId);
-			timerId = null;
-		}
-	};
-
-	return ret;
-};
-
-export const resolvablePromise = <T,>() => {
-	type Pr = { resolve: (value: T) => void; reject: (value: T) => void; };
-
-	let resolve!: Pr['resolve'];
-	let reject!: Pr['reject'];
-
-	const promise = new Promise((_resolve, _reject) => {
-		resolve = _resolve;
-		reject = _reject;
-	}) as unknown as Pr;
-
-	promise.resolve = resolve;
-	promise.reject = reject;
-
-	return promise as ResolvablePromise<T>;
-};
-
-export const isInitializedImageElement = (element: ExcalidrawElement | null): element is InitializedExcalidrawImageElement => {
-	return !!element && element.type === 'image' && !!element.fileId;
-};
-
-export const isImageElement = (element: ExcalidrawElement | null): element is ExcalidrawImageElement => {
-	return !!element && element.type === 'image';
-};

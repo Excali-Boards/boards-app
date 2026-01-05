@@ -1,9 +1,9 @@
 import { Excalidraw, getSceneVersion, getVisibleSceneBounds, isSyncableElement, newElementWith, reconcileElements, WelcomeScreen, zoomToFitBounds } from '~/components/board/Imports';
 import { AppState, BinaryFileData, Collaborator, DataURL, ExcalidrawInitialDataState, Gesture, SocketId } from '@excalidraw/excalidraw/types';
 import { FileId, InitializedExcalidrawImageElement, OrderedExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { isInitializedImageElement, throttleRAF, measureText, getFontString, isTextElement } from '~/other/excalidraw';
 import { ClientData, ClientToServerEvents, SceneBroadcastData, ServerToClientEvents, StatsData } from '~/other/types';
 import { CollabUser, BoardsManager } from '@excali-boards/boards-api-client';
-import { isInitializedImageElement, throttleRAF } from '~/other/utils';
 import { BoardExcalidrawState, BoardProps } from './types';
 import { Box, Flex, Spinner } from '@chakra-ui/react';
 import msgPack from 'socket.io-msgpack-parser';
@@ -746,8 +746,15 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 
 		this.state.excalidrawAPI.updateScene({
 			elements: this.state.excalidrawAPI.getSceneElementsIncludingDeleted().map((element) => {
-				if (selectedElementIds.includes(element.id) && element.type === 'text' && !element.autoResize) {
-					return newElementWith(element, { autoResize: true }, true);
+				if (selectedElementIds.includes(element.id) && isTextElement(element) && !element.autoResize) {
+					const metrics = measureText(element.originalText, getFontString(element), element.lineHeight);
+
+					return newElementWith(element, {
+						autoResize: true,
+						width: metrics.width,
+						height: metrics.height,
+						text: element.originalText,
+					});
 				}
 
 				return element;
