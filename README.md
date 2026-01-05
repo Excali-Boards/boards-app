@@ -22,12 +22,12 @@
 
 Here are some screenshots showcasing the app interface and key features:
 
-| Group View                                | Category View                                   | Board View                                |
-| ----------------------------------------- | ----------------------------------------------- | ------------------------------------------ |
+| Group View                                                                        | Category View                                                                              | Board View                                                                         |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
 | [![Group View](screenshots/thumbs/group_view_tn.jpg)](screenshots/group_view.png) | [![Category View](screenshots/thumbs/category_view_tn.jpg)](screenshots/category_view.png) | [![Boards View](screenshots/thumbs/board_view_tn.jpg)](screenshots/board_view.png) |
 
-| All-in-One View                       | Admin: Rooms                                | Admin: Users                                |
-| ------------------------------------- | ------------------------------------------- | ------------------------------------------- |
+| All-in-One View                                                             | Admin: Rooms                                                                         | Admin: Users                                                                         |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
 | [![All View](screenshots/thumbs/all_view_tn.jpg)](screenshots/all_view.png) | [![Admin Rooms](screenshots/thumbs/admin_rooms_tn.jpg)](screenshots/admin_rooms.png) | [![Admin Users](screenshots/thumbs/admin_users_tn.jpg)](screenshots/admin_users.png) |
 
 ---
@@ -98,13 +98,26 @@ Frontend runs at `http://localhost:3002`.
 
 ---
 
+## ⌨️ Keyboard Shortcuts
+
+When editing a board (Excalidraw), the following custom keyboard shortcuts are available:
+
+| Shortcut               | Action                     | Description                                                |
+| ---------------------- | -------------------------- | ---------------------------------------------------------- |
+| `Ctrl/Cmd + Shift + O` | Toggle Hide from View-Only | Toggle visibility of selected elements for view-only users |
+| `Ctrl/Cmd + Shift + A` | Enable Auto-Resize         | Enable auto-resize property for selected elements          |
+
+> 💡 **Note:** These shortcuts only work when you have edit permissions on the board and have selected one or more elements.
+
+---
+
 ## 🤝 Contributing
 
 Contributions, fixes, and ideas are welcome! If you'd like to get involved:
 
-* Fork the repository and make your changes.
-* Run `pnpm lint && pnpm typecheck:once` before pushing.
-* Open a pull request with a clear description.
+- Fork the repository and make your changes.
+- Run `pnpm lint && pnpm typecheck:once` before pushing.
+- Open a pull request with a clear description.
 
 Please follow the existing coding style and commit clean, atomic changes.
 

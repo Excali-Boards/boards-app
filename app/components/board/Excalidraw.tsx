@@ -737,6 +737,29 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		});
 	};
 
+	enableAutoResize = () => {
+		if (!this.state.excalidrawAPI) return;
+
+		const appState = this.state.excalidrawAPI.getAppState();
+		const selectedElementIds = Object.keys(appState.selectedElementIds);
+		if (selectedElementIds.length === 0) return;
+
+		this.state.excalidrawAPI.updateScene({
+			elements: this.state.excalidrawAPI.getSceneElementsIncludingDeleted().map((element) => {
+				if (selectedElementIds.includes(element.id)) {
+					return newElementWith(element, { autoResize: true }, true);
+				}
+
+				return element;
+			}),
+		});
+
+		this.state.excalidrawAPI.setToast({
+			message: `Enabled auto-resize for ${selectedElementIds.length} element${selectedElementIds.length > 1 ? 's' : ''}.`,
+			closable: true, duration: 1000,
+		});
+	};
+
 	handleKeyDown = (event: KeyboardEvent) => {
 		if (!this.props.canEdit || !this.state.excalidrawAPI) return;
 
@@ -746,6 +769,11 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		if (ctrlOrMeta && event.shiftKey && event.key.toLowerCase() === 'o') {
 			event.preventDefault();
 			this.toggleHideFromViewOnly();
+		}
+
+		if (ctrlOrMeta && event.shiftKey && event.key.toLowerCase() === 'a') {
+			event.preventDefault();
+			this.enableAutoResize();
 		}
 	};
 
