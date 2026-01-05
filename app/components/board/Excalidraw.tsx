@@ -746,7 +746,7 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 
 		this.state.excalidrawAPI.updateScene({
 			elements: this.state.excalidrawAPI.getSceneElementsIncludingDeleted().map((element) => {
-				if (selectedElementIds.includes(element.id)) {
+				if (selectedElementIds.includes(element.id) && element.type === 'text' && !element.autoResize) {
 					return newElementWith(element, { autoResize: true }, true);
 				}
 
