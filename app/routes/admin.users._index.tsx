@@ -1,6 +1,6 @@
 import { VStack, Box, Flex, Text, Avatar, IconButton, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Button, useColorMode, Badge, HStack, Divider, useToast, FormControl, FormLabel, Input } from '@chakra-ui/react';
 import { FaClipboard, FaEye, FaFolder, FaLock, FaPen, FaQuestionCircle, FaTools, FaTrash, FaUnlock, FaUsers } from 'react-icons/fa';
-import { GrantedEntry, PermUser, ResourceType } from '@excali-boards/boards-api-client';
+import { getAll, GrantedEntry, PermUser, ResourceType } from '@excali-boards/boards-api-client';
 import { makeResObject, makeResponse, securityUtils } from '~/utils/functions.server';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
 import { firstToUpperCase, getGrantInfo, getRoleColor } from '~/other/utils';
@@ -18,22 +18,23 @@ import { api } from '~/utils/web.server';
 export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
+	if (!api) throw makeResponse(null, 'API client not initialized.');
 
-	const DBUsers = await api?.admin.getUsers({ auth: token });
+	const DBUsers = await getAll((page, limit) => api!.admin.getUsers({ auth: token, page, limit }));
 	if (!DBUsers || 'error' in DBUsers) throw makeResponse(DBUsers, 'Failed to get users.');
 
-	const userIds = DBUsers.data.map((user) => user.userId);
+	const userIds = DBUsers.data.data.map((user) => user.userId);
 	const allPermissions = await api?.permissions.viewAllPermissions({ auth: token, userIds });
 	if (!allPermissions || 'error' in allPermissions) throw makeResponse(allPermissions, 'Failed to get user permissions.');
 
 	const findInviter = (invitedByUserId: string | null) => {
 		if (!invitedByUserId) return null;
-		return DBUsers.data.find((u) => u.userId === invitedByUserId) || null;
+		return DBUsers.data.data.find((u) => u.userId === invitedByUserId) || null;
 	};
 
 	return {
 		userPermissions: allPermissions.data,
-		allUsers: DBUsers.data.map((user) => {
+		allUsers: DBUsers.data.data.map((user) => {
 			const inviter = findInviter(user.invitedBy);
 			return {
 				...user,
