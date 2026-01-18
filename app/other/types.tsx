@@ -113,6 +113,12 @@ export type MapType = {
 	hours: number;
 };
 
+export type PresenceState = 'active' | 'idle' | 'away';
+
+export type PresenceUpdatePayload = {
+	state: PresenceState;
+};
+
 // Other.
 export type FindConflictsProps = {
 	allData: GetAllSortedOutput;
@@ -156,4 +162,7 @@ export type ClientToServerEvents = {
 	collaboratorPointerUpdate: (data: CollaboratorPointer) => unknown;
 	userFollow: (data: OnUserFollowedPayload) => unknown;
 	relayVisibleSceneBounds: (data: BoundsData<'roomId'>) => unknown;
+
+	// Presence.
+	presenceUpdate: (data: PresenceUpdatePayload) => unknown;
 };

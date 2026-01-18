@@ -5,11 +5,12 @@ import { isInitializedImageElement, throttleRAF, measureText, getFontString, isT
 import { ClientData, ClientToServerEvents, SceneBroadcastData, ServerToClientEvents, StatsData } from '~/other/types';
 import { CollabUser, BoardsManager } from '@excali-boards/boards-api-client';
 import { BoardExcalidrawState, BoardProps } from './types';
+import { Component, ContextType, Suspense } from 'react';
+import { PresenceContext } from '~/components/Context';
 import { Box, Flex, Spinner } from '@chakra-ui/react';
 import msgPack from 'socket.io-msgpack-parser';
 import { io, Socket } from 'socket.io-client';
 import { TopBar } from '~/components/TopBar';
-import { Component, Suspense } from 'react';
 // eslint-disable-next-line import/no-unresolved
 import '@excalidraw/excalidraw/index.css';
 import throttle from 'lodash.throttle';
@@ -17,6 +18,9 @@ import { Buffer } from 'buffer';
 import axios from 'axios';
 
 export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState> {
+	declare context: ContextType<typeof PresenceContext>;
+	static contextType = PresenceContext;
+
 	private broadcastedElementVersions = new Map<string, number>();
 	private lastBoardcastedOrReceivedSceneVersion = -1;
 
@@ -70,6 +74,7 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 	componentWillUnmount = () => {
 		this.onUmmount?.();
 		this.state.socketIO?.close();
+		this.context?.setSocket?.(null);
 
 		window.removeEventListener('pointermove', this.onPointerMove);
 		window.removeEventListener('beforeunload', (event) => this.handleBeforeUnload(event, this.state.isSaved));
@@ -141,6 +146,8 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 			auth: { token, room: boardId },
 			parser: msgPack,
 		});
+
+		this.context?.setSocket?.(socketIO);
 
 		socketIO.on('connect', () => {
 			this.state.excalidrawAPI?.setToast({ message: 'Connected to server.', closable: true, duration: 1000 });

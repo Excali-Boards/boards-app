@@ -1,5 +1,7 @@
+import type { ClientToServerEvents, ServerToClientEvents } from '~/other/types';
 import { CollabUser, GetUsersOutput } from '@excali-boards/boards-api-client';
 import { BoardInfo, SidebarType } from './Layout';
+import type { Socket } from 'socket.io-client';
 import { createContext } from 'react';
 
 export type RootContextType = null | {
@@ -29,3 +31,12 @@ export type RootContextType = null | {
 };
 
 export const RootContext = createContext<RootContextType>(null);
+
+export type PresenceSocket = Pick<Socket<ServerToClientEvents, ClientToServerEvents>, 'emit' | 'on' | 'off' | 'connected'>;
+
+export type PresenceContextValue = {
+	socket: PresenceSocket | null;
+	setSocket: (socket: PresenceSocket | null) => void;
+};
+
+export const PresenceContext = createContext<PresenceContextValue | null>(null);

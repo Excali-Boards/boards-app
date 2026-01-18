@@ -1,7 +1,8 @@
 import { AssetRecordType, Editor, getHashForString, TLAssetStore, TLBookmarkAsset, TLRecord, TLUserPreferences, useTldrawUser } from 'tldraw';
 import { TLPersistentClientSocket, TLSocketStatusChangeEvent, useSync } from '@tldraw/sync';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ClientToServerEvents, ServerToClientEvents } from '~/other/types';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PresenceContext } from '~/components/Context';
 import msgPack from 'socket.io-msgpack-parser';
 import { io, Socket } from 'socket.io-client';
 import { apiClient } from '~/other/apiClient';
@@ -17,6 +18,9 @@ export function TldrawBoard(props: TldrawBoardProps) {
 	const [isConnected, setIsConnected] = useState(false);
 	const [isFirstTime, setIsFirstTime] = useState(true);
 	const [isKicked, setIsKicked] = useState(false);
+
+	const presenceSocketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+	const presenceContext = useContext(PresenceContext);
 
 	const isVisible = useRef(true);
 	const reconnectAttempts = useRef(0);
@@ -48,6 +52,13 @@ export function TldrawBoard(props: TldrawBoardProps) {
 		return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
 	}, []);
 
+	useEffect(() => {
+		return () => {
+			if (presenceSocketRef.current && presenceContext?.socket === presenceSocketRef.current) presenceContext.setSocket(null);
+			presenceSocketRef.current = null;
+		};
+	}, [presenceContext]);
+
 	const connectFunction = useCallback(() => {
 		const ioSocket: Socket<ServerToClientEvents, ClientToServerEvents> = io(socketUrl, {
 			auth: { token: token, room: boardId },
@@ -59,6 +70,9 @@ export function TldrawBoard(props: TldrawBoardProps) {
 			reconnectionAttempts: maxReconnectAttempts,
 			timeout: 20000,
 		});
+
+		presenceSocketRef.current = ioSocket;
+		presenceContext?.setSocket(ioSocket);
 
 		ioSocket.on('kick', () => {
 			setIsKicked(true);
@@ -110,7 +124,7 @@ export function TldrawBoard(props: TldrawBoardProps) {
 		});
 
 		return tldrawSocket;
-	}, [boardId, token, socketUrl]);
+	}, [boardId, token, socketUrl, presenceContext]);
 
 	const store = useSync({
 		connect: connectFunction,
