@@ -12,6 +12,7 @@ import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
 import { WebReturnType } from '~/other/types';
 import { useContext, useState } from 'react';
+import { canManage } from '~/other/utils';
 import { api } from '~/utils/web.server';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -25,9 +26,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	if (!DBResources || 'error' in DBResources) throw makeResponse(DBResources, 'Failed to get groups.');
 	else if ((!DBInvites.data.canInvite)) throw makeResponse(null, 'You do not have permission to manage invites.');
 
-	const canSelectGroups = DBResources.data.some((g) => g.accessLevel === 'admin');
-	const canSelectCategories = DBResources.data.some((g) => g.categories.some((c) => c.accessLevel === 'admin'));
-	const canSelectBoards = DBResources.data.some((g) => g.categories.some((c) => c.boards.some((b) => b.accessLevel === 'admin')));
+	const canSelectGroups = DBResources.data.some((g) => canManage(g.accessLevel));
+	const canSelectCategories = DBResources.data.some((g) => g.categories.some((c) => canManage(c.accessLevel)));
+	const canSelectBoards = DBResources.data.some((g) => g.categories.some((c) => c.boards.some((b) => canManage(b.accessLevel))));
 
 	return {
 		invites: DBInvites.data.invites,

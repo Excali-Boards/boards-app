@@ -105,6 +105,14 @@ export type StatsData = {
 	total: number;
 };
 
+export type MapType = {
+	userId: string;
+	displayName: string;
+	avatarUrl: string | null;
+	sessions: number;
+	hours: number;
+};
+
 // Other.
 export type FindConflictsProps = {
 	allData: GetAllSortedOutput;

@@ -13,6 +13,7 @@ import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
 import { FaPlus, FaTools } from 'react-icons/fa';
 import { WebReturnType } from '~/other/types';
+import { canManage } from '~/other/utils';
 import { api } from '~/utils/web.server';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -98,7 +99,7 @@ export default function Groups() {
 		setTempGroups([]);
 	}, [fetcher, tempGroups]);
 
-	const canManageAnything = useMemo(() => groups.some((c) => c.accessLevel === 'admin'), [groups]);
+	const canManageAnything = useMemo(() => groups.some((c) => canManage(c.accessLevel, user?.isDev)), [groups, user?.isDev]);
 	useEffect(() => setCanInvite?.(canManageAnything), [canManageAnything, setCanInvite]);
 	useEffect(() => setShowAllBoards?.(groups.length !== 0), [setShowAllBoards]);
 
@@ -110,7 +111,7 @@ export default function Groups() {
 					description={'List of all groups that are currently available to you.'}
 					customButtons={user?.isDev ? [{
 						type: 'normal',
-						label: 'Manage groups',
+						label: 'Manage Groups',
 						icon: <FaTools />,
 						isDisabled: groups.length === 0,
 						onClick: () => setEditorMode(!editorMode),
@@ -119,7 +120,7 @@ export default function Groups() {
 						isActive: editorMode,
 					}, {
 						type: 'normal',
-						label: 'Create group',
+						label: 'Create Group',
 						icon: <FaPlus />,
 						onClick: () => setModalOpen('createGroup'),
 						isLoading: fetcher.state === 'loading',
@@ -150,8 +151,9 @@ export default function Groups() {
 						url: `/groups/${g.id}`,
 						sizeBytes: g.sizeBytes,
 						isDeleteDisabled: g.categories > 0,
-						permsUrl: (user?.isDev || g.accessLevel === 'admin') ? `/permissions/${g.id}` : undefined,
 						name: g.name.charAt(0).toUpperCase() + g.name.slice(1),
+						permsUrl: canManage(g.accessLevel, user?.isDev) ? `/permissions/${g.id}` : undefined,
+						analyticsUrl: canManage(g.accessLevel, user?.isDev) ? `/analytics/${g.id}` : undefined,
 					}))}
 				/>
 

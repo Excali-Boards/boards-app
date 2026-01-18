@@ -236,7 +236,7 @@ export function Sidebar({ user }: SidebarProps) {
 	useFetcherResponse(fetcher, toast);
 
 	const baseFlashPath = useMemo(() => location.pathname.replace('/groups/', '/flashcards/'), [location.pathname]);
-	const canEditFlash = useMemo(() => boardInfo ? canEdit(boardInfo.accessLevel) : false, [boardInfo]);
+	const canEditFlash = useMemo(() => boardInfo ? canEdit(boardInfo.accessLevel, user?.isDev) : false, [boardInfo, user?.isDev]);
 
 	const flashTo = useMemo(() => {
 		if (boardInfo?.hasFlashCards) return baseFlashPath;
@@ -313,7 +313,7 @@ export function Sidebar({ user }: SidebarProps) {
 			>
 				{sideBarType === 'board' && (
 					<Fragment>
-						{boardInfo && canManage(boardInfo.accessLevel) && (
+						{boardInfo && canManage(boardInfo.accessLevel, user?.isDev) && (
 							<Tooltip
 								label='Kick collaborators'
 								aria-label='Kick collaborators'

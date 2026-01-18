@@ -101,7 +101,7 @@ export default function Categories() {
 		setTempCategories([]);
 	}, [fetcher, tempCategories]);
 
-	const canManageAnything = useMemo(() => categories.some((c) => c.accessLevel === 'admin'), [categories]);
+	const canManageAnything = useMemo(() => categories.some((c) => canManage(c.accessLevel, user?.isDev)), [categories, user?.isDev]);
 	useEffect(() => setCanInvite?.(canManageAnything), [canManageAnything, setCanInvite]);
 
 	return (
@@ -118,9 +118,9 @@ export default function Categories() {
 						to: `/groups/${group.id}/calendar`,
 						tooltip: 'View group calendar',
 						reloadDocument: true,
-					}, ...(user?.isDev || canManage(group.accessLevel) ? [{
+					}, ...(canManage(group.accessLevel, user?.isDev) ? [{
 						type: 'normal',
-						label: 'Manage categories',
+						label: 'Manage Categories',
 						icon: <FaTools />,
 						isDisabled: categories.length === 0,
 						onClick: () => setEditorMode(!editorMode),
@@ -129,7 +129,7 @@ export default function Categories() {
 						isActive: editorMode,
 					}, {
 						type: 'normal',
-						label: 'Create category',
+						label: 'Create Category',
 						icon: <FaPlus />,
 						onClick: () => setModalOpen('createCategory'),
 						isLoading: fetcher.state === 'loading',
@@ -160,8 +160,9 @@ export default function Categories() {
 						sizeBytes: c.totalSizeBytes,
 						isDeleteDisabled: c.boards > 0,
 						url: `/groups/${group.id}/${c.id}`,
-						permsUrl: (user?.isDev || c.accessLevel === 'admin') ? `/permissions/${group.id}/${c.id}` : undefined,
 						name: c.name.charAt(0).toUpperCase() + c.name.slice(1),
+						permsUrl: canManage(c.accessLevel, user?.isDev) ? `/permissions/${group.id}/${c.id}` : undefined,
+						analyticsUrl: canManage(c.accessLevel, user?.isDev) ? `/analytics/${group.id}/${c.id}` : undefined,
 					}))}
 				/>
 

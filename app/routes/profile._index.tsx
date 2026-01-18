@@ -1,6 +1,6 @@
 import { VStack, Box, Divider, Flex, Input, Button, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, useToast, IconButton, Tooltip, Text, FormControl, FormLabel } from '@chakra-ui/react';
 import { securityUtils, convertPlatform, makeResponse, makeResObject } from '~/utils/functions.server';
-import { FaEye, FaEyeSlash, FaLink, FaTrash, FaUnlink, FaUser } from 'react-icons/fa';
+import { FaChartBar, FaEye, FaEyeSlash, FaLink, FaTrash, FaUnlink, FaUser } from 'react-icons/fa';
 import { Platforms } from '@excali-boards/boards-api-client/prisma/generated/client';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
 import { Fragment, useCallback, useContext, useMemo, useState } from 'react';
@@ -98,6 +98,12 @@ export default function Profile() {
 	const allPlatformData = useMemo(() => platformButtons(allowedPlatforms || []), [allowedPlatforms]);
 	const customButtons = useMemo(() => {
 		const buttons: CustomButton<'link'>[] = [{
+			type: 'link',
+			to: '/analytics',
+			icon: <FaChartBar />,
+			label: 'View Analytics',
+			tooltip: 'View analytics',
+		}, {
 			type: 'link',
 			to: '/sessions',
 			icon: <MdDesktopWindows />,

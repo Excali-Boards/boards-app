@@ -133,7 +133,7 @@ export default function AdminUsers() {
 					goBackPath='/admin'
 					customButtons={[{
 						type: 'normal',
-						label: 'Manage users',
+						label: 'Manage Users',
 						icon: <FaTools />,
 						isDisabled: allUsers.length === 0,
 						onClick: () => setEditMode(!editMode),

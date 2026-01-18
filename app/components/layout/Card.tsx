@@ -1,5 +1,5 @@
 import { Flex, Text, HStack, Divider, IconButton, FlexProps, useColorMode, Badge, useBreakpointValue, Tooltip, Menu, MenuButton, MenuList, MenuItem } from '@chakra-ui/react';
-import { FaLink, FaList, FaPen, FaTrash, FaTrashRestore, FaUsers } from 'react-icons/fa';
+import { FaLink, FaList, FaPen, FaTrash, FaTrashRestore, FaUsers, FaChartBar } from 'react-icons/fa';
 import { formatBytes, getCardDeletionTime } from '~/other/utils';
 import { Fragment, useContext, useState } from 'react';
 import { IconLinkButton } from '~/components/Button';
@@ -12,6 +12,7 @@ export type CardProps = {
 	name: string;
 
 	permsUrl?: string;
+	analyticsUrl?: string;
 	editorMode?: boolean;
 
 	flashUrl?: string;
@@ -37,6 +38,7 @@ export function Card({
 	name,
 	refresh,
 	permsUrl,
+	analyticsUrl,
 	flashUrl,
 	sizeBytes,
 	editorMode,
@@ -116,6 +118,7 @@ export function Card({
 				<Divider orientation={'vertical'} color={'red'} height={'50px'} display={isMobile && editorMode ? 'none' : 'block'} />
 
 				<HStack spacing={2}>
+					{/* Edit/Delete/Restore */}
 					{onCancelDeletion && isScheduledForDeletion && (
 						<Fragment>
 							{user?.isDev && onForceDelete ? (
@@ -141,9 +144,11 @@ export function Card({
 											</MenuItem>
 											{onForceDelete && (
 												<MenuItem
-													bg='red.500'
+													color='white'
+													bg={colorMode === 'dark' ? 'red.600' : 'red.500'}
 													icon={<FaTrash />}
 													onClick={onForceDelete}
+													_hover={{ bg: colorMode === 'dark' ? 'red.700' : 'red.600' }}
 												>
 													Force Delete
 												</MenuItem>
@@ -206,6 +211,31 @@ export function Card({
 						</Tooltip>
 					)}
 
+					{/* Analytics */}
+					{analyticsUrl && (
+						<Tooltip label='View Analytics' hasArrow>
+							<span>
+								<IconLinkButton
+									to={analyticsUrl || '#'}
+									variant={'ghost'}
+									rounded={'full'}
+									bg={'alpha100'}
+									icon={<FaChartBar />}
+									alignItems={'center'}
+									isDisabled={!analyticsUrl}
+									reloadDocument={refresh}
+									justifyContent={'center'}
+									_hover={{ bg: 'alpha300' }}
+									aria-label={'View Analytics'}
+									_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+									onClick={() => setIsLoading(true)}
+									isLoading={isLoading}
+								/>
+							</span>
+						</Tooltip>
+					)}
+
+					{/* Permissions */}
 					{permsUrl && editorMode && (
 						<Tooltip label='Manage Permissions' hasArrow>
 							<span>
@@ -229,66 +259,68 @@ export function Card({
 						</Tooltip>
 					)}
 
-					{flashExists && flashUrl && editorMode && (
-						<Tooltip label='Manage Flashcards' hasArrow>
-							<span>
-								<IconLinkButton
-									to={flashUrl + '/manage'}
-									variant={'ghost'}
-									rounded={'full'}
-									bg={'alpha100'}
-									icon={<IoFlash />}
-									alignItems={'center'}
-									reloadDocument={refresh}
-									justifyContent={'center'}
-									_hover={{ bg: 'alpha300' }}
-									aria-label={'Manage Flashcards'}
-									_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-									onClick={() => setIsLoading(true)}
-									isLoading={isLoading}
-								/>
-							</span>
-						</Tooltip>
+					{/* Flashcards */}
+					{((flashExists && flashUrl) || (editorMode && onFlashCreate)) && (
+						editorMode ? (
+							flashExists ? (
+								<Tooltip label='Manage Flashcards' hasArrow>
+									<span>
+										<IconLinkButton
+											to={flashUrl + '/manage'}
+											variant='ghost'
+											rounded='full'
+											bg='alpha100'
+											icon={<IoFlash />}
+											alignItems='center'
+											reloadDocument={refresh}
+											justifyContent='center'
+											_hover={{ bg: 'alpha300' }}
+											aria-label='Manage Flashcards'
+											_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+											onClick={() => setIsLoading(true)}
+											isLoading={isLoading}
+										/>
+									</span>
+								</Tooltip>
+							) : (
+								<Tooltip label='Initialize Flashcards' hasArrow>
+									<IconButton
+										onClick={onFlashCreate}
+										variant='ghost'
+										rounded='full'
+										bg='alpha100'
+										icon={<IoFlash />}
+										alignItems='center'
+										justifyContent='center'
+										_hover={{ bg: 'alpha300' }}
+										aria-label='Create Flashcards'
+									/>
+								</Tooltip>
+							)
+						) : (
+							<Tooltip label='Flashcards' hasArrow>
+								<span>
+									<IconLinkButton
+										to={flashUrl!}
+										variant='ghost'
+										rounded='full'
+										bg='alpha100'
+										icon={<IoFlash />}
+										alignItems='center'
+										reloadDocument={refresh}
+										justifyContent='center'
+										_hover={{ bg: 'alpha300' }}
+										aria-label='View Flashcards'
+										_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+										onClick={() => setIsLoading(true)}
+										isLoading={isLoading}
+									/>
+								</span>
+							</Tooltip>
+						)
 					)}
 
-					{!flashExists && editorMode && onFlashCreate && (
-						<Tooltip label='Initialize Flashcards' hasArrow>
-							<IconButton
-								onClick={onFlashCreate}
-								variant={'ghost'}
-								rounded={'full'}
-								bg={'alpha100'}
-								icon={<IoFlash />}
-								alignItems={'center'}
-								justifyContent={'center'}
-								_hover={{ bg: 'alpha300' }}
-								aria-label={'Create Flashcards'}
-							/>
-						</Tooltip>
-					)}
-
-					{flashExists && flashUrl && !editorMode && (
-						<Tooltip label='Flashcards' hasArrow>
-							<span>
-								<IconLinkButton
-									to={flashUrl}
-									variant={'ghost'}
-									rounded={'full'}
-									bg={'alpha100'}
-									icon={<IoFlash />}
-									alignItems={'center'}
-									reloadDocument={refresh}
-									justifyContent={'center'}
-									_hover={{ bg: 'alpha300' }}
-									aria-label={'View Flashcards'}
-									_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-									onClick={() => setIsLoading(true)}
-									isLoading={isLoading}
-								/>
-							</span>
-						</Tooltip>
-					)}
-
+					{/* Normal Resource */}
 					<IconLinkButton
 						to={url}
 						variant={'ghost'}

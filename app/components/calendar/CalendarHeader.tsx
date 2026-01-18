@@ -3,8 +3,9 @@ import { ChevronLeftIcon, ChevronRightIcon, AddIcon, SettingsIcon } from '@chakr
 import { BsCalendarWeek, BsCalendarMonth, BsCalendar3 } from 'react-icons/bs';
 import { AccessLevel } from '@excali-boards/boards-api-client';
 import { canEdit, canManage } from '~/other/utils';
+import { useContext, useMemo } from 'react';
+import { RootContext } from '../Context';
 import 'temporal-polyfill/global';
-import { useMemo } from 'react';
 
 export type CalendarView = 'day' | 'week' | 'month-grid';
 
@@ -37,8 +38,9 @@ export function CalendarHeader({
 	onToday,
 	onCountrySettings,
 }: CalendarHeaderProps) {
-	const { colorMode } = useColorMode();
 	const isMobile = useBreakpointValue({ base: true, md: false });
+	const { user } = useContext(RootContext) || {};
+	const { colorMode } = useColorMode();
 
 	const formattedDate = useMemo(() => {
 		const formatter = new Intl.DateTimeFormat('en-US', {
@@ -154,7 +156,7 @@ export function CalendarHeader({
 			</Text>
 
 			<HStack spacing={2} minW='200px' justify='flex-end' zIndex={1}>
-				{canManage(accessLevel) && (
+				{canManage(accessLevel, user?.isDev) && (
 					<IconButton
 						size='sm'
 						variant='outline'
@@ -219,7 +221,7 @@ export function CalendarHeader({
 					</Portal>
 				</Menu>
 
-				{canEdit(accessLevel) && (
+				{canEdit(accessLevel, user?.isDev) && (
 					<Button
 						size='sm'
 						variant='solid'

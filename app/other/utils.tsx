@@ -122,27 +122,42 @@ export function formatTime(t: number | Date, from: TimeUnits = 'ms', short?: boo
 	if (from !== 'ms') t = time(t, from, 'ms');
 
 	const units = [
+		{ label: 'year', shortLabel: 'y', value: 31536000000 },
+		{ label: 'month', shortLabel: 'mo', value: 2592000000 },
 		{ label: 'day', shortLabel: 'd', value: 86400000 },
 		{ label: 'hour', shortLabel: 'h', value: 3600000 },
 		{ label: 'minute', shortLabel: 'm', value: 60000 },
 		{ label: 'second', shortLabel: 's', value: 1000 },
 	];
 
-	const timeParts = units.map(({ label, shortLabel, value }) => {
-		const amount = Math.floor(t / value) % (label === 'day' ? Infinity : label === 'hour' ? 24 : 60);
+	const amounts: number[] = [];
+
+	const timeParts = units.map(({ label, shortLabel, value }, i) => {
+		const amount = Math.floor(t / value) % (label === 'hour' ? 24 : label === 'minute' || label === 'second' ? 60 : Infinity);
+		amounts[i] = amount;
 		(t as number) %= value;
+
 		if (withColons) return amount.toString().padStart(2, '0');
 		if (amount > 0) return `${amount}${short ? shortLabel : ` ${label}${amount > 1 ? 's' : ''}`}`;
-		return withColons ? '00' : '';
+		return '';
 	});
 
-	if (withColons) {
-		const nonZeroIndex = timeParts.findIndex((part) => part !== '00');
-		const filteredParts = timeParts.slice(nonZeroIndex === -1 ? timeParts.length - 1 : nonZeroIndex);
-		return filteredParts.join(':');
+	const lastIndex = units.length - 1;
+	let mainIndex = amounts.findIndex((a, i) => a > 0 && i < lastIndex);
+	if (mainIndex === -1) mainIndex = lastIndex;
+
+	const shown = new Array(units.length).fill(false);
+	shown[mainIndex] = true;
+	if (mainIndex < lastIndex) shown[mainIndex + 1] = true;
+
+	if (withColons) return timeParts.filter((_, i) => shown[i]).join(':');
+
+	if (mainIndex < lastIndex && timeParts[mainIndex + 1] === '') {
+		const u = units[mainIndex + 1]!;
+		timeParts[mainIndex + 1] = short ? `0${u.shortLabel}` : `0 ${u.label}s`;
 	}
 
-	return timeParts.filter(Boolean).join(' ').trim();
+	return timeParts.filter((_, i) => shown[i] && timeParts[i]).join(' ').trim();
 }
 
 export function formatRelativeTime(date: Date, short = false): string {
@@ -190,20 +205,12 @@ export function validateParams<T extends string>(params: Record<string, string |
 	return validatedParams;
 }
 
-export function canRead(role: AccessLevel) {
-	return role === 'read';
+export function canEdit(role: AccessLevel, isDev?: boolean) {
+	return isDev || role === 'write' || role === 'manage' || role === 'admin';
 }
 
-export function canEdit(role: AccessLevel) {
-	return role === 'write' || role === 'manage' || role === 'admin';
-}
-
-export function canManage(role: AccessLevel) {
-	return role === 'manage' || role === 'admin';
-}
-
-export function canInvite(role: AccessLevel) {
-	return role === 'admin';
+export function canManage(role: AccessLevel, isDev?: boolean) {
+	return isDev || role === 'manage' || role === 'admin';
 }
 
 export function firstToUpperCase<T extends string>(str: T): Capitalize<T> {

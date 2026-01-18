@@ -85,10 +85,10 @@ export default function Board() {
 	return (
 		<Component
 			updateCollaborators={setBoardActiveCollaborators || (() => { })}
+			canEdit={isPreview ? false : canEdit(board.accessLevel, user?.isDev)}
 			useOppositeColorForBoard={useOppositeColorForBoard || false}
 			hideCollaborators={boardInfo?.hideCollaborators || false}
-			canEdit={isPreview ? false : canEdit(board.accessLevel)}
-			canReallyEdit={canEdit(board.accessLevel)}
+			canReallyEdit={canEdit(board.accessLevel, user?.isDev)}
 			name={`${category.name} - ${board.name}`}
 			licenseKey={licenseKey || undefined}
 			isMobile={isMobile || false}

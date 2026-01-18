@@ -17,6 +17,8 @@ export const calendarColors = {
 	silverfog: '#c0c0c0',
 } as const;
 
+export const colorsArray = Object.values(calendarColors);
+
 export const colorCalendars: Record<string, CalendarType> = Object.entries(calendarColors).reduce((acc, [key, color]) => {
 	acc[color] = {
 		colorName: key,

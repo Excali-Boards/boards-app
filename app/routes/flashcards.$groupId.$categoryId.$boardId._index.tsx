@@ -1,8 +1,8 @@
 import { Box, BoxProps, Button, Flex, HStack, IconButton, Slider, SliderFilledTrack, SliderThumb, SliderTrack, Text, Tooltip, useColorModeValue, VStack } from '@chakra-ui/react';
 import { FaArrowLeft, FaArrowRight, FaBookOpen, FaCog, FaList, FaRandom } from 'react-icons/fa';
 import { ActionFunctionArgs, LinkDescriptor, LoaderFunctionArgs } from '@remix-run/node';
+import { useState, useMemo, useCallback, useRef, useEffect, useContext } from 'react';
 import { themeColor, themeColorLight, WebReturnType } from '~/other/types';
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { IconLinkButton, LinkButton } from '~/components/Button';
 import { ConfettiContainer } from '~/components/other/Confetti';
@@ -10,6 +10,7 @@ import { useFetcher, useLoaderData } from '@remix-run/react';
 import { canEdit, validateParams } from '~/other/utils';
 import { TextParser } from '~/components/TextParser';
 import { authenticator } from '~/utils/auth.server';
+import { RootContext } from '~/components/Context';
 import { useHotkeys } from '~/hooks/useHotkey';
 import { FaDeleteLeft } from 'react-icons/fa6';
 import { GiGloop } from 'react-icons/gi';
@@ -64,6 +65,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 export default function Flashcards() {
 	const { deck, groupId, categoryId, boardId } = useLoaderData<typeof loader>();
 	const colorBg = useColorModeValue(themeColorLight, themeColor);
+	const { user } = useContext(RootContext) || {};
 
 	const [hasShownConfetti, setHasShownConfetti] = useState(false);
 	const [showConfetti, setShowConfetti] = useState(false);
@@ -278,7 +280,7 @@ export default function Flashcards() {
 									/>
 								</Tooltip>
 
-								{canEdit(deck.board.accessLevel) && (
+								{canEdit(deck.board.accessLevel, user?.isDev) && (
 									<Tooltip label='Manage Flashcards' placement='bottom' hasArrow>
 										<span>
 											<IconLinkButton

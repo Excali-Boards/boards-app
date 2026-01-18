@@ -2,15 +2,16 @@ import { Box, Flex, HStack, IconButton, SimpleGrid, Text, Tooltip, useColorModeV
 import { FlipCardProps } from './flashcards.$groupId.$categoryId.$boardId._index';
 import { LinkDescriptor, LoaderFunctionArgs } from '@remix-run/node';
 import { themeColor, themeColorLight } from '~/other/types';
+import { useState, useCallback, useContext } from 'react';
 import { FaBookOpen, FaCog, FaEye } from 'react-icons/fa';
 import { validateParams, canEdit } from '~/other/utils';
 import { makeResponse } from '~/utils/functions.server';
 import { TextParser } from '~/components/TextParser';
 import { IconLinkButton } from '~/components/Button';
 import { authenticator } from '~/utils/auth.server';
+import { RootContext } from '~/components/Context';
 import { useLoaderData } from '@remix-run/react';
 import { FaDeleteLeft } from 'react-icons/fa6';
-import { useState, useCallback } from 'react';
 import { GiGloop } from 'react-icons/gi';
 import { api } from '~/utils/web.server';
 
@@ -32,6 +33,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
 export default function FlashcardsGrid() {
 	const { deck, groupId, categoryId, boardId } = useLoaderData<typeof loader>();
+	const { user } = useContext(RootContext) || {};
 
 	const [allCards, setAllCards] = useState(deck.cards);
 	const [showingFront, setShowingFront] = useState(true);
@@ -167,7 +169,7 @@ export default function FlashcardsGrid() {
 									/>
 								</Tooltip>
 
-								{canEdit(deck.board.accessLevel) && (
+								{canEdit(deck.board.accessLevel, user?.isDev) && (
 									<Tooltip label='Manage Flashcards' placement='bottom' hasArrow>
 										<span>
 											<IconLinkButton

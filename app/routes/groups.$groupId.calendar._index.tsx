@@ -161,7 +161,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
 export default function GroupCalendar() {
 	const { group, events: initialEvents, holidays: initialHolidays } = useLoaderData<typeof loader>();
-	const { useOppositeColorForBoard } = useContext(RootContext) || {};
+	const { useOppositeColorForBoard, user } = useContext(RootContext) || {};
 	const { colorMode } = useColorMode();
 
 	const isDark = useMemo(() => (colorMode === 'dark' ? !useOppositeColorForBoard : useOppositeColorForBoard), [colorMode, useOppositeColorForBoard]);
@@ -481,7 +481,7 @@ export default function GroupCalendar() {
 					type={modalOpen || 'createEvent'}
 					selectedDate={currentDate.toString()}
 					defaultEvent={selectedEvent || undefined}
-					canEdit={canEdit(group.accessLevel)}
+					canEdit={canEdit(group.accessLevel, user?.isDev)}
 					onDelete={() => setShowDeleteConfirm(true)}
 					onEdit={() => {
 						if (selectedEvent) setModalOpen('updateEvent');
@@ -502,9 +502,9 @@ export default function GroupCalendar() {
 				<CountryCodeModal
 					isOpen={showCountryModal}
 					onSave={handleCountrySave}
-					canManage={canManage(group.accessLevel)}
 					currentCountryCode={group.calendarCode}
 					onClose={() => setShowCountryModal(false)}
+					canManage={canManage(group.accessLevel, user?.isDev)}
 					isLoading={fetcher.state === 'loading' || fetcher.state === 'submitting'}
 				/>
 			</Flex>

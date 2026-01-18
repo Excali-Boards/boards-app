@@ -138,9 +138,9 @@ export default function Boards() {
 					name={`Boards in category: ${category.name}`}
 					description={'List of all boards that are currently available to you in this category.'}
 					goBackPath={`/groups/${group.id}`}
-					customButtons={user?.isDev || canManage(category.accessLevel) ? [{
+					customButtons={canManage(category.accessLevel, user?.isDev) ? [{
 						type: 'normal',
-						label: 'Manage boards',
+						label: 'Manage Boards',
 						icon: <FaTools />,
 						isDisabled: boards.length === 0,
 						onClick: () => setEditorMode(!editorMode),
@@ -149,7 +149,7 @@ export default function Boards() {
 						isActive: editorMode,
 					}, {
 						type: 'normal',
-						label: 'Create board',
+						label: 'Create Board',
 						icon: <FaPlus />,
 						onClick: () => setModalOpen('createBoard'),
 						isLoading: fetcher.state === 'loading',
@@ -197,9 +197,10 @@ export default function Boards() {
 						url: `/groups/${group.id}/${category.id}/${b.id}`,
 						name: b.name.charAt(0).toUpperCase() + b.name.slice(1),
 						flashUrl: `/flashcards/${group.id}/${category.id}/${b.id}`,
-						isScheduledForDeletion: b.scheduledForDeletion ? new Date(b.scheduledForDeletion) : undefined,
 						isScheduledForDeletionText: b.scheduledForDeletionText || undefined,
-						permsUrl: (user?.isDev || b.accessLevel === 'admin') ? `/permissions/${group.id}/${category.id}/${b.id}` : undefined,
+						isScheduledForDeletion: b.scheduledForDeletion ? new Date(b.scheduledForDeletion) : undefined,
+						permsUrl: canManage(b.accessLevel, user?.isDev) ? `/permissions/${group.id}/${category.id}/${b.id}` : undefined,
+						analyticsUrl: canManage(b.accessLevel, user?.isDev) ? `/analytics/${group.id}/${category.id}/${b.id}` : undefined,
 					}))}
 				/>
 
