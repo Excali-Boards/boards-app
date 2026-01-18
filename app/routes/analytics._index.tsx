@@ -46,8 +46,8 @@ export default function UserAnalytics() {
 	}));
 
 	const stats = [
-		{ value: totalStats.totalSessions, label: 'Total Sessions' },
 		{ value: analytics.length, label: 'Boards Viewed' },
+		{ value: totalStats.totalSessions, label: 'Total Sessions' },
 		{ value: formatTime(totalStats.totalActiveSeconds, 's', true), label: 'Total Active Time' },
 		{ value: analytics.length > 0 ? formatTime(totalStats.totalActiveSeconds / analytics.length, 's', true) : '0s', label: 'Avg Time per Board' },
 	];
