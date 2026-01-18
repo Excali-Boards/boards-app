@@ -1,5 +1,5 @@
-import { VStack, Box, Flex, Text, Avatar, IconButton, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Button, useColorMode, Badge, HStack, Divider, useToast, FormControl, FormLabel, Input } from '@chakra-ui/react';
-import { FaClipboard, FaEye, FaFolder, FaLock, FaPen, FaQuestionCircle, FaTools, FaTrash, FaUnlock, FaUsers } from 'react-icons/fa';
+import { VStack, Box, Flex, Text, Avatar, IconButton, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Button, useColorMode, Badge, HStack, Divider, useToast, FormControl, FormLabel, Input, Tooltip } from '@chakra-ui/react';
+import { FaClipboard, FaEye, FaFolder, FaLock, FaPen, FaQuestionCircle, FaTools, FaTrash, FaUnlock, FaUserPlus, FaUsers } from 'react-icons/fa';
 import { getAll, GrantedEntry, PermUser, ResourceType } from '@excali-boards/boards-api-client';
 import { makeResObject, makeResponse, securityUtils } from '~/utils/functions.server';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
@@ -173,12 +173,37 @@ export default function AdminUsers() {
 									alignItems={'start'}
 									flexDir={'column'}
 								>
-									<Text
-										fontSize={{ base: 'lg', md: '2xl' }}
-										fontWeight={'bold'}
-									>
-										{user.displayName}
-									</Text>
+									<HStack spacing={2}>
+										<Text
+											fontSize={{ base: 'lg', md: '2xl' }}
+											fontWeight={'bold'}
+										>
+											{user.displayName}
+										</Text>
+										{user.inviterDetails && (
+											<Tooltip
+												hasArrow
+												label={
+													<Flex alignItems='center' gap={1} py={1} justifyContent='center'>
+														<Avatar size='xs' src={user.inviterDetails.avatarUrl || undefined} name={user.inviterDetails.displayName} />
+														<Text>Invited by {user.inviterDetails.displayName}</Text>
+													</Flex>
+												}
+											>
+												<Badge
+													colorScheme='purple'
+													variant='subtle'
+													display='flex'
+													alignItems='center'
+													gap={1}
+													cursor='help'
+												>
+													<FaUserPlus size={10} />
+													Invited
+												</Badge>
+											</Tooltip>
+										)}
+									</HStack>
 
 									<Flex gap={{ base: 0, md: 2 }} alignItems={'start'} flexDir={{ base: 'column', md: 'row' }}>
 										<Text
@@ -196,15 +221,6 @@ export default function AdminUsers() {
 											({user.decryptedEmail})
 										</Text>
 									</Flex>
-
-									{user.inviterDetails && (
-										<HStack spacing={2} mt={1}>
-											<Avatar size='xs' src={user.inviterDetails.avatarUrl || undefined} name={user.inviterDetails.displayName} />
-											<Text fontSize='sm' color='gray.400'>
-												Invited by {user.inviterDetails.displayName}
-											</Text>
-										</HStack>
-									)}
 								</Flex>
 							</Flex>
 
