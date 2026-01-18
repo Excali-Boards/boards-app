@@ -8,6 +8,21 @@ import { useLoaderData } from '@remix-run/react';
 import { api } from '~/utils/web.server';
 import { FaLink } from 'react-icons/fa';
 
+export type RoomData = {
+	boardId: string;
+	groupId: string;
+	categoryId: string;
+	groupName: string;
+	categoryName: string;
+	name: string;
+	elements: number;
+	collaborators: {
+		id: string;
+		username: string;
+		avatarUrl: string | null;
+	}[];
+};
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
@@ -27,12 +42,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	return {
 		rooms: DBRooms.data.map((room) => {
 			const boardData = allBoards.find((b) => b.board.id === room.boardId);
+			if (!boardData) return null;
 
 			return {
 				boardId: room.boardId,
-				groupId: boardData?.group.id || 'Unknown',
-				categoryId: boardData?.category.id || 'Unknown',
-				name: boardData?.board.name || 'Unknown',
+				groupId: boardData.group.id || 'Unknown',
+				categoryId: boardData.category.id || 'Unknown',
+				groupName: boardData.group.name || 'Unknown',
+				categoryName: boardData.category.name || 'Unknown',
+				name: boardData.board.name || 'Unknown',
 				elements: room.elements,
 				collaborators: room.collaborators.map((collab) => ({
 					id: collab.id,
@@ -40,7 +58,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 					avatarUrl: collab.avatarUrl,
 				})),
 			};
-		}) || [],
+		}).filter((room) => room !== null) as RoomData[] || [],
 	};
 };
 
@@ -74,14 +92,17 @@ export default function AdminRooms() {
 							wordBreak={'break-word'}
 						>
 							<Flex
-								alignItems={{ base: 'start', md: 'center' }}
-								flexDir={{ base: 'column', md: 'row' }}
+								alignItems={'start'}
+								flexDir={'column'}
 								justifyContent={'center'}
-								gap={{ base: 0, md: 2 }}
+								gap={0}
 								textAlign={'start'}
 							>
-								<Text fontSize={'2xl'} fontWeight={'bold'}>{b.name}</Text>
-								<Text fontSize={'lg'} fontWeight={'bold'} color={'gray.500'}>({b.elements} element{b.elements === 1 ? '' : 's'})</Text>
+								<Flex alignItems={{ base: 'start', md: 'center' }} flexDir={{ base: 'column', md: 'row' }} gap={{ base: 0, md: 2 }}>
+									<Text fontSize={'2xl'} fontWeight={'bold'}>{b.name}</Text>
+									<Text fontSize={'lg'} fontWeight={'bold'} color={'gray.500'}>({b.elements} element{b.elements === 1 ? '' : 's'})</Text>
+								</Flex>
+								<Text fontSize={'sm'} color={'gray.500'}>{b.groupName} • {b.categoryName}</Text>
 							</Flex>
 							<Flex
 								alignItems={'center'}

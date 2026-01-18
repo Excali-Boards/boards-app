@@ -157,7 +157,8 @@ export function formatTime(t: number | Date, from: TimeUnits = 'ms', short?: boo
 		timeParts[mainIndex + 1] = short ? `0${u.shortLabel}` : `0 ${u.label}s`;
 	}
 
-	return timeParts.filter((_, i) => shown[i] && timeParts[i]).join(' ').trim();
+	const result = timeParts.filter((_, i) => shown[i] && timeParts[i]).join(' ').trim();
+	return result || (short ? '0s' : '0 seconds');
 }
 
 export function formatRelativeTime(date: Date, short = false): string {
