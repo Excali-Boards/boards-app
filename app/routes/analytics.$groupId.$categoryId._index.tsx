@@ -1,10 +1,11 @@
 import { VStack, Box, Divider, Text, Table, Thead, Tbody, Tr, Th, Td, Avatar, Flex, useColorMode, useBreakpointValue } from '@chakra-ui/react';
+import { formatRelativeTime, formatTime, validateParams } from '~/other/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { CustomTooltip } from '~/components/analytics/CustomTooltip';
 import { StatGrid } from '~/components/analytics/StatGrid';
-import { formatTime, validateParams } from '~/other/utils';
 import { Container } from '~/components/layout/Container';
 import { makeResponse } from '~/utils/functions.server';
+import { BoardMapType, MapType } from '~/other/types';
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { authenticator } from '~/utils/auth.server';
 import MenuBar from '~/components/layout/MenuBar';
@@ -57,13 +58,26 @@ export default function CategoryAnalytics() {
 				avatarUrl: item.user.avatarUrl,
 				sessions: item.totalSessions,
 				hours: item.totalActiveSeconds / 3600,
+				lastActive: formatRelativeTime(new Date(item.lastActivityAt), true),
+				time: formatTime(item.totalActiveSeconds, 's', true),
 			});
 		}
 		return acc;
-	}, new Map())).map(([_, data]) => ({
-		...data,
-		time: formatTime(data.hours * 3600, 's', true),
-	})).sort((a, b) => b.hours - a.hours);
+	}, new Map<string, MapType>())).map(([_, data]) => data).sort((a, b) => b.hours - a.hours);
+
+	const boardData = Array.from(analytics.reduce((acc, item) => {
+		const existing = acc.get(item.board.boardId);
+		if (existing) {
+			existing.hours += item.totalActiveSeconds / 3600;
+		} else {
+			acc.set(item.board.boardId, {
+				boardId: item.board.boardId,
+				boardName: item.board.name,
+				hours: item.totalActiveSeconds / 3600,
+			});
+		}
+		return acc;
+	}, new Map<string, BoardMapType>())).map(([_, data]) => data).sort((a, b) => b.hours - a.hours);
 
 	const timePieData = userData.map((user, index) => ({
 		name: user.displayName,
@@ -71,15 +85,17 @@ export default function CategoryAnalytics() {
 		color: colorsArray[index % colorsArray.length],
 	}));
 
-	const sessionsPieData = userData.map((user, index) => ({
-		name: user.displayName,
-		value: user.sessions,
+	const boardPieData = boardData.map((board, index) => ({
+		name: board.boardName.length > 20 ? board.boardName.slice(0, 20) + '..' : board.boardName,
+		value: board.hours,
 		color: colorsArray[index % colorsArray.length],
 	}));
 
+	const avgSessions = userData.length > 0 ? totalStats.totalSessions / userData.length : 0;
+
 	const stats = [
 		{ value: totalStats.totalSessions, label: 'Total Sessions' },
-		{ value: (totalStats.totalSessions / (userData.length || 1)).toFixed(2), label: 'Avg Sessions per User' },
+		{ value: avgSessions % 1 === 0 ? avgSessions : avgSessions.toFixed(2), label: 'Avg Sessions per User' },
 		{ value: formatTime(totalStats.totalActiveSeconds, 's', true), label: 'Total Active Time' },
 		{ value: formatTime(totalStats.totalActiveSeconds / (userData.length || 1), 's', true), label: 'Avg Time per User' },
 	];
@@ -110,11 +126,11 @@ export default function CategoryAnalytics() {
 						{userData.length >= 2 && (
 							<Box display='grid' gridTemplateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={4} mb={4}>
 								<Container>
-									<Text fontSize='lg' fontWeight='bold' mb={4}>Sessions Distribution</Text>
+									<Text fontSize='lg' fontWeight='bold' mb={4}>Boards Distribution</Text>
 									<ResponsiveContainer width='100%' height={400}>
 										<PieChart>
 											<Pie
-												data={sessionsPieData}
+												data={boardPieData}
 												cx='50%'
 												cy='50%'
 												labelLine={false}
@@ -122,8 +138,9 @@ export default function CategoryAnalytics() {
 												outerRadius={125}
 												fill='#8884d8'
 												dataKey='value'
+												isAnimationActive={false}
 											>
-												{sessionsPieData.map((entry, index) => (
+												{boardPieData.map((entry, index) => (
 													<Cell key={`cell-${index}`} fill={entry.color} />
 												))}
 											</Pie>
@@ -145,6 +162,7 @@ export default function CategoryAnalytics() {
 												outerRadius={125}
 												fill='#8884d8'
 												dataKey='value'
+												isAnimationActive={false}
 											>
 												{timePieData.map((entry, index) => (
 													<Cell key={`cell-${index}`} fill={entry.color} />
@@ -158,7 +176,7 @@ export default function CategoryAnalytics() {
 						)}
 
 						<Container>
-							<Text fontSize='lg' fontWeight='bold' mb={4}>All Users</Text>
+							<Text fontSize='lg' fontWeight='bold' mb={2}>All Users</Text>
 
 							{isMobile ? (
 								<VStack spacing={4}>
@@ -177,6 +195,10 @@ export default function CategoryAnalytics() {
 												<Text fontSize='sm'>Active Time:</Text>
 												<Text fontWeight='bold'>{user.time}</Text>
 											</Flex>
+											<Flex justify='space-between'>
+												<Text fontSize='sm'>Last Active:</Text>
+												<Text fontWeight='bold'>{user.lastActive}</Text>
+											</Flex>
 										</Box>
 									))}
 								</VStack>
@@ -188,6 +210,7 @@ export default function CategoryAnalytics() {
 												<Th>User</Th>
 												<Th isNumeric>Sessions</Th>
 												<Th isNumeric>Active Time</Th>
+												<Th isNumeric>Last Active</Th>
 											</Tr>
 										</Thead>
 										<Tbody>
@@ -201,6 +224,7 @@ export default function CategoryAnalytics() {
 													</Td>
 													<Td isNumeric fontWeight='bold' fontSize='lg'>{user.sessions}</Td>
 													<Td isNumeric fontWeight='bold' fontSize='lg'>{user.time}</Td>
+													<Td isNumeric fontWeight='bold' fontSize='lg'>{user.lastActive}</Td>
 												</Tr>
 											))}
 										</Tbody>

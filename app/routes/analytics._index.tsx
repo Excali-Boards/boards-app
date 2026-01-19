@@ -70,29 +70,6 @@ export default function UserAnalytics() {
 						{analytics.length >= 2 && (
 							<Box display='grid' gridTemplateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={4} mb={4}>
 								<Container>
-									<Text fontSize='lg' fontWeight='bold' mb={4}>Active Time Distribution</Text>
-									<ResponsiveContainer width='100%' height={400}>
-										<PieChart>
-											<Pie
-												data={timePieData}
-												cx='50%'
-												cy='50%'
-												labelLine={false}
-												label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-												outerRadius={125}
-												fill='#8884d8'
-												dataKey='value'
-											>
-												{timePieData.map((entry, index) => (
-													<Cell key={`cell-${index}`} fill={entry.color} />
-												))}
-											</Pie>
-											<Tooltip content={<CustomTooltip />} />
-										</PieChart>
-									</ResponsiveContainer>
-								</Container>
-
-								<Container>
 									<Text fontSize='lg' fontWeight='bold' mb={4}>Sessions Distribution</Text>
 									<ResponsiveContainer width='100%' height={400}>
 										<PieChart>
@@ -105,8 +82,33 @@ export default function UserAnalytics() {
 												outerRadius={125}
 												fill='#8884d8'
 												dataKey='value'
+												isAnimationActive={false}
 											>
 												{sessionsPieData.map((entry, index) => (
+													<Cell key={`cell-${index}`} fill={entry.color} />
+												))}
+											</Pie>
+											<Tooltip content={<CustomTooltip />} />
+										</PieChart>
+									</ResponsiveContainer>
+								</Container>
+
+								<Container>
+									<Text fontSize='lg' fontWeight='bold' mb={4}>Active Time Distribution</Text>
+									<ResponsiveContainer width='100%' height={400}>
+										<PieChart>
+											<Pie
+												data={timePieData}
+												cx='50%'
+												cy='50%'
+												labelLine={false}
+												label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+												outerRadius={125}
+												fill='#8884d8'
+												dataKey='value'
+												isAnimationActive={false}
+											>
+												{timePieData.map((entry, index) => (
 													<Cell key={`cell-${index}`} fill={entry.color} />
 												))}
 											</Pie>
@@ -118,7 +120,7 @@ export default function UserAnalytics() {
 						)}
 
 						<Container>
-							<Text fontSize='lg' fontWeight='bold' mb={4}>All Boards</Text>
+							<Text fontSize='lg' fontWeight='bold' mb={2}>All Boards</Text>
 
 							{isMobile ? (
 								<VStack spacing={4}>

@@ -167,33 +167,47 @@ export function formatRelativeTime(date: Date, short = false): string {
 	const isFuture = diffMs > 0;
 	const diff = Math.abs(diffMs);
 
-	const seconds = Math.floor(diff / 1000) % 60;
-	const minutes = Math.floor(diff / (1000 * 60)) % 60;
-	const hours = Math.floor(diff / (1000 * 60 * 60)) % 24;
-	const days = Math.floor(diff / (1000 * 60 * 60 * 24)) % 7;
-	const weeks = Math.floor(diff / (1000 * 60 * 60 * 24 * 7)) % 4;
-	const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30)) % 12;
-	const years = Math.floor(diff / (1000 * 60 * 60 * 24 * 365));
+	const units = [
+		{ label: 'year', shortLabel: 'y', value: 1000 * 60 * 60 * 24 * 365, mod: Infinity },
+		{ label: 'month', shortLabel: 'mo', value: 1000 * 60 * 60 * 24 * 30, mod: 12 },
+		{ label: 'week', shortLabel: 'w', value: 1000 * 60 * 60 * 24 * 7, mod: 4 },
+		{ label: 'day', shortLabel: 'd', value: 1000 * 60 * 60 * 24, mod: 7 },
+		{ label: 'hour', shortLabel: 'h', value: 1000 * 60 * 60, mod: 24 },
+		{ label: 'minute', shortLabel: 'm', value: 1000 * 60, mod: 60 },
+		{ label: 'second', shortLabel: 's', value: 1000, mod: 60 },
+	];
 
-	const parts: string[] = [];
-	const add = (value: number, shortForm: string, longForm: string) => {
-		if (value > 0) parts.push(short ? `${value}${shortForm}` : `${value} ${longForm}${value !== 1 ? 's' : ''}`);
-	};
+	let remaining = diff;
+	const amounts: number[] = [];
 
-	add(years, 'y', 'year');
-	add(months, 'mo', 'month');
-	add(weeks, 'w', 'week');
-	add(days, 'd', 'day');
-	add(hours, 'h', 'hour');
-	add(minutes, 'm', 'minute');
-	add(seconds, 's', 'second');
+	const parts = units.map((u, i) => {
+		const amount = Math.floor(remaining / u.value) % u.mod;
+		amounts[i] = amount;
+		remaining %= u.value;
 
-	const shown = parts.slice(0, Math.max(2, Math.min(3, parts.length)));
+		if (amount > 0) return short ? `${amount}${u.shortLabel}` : `${amount} ${u.label}${amount !== 1 ? 's' : ''}`;
+		return '';
+	});
 
-	const result = shown.join(short ? ' ' : ', ');
-	return isFuture ? (short ? result : result) : (short ? `${result} ago` : `${result} ago`);
+	const lastIndex = units.length - 1;
+
+	let mainIndex = amounts.findIndex((a, i) => a > 0 && i < lastIndex);
+	if (mainIndex === -1) mainIndex = lastIndex;
+
+	const shown = new Array(units.length).fill(false);
+	shown[mainIndex] = true;
+	if (mainIndex < lastIndex) shown[mainIndex + 1] = true;
+
+	if (mainIndex < lastIndex && parts[mainIndex + 1] === '') {
+		const u = units[mainIndex + 1]!;
+		parts[mainIndex + 1] = short ? `0${u.shortLabel}` : `0 ${u.label}s`;
+	}
+
+	const sep = short ? ' ' : ', ';
+	const result = parts.filter((_, i) => shown[i] && parts[i]).join(sep).trim() || (short ? '0s' : '0 seconds');
+
+	return isFuture ? result : short ? `${result} ago` : `${result} ago`;
 }
-
 
 export function validateParams<T extends string>(params: Record<string, string | undefined>, requiredParams: T[]): Record<T, string> {
 	const validatedParams = {} as Record<T[number], string>;

@@ -1,7 +1,7 @@
 import { VStack, Box, Divider, Text, Table, Thead, Tbody, Tr, Th, Td, Avatar, Flex, useColorMode, useBreakpointValue } from '@chakra-ui/react';
+import { formatRelativeTime, formatTime, time, validateParams } from '~/other/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { CustomTooltip } from '~/components/analytics/CustomTooltip';
-import { formatTime, time, validateParams } from '~/other/utils';
 import { StatGrid } from '~/components/analytics/StatGrid';
 import { Container } from '~/components/layout/Container';
 import { makeResponse } from '~/utils/functions.server';
@@ -45,13 +45,14 @@ export default function BoardAnalytics() {
 
 	const uniqueUsers = new Set(analytics.map(a => a.user.userId)).size;
 
-	const userData = analytics.map(item => ({
+	const userData = analytics.map((item) => ({
 		userId: item.user.userId,
 		displayName: item.user.displayName,
 		avatarUrl: item.user.avatarUrl,
 		sessions: item.totalSessions,
 		time: formatTime(item.totalActiveSeconds, 's', true),
 		seconds: item.totalActiveSeconds,
+		lastActive: formatRelativeTime(new Date(item.lastActivityAt), true),
 	})).sort((a, b) => b.seconds - a.seconds);
 
 	const timePieData = userData.map((user, index) => ({
@@ -111,6 +112,7 @@ export default function BoardAnalytics() {
 												outerRadius={125}
 												fill='#8884d8'
 												dataKey='value'
+												isAnimationActive={false}
 											>
 												{sessionsPieData.map((entry, index) => (
 													<Cell key={`cell-${index}`} fill={entry.color} />
@@ -134,6 +136,7 @@ export default function BoardAnalytics() {
 												outerRadius={125}
 												fill='#8884d8'
 												dataKey='value'
+												isAnimationActive={false}
 											>
 												{timePieData.map((entry, index) => (
 													<Cell key={`cell-${index}`} fill={entry.color} />
@@ -147,7 +150,7 @@ export default function BoardAnalytics() {
 						)}
 
 						<Container>
-							<Text fontSize='lg' fontWeight='bold' mb={4}>All Users</Text>
+							<Text fontSize='lg' fontWeight='bold' mb={2}>All Users</Text>
 
 							{isMobile ? (
 								<VStack spacing={4}>
@@ -166,6 +169,10 @@ export default function BoardAnalytics() {
 												<Text fontSize='sm'>Active Time:</Text>
 												<Text fontWeight='bold'>{user.time}</Text>
 											</Flex>
+											<Flex justify='space-between'>
+												<Text fontSize='sm'>Last Active:</Text>
+												<Text fontWeight='bold'>{user.lastActive}</Text>
+											</Flex>
 										</Box>
 									))}
 								</VStack>
@@ -177,6 +184,7 @@ export default function BoardAnalytics() {
 												<Th>User</Th>
 												<Th isNumeric>Sessions</Th>
 												<Th isNumeric>Active Time</Th>
+												<Th isNumeric>Last Active</Th>
 											</Tr>
 										</Thead>
 										<Tbody>
@@ -190,6 +198,7 @@ export default function BoardAnalytics() {
 													</Td>
 													<Td isNumeric fontWeight='bold' fontSize='lg'>{user.sessions}</Td>
 													<Td isNumeric fontWeight='bold' fontSize='lg'>{user.time}</Td>
+													<Td isNumeric fontWeight='bold' fontSize='lg'>{user.lastActive}</Td>
 												</Tr>
 											))}
 										</Tbody>

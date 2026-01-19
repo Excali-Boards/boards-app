@@ -109,7 +109,15 @@ export type MapType = {
 	userId: string;
 	displayName: string;
 	avatarUrl: string | null;
+	lastActive: string;
 	sessions: number;
+	hours: number;
+	time: string;
+};
+
+export type BoardMapType = {
+	boardId: string;
+	boardName: string;
 	hours: number;
 };
 
