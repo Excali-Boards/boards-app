@@ -8,6 +8,10 @@ body {
 	display: none;
 }
 
+.recharts-pie * {
+	outline: none !important;
+}
+
 .chakra-menu__menu-list {
 	background-color: var(--chakra-colors-brand-800) !important;
 	border: 1px solid var(--chakra-colors-whiteAlpha-200) !important;

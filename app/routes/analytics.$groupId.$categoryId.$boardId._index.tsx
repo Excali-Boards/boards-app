@@ -112,7 +112,6 @@ export default function BoardAnalytics() {
 												outerRadius={125}
 												fill='#8884d8'
 												dataKey='value'
-												isAnimationActive={false}
 											>
 												{sessionsPieData.map((entry, index) => (
 													<Cell key={`cell-${index}`} fill={entry.color} />
@@ -136,7 +135,6 @@ export default function BoardAnalytics() {
 												outerRadius={125}
 												fill='#8884d8'
 												dataKey='value'
-												isAnimationActive={false}
 											>
 												{timePieData.map((entry, index) => (
 													<Cell key={`cell-${index}`} fill={entry.color} />
