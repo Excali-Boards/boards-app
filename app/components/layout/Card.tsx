@@ -13,6 +13,8 @@ export type CardProps = {
 
 	permsUrl?: string;
 	analyticsUrl?: string;
+
+	hasPerms?: boolean;
 	editorMode?: boolean;
 
 	flashUrl?: string;
@@ -40,6 +42,7 @@ export function Card({
 	permsUrl,
 	analyticsUrl,
 	flashUrl,
+	hasPerms,
 	sizeBytes,
 	editorMode,
 	flashExists,
@@ -119,7 +122,7 @@ export function Card({
 
 				<HStack spacing={2}>
 					{/* Edit/Delete/Restore */}
-					{onCancelDeletion && isScheduledForDeletion && (
+					{onCancelDeletion && isScheduledForDeletion && hasPerms && (
 						<Fragment>
 							{user?.isDev && onForceDelete ? (
 								<Tooltip label='Restore' hasArrow>
@@ -175,7 +178,7 @@ export function Card({
 						</Fragment>
 					)}
 
-					{onDelete && !isScheduledForDeletion && (
+					{onDelete && !isScheduledForDeletion && hasPerms && (
 						<Tooltip label='Delete' hasArrow>
 							<IconButton
 								onClick={onDelete}
@@ -193,7 +196,7 @@ export function Card({
 						</Tooltip>
 					)}
 
-					{onEdit && (
+					{onEdit && hasPerms && (
 						<Tooltip label='Edit' hasArrow>
 							<IconButton
 								onClick={onEdit}

@@ -4,6 +4,7 @@ import { ResourceInvites } from '~/components/permissions/ResourceInvites';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { ResourceUsers } from '~/components/sessions/ResourceUsers';
+import { canInviteAndPermit, validateParams } from '~/other/utils';
 import { VStack, Box, Divider, useToast } from '@chakra-ui/react';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { ResourceType } from '@excali-boards/boards-api-client';
@@ -12,7 +13,6 @@ import { FaAddressCard, FaGift } from 'react-icons/fa';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
-import { validateParams } from '~/other/utils';
 import { WebReturnType } from '~/other/types';
 import { useContext, useState } from 'react';
 import { api } from '~/utils/web.server';
@@ -46,8 +46,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 	const formData = await request.formData();
 	const type = formData.get('type') as string;
-
-	console.log('Action type:', type, [...formData.entries()]);
 
 	switch (type) {
 		case 'createInvite': {
@@ -109,6 +107,8 @@ export default function GroupPermissions() {
 	const fetcher = useFetcher<WebReturnType<string>>();
 	const toast = useToast();
 
+	const canManagePermissions = canInviteAndPermit(group.accessLevel, user?.isDev);
+
 	useFetcherResponse(fetcher, toast, () => {
 		setIsInviteModalOpen(false);
 		setIsPermissionModalOpen(false);
@@ -127,12 +127,14 @@ export default function GroupPermissions() {
 						label: 'Grant Permissions',
 						tooltip: 'Grant permissions to a user for this group',
 						icon: <FaAddressCard />,
+						isDisabled: !canManagePermissions,
 						onClick: () => setIsPermissionModalOpen(true),
 					}, {
 						type: 'normal',
 						label: 'Create Invite',
 						tooltip: 'Create an invite for this group',
 						icon: <FaGift />,
+						isDisabled: !canManagePermissions,
 						onClick: () => setIsInviteModalOpen(true),
 					}]}
 				/>
@@ -141,7 +143,7 @@ export default function GroupPermissions() {
 
 				<ResourceInvites
 					invites={invites}
-					canManage={user?.isDev || false}
+					canManage={canManagePermissions}
 				/>
 
 				<Divider my={4} />
@@ -150,7 +152,9 @@ export default function GroupPermissions() {
 					users={users}
 					resourceType='group'
 					resourceId={group.id}
-					canManage={user?.isDev || false}
+					canManage={canManagePermissions}
+					currentUserId={user?.userId}
+					isCurrentUserDev={user?.isDev}
 				/>
 			</Box>
 

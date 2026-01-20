@@ -174,7 +174,7 @@ export function InviteCard({
 				)}
 
 				<HStack spacing={1} w={isMobile ? '100%' : 'auto'} justify={isMobile ? 'center' : 'flex-start'}>
-					{onDelete && canManage && (
+					{onDelete && (
 						<Tooltip label='Delete invite' hasArrow>
 							<IconButton
 								onClick={onConfirmOpen}
@@ -187,6 +187,7 @@ export function InviteCard({
 								aria-label={'Delete invite'}
 								alignItems={'center'}
 								justifyContent={'center'}
+								isDisabled={!canManage}
 								_hover={{ bg: 'alpha300' }}
 								_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
 							/>

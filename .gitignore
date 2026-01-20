@@ -4,4 +4,5 @@
 /build
 /public/build
 /pnpm-lock.yaml
+/external
 /.vscode

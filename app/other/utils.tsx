@@ -1,4 +1,4 @@
-import { AccessLevel, SimplePermissionHierarchy } from '@excali-boards/boards-api-client';
+import { AccessLevel, PermissionHierarchy, SimplePermissionHierarchy } from '@excali-boards/boards-api-client';
 import { bgColor, FindConflictsProps, TimeUnits } from '~/other/types';
 import { ColorMode } from '@chakra-ui/react';
 import { z, ZodError } from 'zod';
@@ -130,12 +130,12 @@ export function formatTime(t: number | Date, from: TimeUnits = 'ms', short?: boo
 		{ label: 'second', shortLabel: 's', value: 1000 },
 	];
 
+	let remaining = t;
 	const amounts: number[] = [];
-
 	const timeParts = units.map(({ label, shortLabel, value }, i) => {
-		const amount = Math.floor(t / value) % (label === 'hour' ? 24 : label === 'minute' || label === 'second' ? 60 : Infinity);
+		const amount = Math.floor(remaining / value);
 		amounts[i] = amount;
-		(t as number) %= value;
+		remaining %= value;
 
 		if (withColons) return amount.toString().padStart(2, '0');
 		if (amount > 0) return `${amount}${short ? shortLabel : ` ${label}${amount > 1 ? 's' : ''}`}`;
@@ -168,20 +168,19 @@ export function formatRelativeTime(date: Date, short = false): string {
 	const diff = Math.abs(diffMs);
 
 	const units = [
-		{ label: 'year', shortLabel: 'y', value: 1000 * 60 * 60 * 24 * 365, mod: Infinity },
-		{ label: 'month', shortLabel: 'mo', value: 1000 * 60 * 60 * 24 * 30, mod: 12 },
-		{ label: 'week', shortLabel: 'w', value: 1000 * 60 * 60 * 24 * 7, mod: 4 },
-		{ label: 'day', shortLabel: 'd', value: 1000 * 60 * 60 * 24, mod: 7 },
-		{ label: 'hour', shortLabel: 'h', value: 1000 * 60 * 60, mod: 24 },
-		{ label: 'minute', shortLabel: 'm', value: 1000 * 60, mod: 60 },
-		{ label: 'second', shortLabel: 's', value: 1000, mod: 60 },
+		{ label: 'year', shortLabel: 'y', value: 1000 * 60 * 60 * 24 * 365 },
+		{ label: 'month', shortLabel: 'mo', value: 1000 * 60 * 60 * 24 * 30 },
+		{ label: 'week', shortLabel: 'w', value: 1000 * 60 * 60 * 24 * 7 },
+		{ label: 'day', shortLabel: 'd', value: 1000 * 60 * 60 * 24 },
+		{ label: 'hour', shortLabel: 'h', value: 1000 * 60 * 60 },
+		{ label: 'minute', shortLabel: 'm', value: 1000 * 60 },
+		{ label: 'second', shortLabel: 's', value: 1000 },
 	];
 
 	let remaining = diff;
 	const amounts: number[] = [];
-
 	const parts = units.map((u, i) => {
-		const amount = Math.floor(remaining / u.value) % u.mod;
+		const amount = Math.floor(remaining / u.value);
 		amounts[i] = amount;
 		remaining %= u.value;
 
@@ -190,7 +189,6 @@ export function formatRelativeTime(date: Date, short = false): string {
 	});
 
 	const lastIndex = units.length - 1;
-
 	let mainIndex = amounts.findIndex((a, i) => a > 0 && i < lastIndex);
 	if (mainIndex === -1) mainIndex = lastIndex;
 
@@ -205,7 +203,6 @@ export function formatRelativeTime(date: Date, short = false): string {
 
 	const sep = short ? ' ' : ', ';
 	const result = parts.filter((_, i) => shown[i] && parts[i]).join(sep).trim() || (short ? '0s' : '0 seconds');
-
 	return isFuture ? result : short ? `${result} ago` : `${result} ago`;
 }
 
@@ -228,6 +225,18 @@ export function canManage(role: AccessLevel, isDev?: boolean) {
 	return isDev || role === 'manage' || role === 'admin';
 }
 
+export function canGrantRole(granterRole: string, targetRole: string): boolean {
+	const granterLevel = getRoleLevel(granterRole);
+	const targetLevel = getRoleLevel(targetRole);
+
+	if (granterLevel === undefined || targetLevel === undefined) return false;
+	return granterLevel > targetLevel;
+}
+
+export function canInviteAndPermit(role: AccessLevel, isDev?: boolean) {
+	return isDev || role === 'admin';
+}
+
 export function firstToUpperCase<T extends string>(str: T): Capitalize<T> {
 	return (str.charAt(0).toUpperCase() + str.slice(1)) as Capitalize<T>;
 }
@@ -240,7 +249,14 @@ export function getRandomColorScheme(key: string): string {
 
 export function getLevel(role: string | null): number {
 	if (!role) return 0;
-	return SimplePermissionHierarchy[role] ?? 0;
+	return getRoleLevel(role) ?? 0;
+}
+
+function getRoleLevel(role: string): number | undefined {
+	const fullLevel = PermissionHierarchy[role as keyof typeof PermissionHierarchy];
+	if (fullLevel !== undefined) return fullLevel;
+
+	return SimplePermissionHierarchy[role as keyof typeof SimplePermissionHierarchy];
 }
 
 export function findConflicts({ allData, selectedGroups, selectedCategories, selectedBoards, groupRole, categoryRole, boardRole }: FindConflictsProps) {

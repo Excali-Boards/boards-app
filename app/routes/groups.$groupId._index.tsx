@@ -1,12 +1,12 @@
 import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { canInviteAndPermit, canManage, validateParams } from '~/other/utils';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { FaPlus, FaTools, FaCalendarAlt } from 'react-icons/fa';
 import { SearchBar } from '~/components/layout/SearchBar';
-import { canManage, validateParams } from '~/other/utils';
 import { NoticeCard } from '~/components/other/Notice';
 import CardList from '~/components/layout/CardList';
 import { useDebounced } from '~/hooks/useDebounced';
@@ -160,8 +160,9 @@ export default function Categories() {
 						sizeBytes: c.totalSizeBytes,
 						isDeleteDisabled: c.boards > 0,
 						url: `/groups/${group.id}/${c.id}`,
+						hasPerms: canManage(c.accessLevel, user?.isDev),
 						name: c.name.charAt(0).toUpperCase() + c.name.slice(1),
-						permsUrl: canManage(c.accessLevel, user?.isDev) ? `/permissions/${group.id}/${c.id}` : undefined,
+						permsUrl: canInviteAndPermit(c.accessLevel, user?.isDev) ? `/permissions/${group.id}/${c.id}` : undefined,
 						analyticsUrl: canManage(c.accessLevel, user?.isDev) ? `/analytics/${group.id}/${c.id}` : undefined,
 					}))}
 				/>

@@ -3,9 +3,10 @@ import { RevokePermissionModal } from '../permissions/RevokePermissionModal';
 import { VStack, useToast, useDisclosure } from '@chakra-ui/react';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { UserCard, NoUserCard } from '../permissions/UserCard';
+import { useCallback, useMemo, useState } from 'react';
+import { canGrantRole, getLevel } from '~/other/utils';
 import { WebReturnType } from '~/other/types';
 import { useFetcher } from '@remix-run/react';
-import { useCallback, useState } from 'react';
 
 export type ResourceUsersProps = {
 	resourceType: ResourceType;
@@ -13,9 +14,11 @@ export type ResourceUsersProps = {
 
 	users: PermUser[];
 	canManage: boolean;
+	currentUserId?: string | null;
+	isCurrentUserDev?: boolean;
 };
 
-export function ResourceUsers({ resourceType, resourceId, users, canManage }: ResourceUsersProps) {
+export function ResourceUsers({ resourceType, resourceId, users, canManage, currentUserId, isCurrentUserDev }: ResourceUsersProps) {
 	const fetcher = useFetcher<WebReturnType<string>>();
 	const toast = useToast();
 
@@ -34,9 +37,27 @@ export function ResourceUsers({ resourceType, resourceId, users, canManage }: Re
 	}, [fetcher]);
 
 	const getUserPerm = useCallback((user: PermUser) => {
-		const permission = user.permissions.find((p) => p.type === resourceType && p.resourceId === resourceId);
-		return permission || null;
+		const permissions = user.permissions.filter((p) => p.type === resourceType && p.resourceId === resourceId);
+		if (permissions.length === 0) return null;
+
+		return permissions.reduce((highest, permission) => (
+			getLevel(permission.role) > getLevel(highest.role) ? permission : highest
+		));
 	}, [resourceId, resourceType]);
+
+	const currentUserRole = useMemo(() => {
+		if (!currentUserId) return null;
+		const currentUser = users.find((u) => u.userId === currentUserId);
+		if (!currentUser) return null;
+
+		const roles = currentUser.permissions
+			.filter((p) => p.type === resourceType && p.resourceId === resourceId)
+			.map((p) => p.role);
+
+		if (roles.length === 0) return null;
+
+		return roles.reduce((highest, role) => getLevel(role) > getLevel(highest) ? role : highest);
+	}, [currentUserId, resourceId, resourceType, users]);
 
 	const handleOpenRevokeModal = useCallback((user: PermUser, permission: GrantedEntry) => {
 		setSelectedUser({ userId: user.userId, username: user.displayName, permission });
@@ -56,6 +77,8 @@ export function ResourceUsers({ resourceType, resourceId, users, canManage }: Re
 					const permission = getUserPerm(user);
 					if (!permission) return null;
 
+					const canRevoke = canManage && (isCurrentUserDev || (!!currentUserRole && canGrantRole(currentUserRole, permission.role)));
+
 					return (
 						<UserCard
 							key={user.userId + '|' + i}
@@ -64,7 +87,7 @@ export function ResourceUsers({ resourceType, resourceId, users, canManage }: Re
 							username={user.displayName}
 							role={permission.role}
 							avatar={user.avatarUrl || undefined}
-							canManage={canManage}
+							canManage={canRevoke}
 							grantType={permission.grantType}
 							basedOnType={permission.basedOnType !== permission.type ? permission.basedOnType : null}
 							onRevoke={() => handleOpenRevokeModal(user, permission)}

@@ -4,6 +4,7 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
+import { canInviteAndPermit, canManage } from '~/other/utils';
 import { SearchBar } from '~/components/layout/SearchBar';
 import { NoticeCard } from '~/components/other/Notice';
 import CardList from '~/components/layout/CardList';
@@ -13,7 +14,6 @@ import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
 import { FaPlus, FaTools } from 'react-icons/fa';
 import { WebReturnType } from '~/other/types';
-import { canManage } from '~/other/utils';
 import { api } from '~/utils/web.server';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -99,8 +99,8 @@ export default function Groups() {
 		setTempGroups([]);
 	}, [fetcher, tempGroups]);
 
-	const canManageAnything = useMemo(() => groups.some((c) => canManage(c.accessLevel, user?.isDev)), [groups, user?.isDev]);
-	useEffect(() => setCanInvite?.(canManageAnything), [canManageAnything, setCanInvite]);
+	const hasAdminOrDevAccess = useMemo(() => groups.some((g) => canInviteAndPermit(g.accessLevel, user?.isDev)), [groups, user?.isDev]);
+	useEffect(() => setCanInvite?.(hasAdminOrDevAccess), [hasAdminOrDevAccess, setCanInvite]);
 	useEffect(() => setShowAllBoards?.(groups.length !== 0), [setShowAllBoards]);
 
 	return (
@@ -109,7 +109,7 @@ export default function Groups() {
 				<MenuBar
 					name={'Category Groups'}
 					description={'List of all groups that are currently available to you.'}
-					customButtons={user?.isDev ? [{
+					customButtons={hasAdminOrDevAccess ? [{
 						type: 'normal',
 						label: 'Manage Groups',
 						icon: <FaTools />,
@@ -124,6 +124,7 @@ export default function Groups() {
 						icon: <FaPlus />,
 						onClick: () => setModalOpen('createGroup'),
 						isLoading: fetcher.state === 'loading',
+						isDisabled: !user?.isDev,
 						tooltip: 'Create group',
 					}] : []}
 				/>
@@ -147,12 +148,12 @@ export default function Groups() {
 					cards={finalGroups.map((g) => ({
 						id: g.id,
 						editorMode,
-						canManageAnything,
 						url: `/groups/${g.id}`,
 						sizeBytes: g.sizeBytes,
 						isDeleteDisabled: g.categories > 0,
+						hasPerms: canManage(g.accessLevel, user?.isDev),
 						name: g.name.charAt(0).toUpperCase() + g.name.slice(1),
-						permsUrl: canManage(g.accessLevel, user?.isDev) ? `/permissions/${g.id}` : undefined,
+						permsUrl: canInviteAndPermit(g.accessLevel, user?.isDev) ? `/permissions/${g.id}` : undefined,
 						analyticsUrl: canManage(g.accessLevel, user?.isDev) ? `/analytics/${g.id}` : undefined,
 					}))}
 				/>

@@ -12,7 +12,7 @@ import { FaAddressCard, FaGift } from 'react-icons/fa';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
-import { validateParams } from '~/other/utils';
+import { canInviteAndPermit, validateParams } from '~/other/utils';
 import { WebReturnType } from '~/other/types';
 import { useContext, useState } from 'react';
 import { api } from '~/utils/web.server';
@@ -106,6 +106,8 @@ export default function BoardPermissions() {
 	const fetcher = useFetcher<WebReturnType<string>>();
 	const toast = useToast();
 
+	const canManagePermissions = canInviteAndPermit(board.accessLevel, user?.isDev);
+
 	useFetcherResponse(fetcher, toast, () => {
 		setIsInviteModalOpen(false);
 		setIsPermissionModalOpen(false);
@@ -124,12 +126,14 @@ export default function BoardPermissions() {
 						label: 'Grant Permissions',
 						tooltip: 'Grant permissions to a user for this board',
 						icon: <FaAddressCard />,
+						isDisabled: !canManagePermissions,
 						onClick: () => setIsPermissionModalOpen(true),
 					}, {
 						type: 'normal',
 						label: 'Create Invite',
 						tooltip: 'Create an invite for this board',
 						icon: <FaGift />,
+						isDisabled: !canManagePermissions,
 						onClick: () => setIsInviteModalOpen(true),
 					}]}
 				/>
@@ -138,7 +142,7 @@ export default function BoardPermissions() {
 
 				<ResourceInvites
 					invites={invites}
-					canManage={user?.isDev || false}
+					canManage={canManagePermissions}
 				/>
 
 				<Divider my={4} />
@@ -147,7 +151,9 @@ export default function BoardPermissions() {
 					users={users}
 					resourceType='board'
 					resourceId={board.id}
-					canManage={user?.isDev || false}
+					canManage={canManagePermissions}
+					currentUserId={user?.userId}
+					isCurrentUserDev={user?.isDev}
 				/>
 			</Box>
 

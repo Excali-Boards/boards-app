@@ -1,7 +1,7 @@
 import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
+import { canInviteAndPermit, canManage, formatRelativeTime, validateParams } from '~/other/utils';
 import { BoardType } from '@excali-boards/boards-api-client/prisma/generated/client';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
-import { canManage, formatRelativeTime, validateParams } from '~/other/utils';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
 import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { useCallback, useContext, useMemo, useState } from 'react';
@@ -104,7 +104,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
 export default function Boards() {
 	const { group, category, boards } = useLoaderData<typeof loader>();
-	const { user, setCanInvite } = useContext(RootContext) || {};
+	const { user } = useContext(RootContext) || {};
 
 	const [modalOpen, setModalOpen] = useState<ModalOpen>(null);
 	const [boardId, setBoardId] = useState<string | null>(null);
@@ -124,7 +124,7 @@ export default function Boards() {
 	const finalBoards = useMemo(() => {
 		if (!dbcSearch) return boards;
 		return boards.filter((b) => dbcSearch ? b.name.includes(dbcSearch) : true);
-	}, [boards, dbcSearch, fetcher.state]); // eslint-disable-line
+	}, [boards, dbcSearch, fetcher.state]);
 
 	const handleSave = useCallback(() => {
 		fetcher.submit({ type: 'reorderBoards', boards: tempBoards.join(',') }, { method: 'post' });
@@ -193,14 +193,16 @@ export default function Boards() {
 						id: b.id,
 						editorMode,
 						sizeBytes: b.totalSizeBytes,
-						flashExists: b.hasFlashcards,
+						hasPerms: canManage(b.accessLevel, user?.isDev),
 						url: `/groups/${group.id}/${category.id}/${b.id}`,
 						name: b.name.charAt(0).toUpperCase() + b.name.slice(1),
+
+						flashExists: b.hasFlashcards,
 						flashUrl: `/flashcards/${group.id}/${category.id}/${b.id}`,
 						isScheduledForDeletionText: b.scheduledForDeletionText || undefined,
 						isScheduledForDeletion: b.scheduledForDeletion ? new Date(b.scheduledForDeletion) : undefined,
 						permsUrl: canManage(b.accessLevel, user?.isDev) ? `/permissions/${group.id}/${category.id}/${b.id}` : undefined,
-						analyticsUrl: canManage(b.accessLevel, user?.isDev) ? `/analytics/${group.id}/${category.id}/${b.id}` : undefined,
+						analyticsUrl: canInviteAndPermit(b.accessLevel, user?.isDev) ? `/analytics/${group.id}/${category.id}/${b.id}` : undefined,
 					}))}
 				/>
 

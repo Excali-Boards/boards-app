@@ -68,22 +68,21 @@ export function UserCard({
 						</HStack>
 					</Flex>
 
-					{onRevoke && canManage && (
-						<IconButton
-							onClick={onRevoke}
-							variant={'ghost'}
-							rounded={'full'}
-							bg={'alpha100'}
-							icon={<FaTrash />}
-							colorScheme='red'
-							aria-label={'Revoke permission'}
-							alignItems={'center'}
-							justifyContent={'center'}
-							_hover={{ bg: 'alpha300' }}
-							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-							flexShrink={0}
-						/>
-					)}
+					<IconButton
+						onClick={onRevoke}
+						variant={'ghost'}
+						rounded={'full'}
+						bg={'alpha100'}
+						icon={<FaTrash />}
+						colorScheme='red'
+						isDisabled={!canManage}
+						aria-label={'Revoke permission'}
+						alignItems={'center'}
+						justifyContent={'center'}
+						_hover={{ bg: 'alpha300' }}
+						_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+						flexShrink={0}
+					/>
 				</Flex>
 
 				<HStack spacing={2} flexWrap={'wrap'} justifyContent={'center'} w={'100%'}>
@@ -174,20 +173,19 @@ export function UserCard({
 				<Divider orientation={'vertical'} color={'red'} height={'50px'} />
 
 				<HStack spacing={2}>
-					{onRevoke && canManage && (
-						<IconButton
-							onClick={onRevoke}
-							variant={'ghost'}
-							rounded={'full'}
-							bg={'alpha100'}
-							icon={<FaTrash />}
-							aria-label={'Revoke permission'}
-							alignItems={'center'}
-							justifyContent={'center'}
-							_hover={{ bg: 'alpha300' }}
-							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-						/>
-					)}
+					<IconButton
+						onClick={onRevoke}
+						variant={'ghost'}
+						rounded={'full'}
+						bg={'alpha100'}
+						icon={<FaTrash />}
+						aria-label={'Revoke permission'}
+						alignItems={'center'}
+						isDisabled={!canManage}
+						justifyContent={'center'}
+						_hover={{ bg: 'alpha300' }}
+						_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+					/>
 				</HStack>
 			</Flex>
 		</Flex>
