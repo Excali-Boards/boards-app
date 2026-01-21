@@ -1,7 +1,7 @@
 import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, IconButton, Divider, HStack, Tooltip, Textarea } from '@chakra-ui/react';
 import { LoaderFunctionArgs, ActionFunctionArgs, redirect, LinkDescriptor } from '@remix-run/node';
+import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
-import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { FaPlus, FaTrash, FaPen, FaDownload } from 'react-icons/fa';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
@@ -24,10 +24,13 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const flashcardData = await api?.flashcards.getDeck({ auth: token, groupId, categoryId, boardId });
-	if (!flashcardData || 'error' in flashcardData) throw makeResponse(flashcardData, 'Failed to get flashcard deck.');
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
 
-	return { deck: flashcardData.data, groupId, categoryId, boardId };
+	const DBFlashcardData = await api?.flashcards.getDeck({ auth: token, groupId, categoryId, boardId, headers: ipHeaders });
+	if (!DBFlashcardData || 'error' in DBFlashcardData) throw makeResponse(DBFlashcardData, 'Failed to get flashcard deck.');
+
+	return { deck: DBFlashcardData.data, groupId, categoryId, boardId };
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
@@ -35,6 +38,9 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
+
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
 
 	const formData = await request.formData();
 	const type = formData.get('type') as string;
@@ -53,6 +59,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 				categoryId,
 				boardId,
 				body: [{ id: cardId, front, back }],
+				headers: ipHeaders,
 			});
 
 			return makeResObject(result, 'Failed to update card.');
@@ -61,7 +68,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 			const cardId = formData.get('cardId') as string;
 			if (!cardId) return { status: 400, error: 'Card ID is required.' };
 
-			const result = await api?.flashcards.deleteCards({ auth: token, groupId, categoryId, boardId, body: [cardId] });
+			const result = await api?.flashcards.deleteCards({ auth: token, groupId, categoryId, boardId, body: [cardId], headers: ipHeaders });
 			return makeResObject(result, 'Failed to delete card.');
 		}
 		case 'createCard': {
@@ -76,6 +83,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 				categoryId,
 				boardId,
 				body: [{ front, back }],
+				headers: ipHeaders,
 			});
 
 			return makeResObject(result, 'Failed to create card.');
@@ -113,18 +121,19 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 				categoryId,
 				boardId,
 				body: cards,
+				headers: ipHeaders,
 			});
 
 			return makeResObject(result, 'Failed to import cards.');
 		}
 		case 'destroyDeck': {
-			const result = await api?.flashcards.destroyDeck({ auth: token, groupId, categoryId, boardId });
+			const result = await api?.flashcards.destroyDeck({ auth: token, groupId, categoryId, boardId, headers: ipHeaders });
 			if (!result || 'error' in result) return makeResObject(result, 'Failed to delete deck.');
 			return redirect(`/groups/${groupId}/${categoryId}`);
 		}
 		case 'deleteAll': {
 			const cardIds = formData.getAll('cardIds') as string[];
-			const result = await api?.flashcards.deleteCards({ auth: token, groupId, categoryId, boardId, body: cardIds });
+			const result = await api?.flashcards.deleteCards({ auth: token, groupId, categoryId, boardId, body: cardIds, headers: ipHeaders });
 			return makeResObject(result, 'Failed to delete all cards.');
 		}
 		default: {

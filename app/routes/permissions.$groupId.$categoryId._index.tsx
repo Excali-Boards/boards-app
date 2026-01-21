@@ -1,9 +1,10 @@
+import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { ResourceInviteModal } from '~/components/permissions/ResourceInviteModal';
 import { ResourceGrantModal } from '~/components/permissions/ResourceGrantModal';
 import { ResourceInvites } from '~/components/permissions/ResourceInvites';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
-import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { ResourceUsers } from '~/components/sessions/ResourceUsers';
+import { canInviteAndPermit, validateParams } from '~/other/utils';
 import { VStack, Box, useToast, Divider } from '@chakra-ui/react';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { ResourceType } from '@excali-boards/boards-api-client';
@@ -12,7 +13,6 @@ import { FaAddressCard, FaGift } from 'react-icons/fa';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
-import { canInviteAndPermit, validateParams } from '~/other/utils';
 import { WebReturnType } from '~/other/types';
 import { useContext, useState } from 'react';
 import { api } from '~/utils/web.server';
@@ -23,13 +23,16 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const DBCategory = await api?.categories.getCategory({ auth: token, categoryId, groupId });
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
+
+	const DBCategory = await api?.categories.getCategory({ auth: token, categoryId, groupId, headers: ipHeaders });
 	if (!DBCategory || 'error' in DBCategory) throw makeResponse(DBCategory, 'Failed to get category.');
 
-	const DBCategoryPermissions = await api?.permissions.viewPermissions({ auth: token, query: { type: 'category', id: categoryId } });
+	const DBCategoryPermissions = await api?.permissions.viewPermissions({ auth: token, query: { type: 'category', id: categoryId }, headers: ipHeaders });
 	if (!DBCategoryPermissions || 'error' in DBCategoryPermissions) throw makeResponse(DBCategoryPermissions, 'Failed to get category permissions.');
 
-	const DBCategoryInvites = await api?.invites.getResourceInvites({ auth: token, query: { type: 'category', groupId, categoryId } });
+	const DBCategoryInvites = await api?.invites.getResourceInvites({ auth: token, query: { type: 'category', groupId, categoryId }, headers: ipHeaders });
 	if (!DBCategoryInvites || 'error' in DBCategoryInvites) throw makeResponse(DBCategoryInvites, 'Failed to get category invites.');
 
 	return {
@@ -45,34 +48,37 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) return makeResObject(null, 'You are not authorized to perform this action.');
 
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
+
 	const formData = await request.formData();
 	const type = formData.get('type') as string;
 
 	switch (type) {
 		case 'createInvite': {
 			const inviteData = JSON.parse(formData.get('inviteData') as string);
-			const result = await api?.invites.createInvite({ auth: token, body: inviteData });
+			const result = await api?.invites.createInvite({ auth: token, body: inviteData, headers: ipHeaders });
 
 			if (result?.status !== 200) return makeResObject(result, 'Failed to create invite.');
 			return makeResObject({ status: result.status, data: 'Invite created successfully.' }, null);
 		}
 		case 'grantPermissions': {
 			const permissionData = JSON.parse(formData.get('permissionData') as string);
-			const result = await api?.permissions.grantPermissions({ auth: token, body: permissionData });
+			const result = await api?.permissions.grantPermissions({ auth: token, body: permissionData, headers: ipHeaders });
 			return makeResObject(result, 'Failed to grant permissions.');
 		}
 		case 'deleteInvite': {
 			const inviteCode = formData.get('inviteCode') as string;
 			if (!inviteCode) return { status: 400, error: 'Invalid invite code.' };
 
-			const result = await api?.invites.revokeInvite({ auth: token, code: inviteCode });
+			const result = await api?.invites.revokeInvite({ auth: token, code: inviteCode, headers: ipHeaders });
 			return makeResObject(result, 'Failed to delete invite.');
 		}
 		case 'renewInvite': {
 			const inviteCode = formData.get('inviteCode') as string;
 			if (!inviteCode) return { status: 400, error: 'Invalid invite code.' };
 
-			const result = await api?.invites.renewInvite({ auth: token, code: inviteCode });
+			const result = await api?.invites.renewInvite({ auth: token, code: inviteCode, headers: ipHeaders });
 			if (result?.status !== 200) return makeResObject(result, 'Failed to renew invite.');
 			return makeResObject({ status: result.status, data: 'Invite renewed successfully.' }, null);
 		}
@@ -86,6 +92,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 			const result = await api?.permissions.revokePermissions({
 				auth: token,
 				body: { userId, resourceType: resourceType, resourceId },
+				headers: ipHeaders,
 			});
 
 			return makeResObject(result, 'Failed to revoke permission.');

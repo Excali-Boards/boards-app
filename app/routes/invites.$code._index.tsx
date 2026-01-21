@@ -1,7 +1,7 @@
 import { Button, Container, Text, VStack, Badge, Divider, HStack, useToast, Icon, Spinner, Flex, Avatar } from '@chakra-ui/react';
 import { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction, redirect } from '@remix-run/node';
+import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { Form, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
-import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { UseInviteOutput } from '@excali-boards/boards-api-client';
 import { ConfettiContainer } from '~/components/other/Confetti';
 import { themeColor, WebReturnType } from '~/other/types';
@@ -50,10 +50,13 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) return redirect(`/login?backTo=${encodeURIComponent(request.url)}`);
 
-	const inviteDetails = await api?.invites.getInviteDetails({ auth: token, code });
-	if (!inviteDetails || 'error' in inviteDetails) throw makeResponse(inviteDetails, 'Failed to fetch invite details.');
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
 
-	return inviteDetails.data;
+	const DBInviteDetails = await api?.invites.getInviteDetails({ auth: token, code, headers: ipHeaders });
+	if (!DBInviteDetails || 'error' in DBInviteDetails) throw makeResponse(DBInviteDetails, 'Failed to fetch invite details.');
+
+	return DBInviteDetails.data;
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
@@ -62,7 +65,10 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) return redirect(`/login?backTo=${encodeURIComponent(request.url)}`);
 
-	const result = await api?.invites.useInvite({ auth: token, code });
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
+
+	const result = await api?.invites.useInvite({ auth: token, code, headers: ipHeaders });
 	if (!result || 'error' in result) return makeResObject(result, 'Failed to accept invite.');
 
 	return makeResObject(result, 'Successfully accepted invite.');

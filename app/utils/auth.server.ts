@@ -6,6 +6,7 @@ import { DiscordStrategy } from 'remix-auth-discord';
 import { CustomError } from '~/utils/logger.server';
 import { GoogleStrategy } from 'remix-auth-google';
 import { GitHubStrategy } from 'remix-auth-github';
+import { getIpHeaders } from './functions.server';
 import configServer from '~/utils/config.server';
 import { Authenticator } from 'remix-auth';
 import { api } from '~/utils/web.server';
@@ -29,7 +30,7 @@ const discordStrategy = configServer.auth.discord ? new DiscordStrategy({
 	callbackURL: configServer.auth.discord.redirectUri,
 	scope: ['identify', 'email'],
 	prompt: 'none',
-}, async ({ profile, context }) => {
+}, async ({ profile, context, request }) => {
 	const parsedUser = zodUser.safeParse({
 		email: profile.emails?.[0].value,
 		displayName: profile.displayName,
@@ -41,14 +42,14 @@ const discordStrategy = configServer.auth.discord ? new DiscordStrategy({
 	else return createSession({
 		...parsedUser.data,
 		avatarUrl: parsedUser.data.avatarUrl ? `https://cdn.discordapp.com/avatars/${profile.id}/${parsedUser.data.avatarUrl}.${parsedUser.data.avatarUrl.startsWith('a_') ? 'gif' : 'png'}` : null,
-	}, context);
+	}, request, context);
 }) : null;
 
 const googleStrategy = configServer.auth.google ? new GoogleStrategy({
 	clientID: configServer.auth.google.clientId,
 	clientSecret: configServer.auth.google.clientSecret,
 	callbackURL: configServer.auth.google.redirectUri,
-}, async ({ profile, context }) => {
+}, async ({ profile, context, request }) => {
 	const parsedUser = zodUser.safeParse({
 		email: profile.emails?.[0].value,
 		displayName: profile.displayName,
@@ -60,14 +61,14 @@ const googleStrategy = configServer.auth.google ? new GoogleStrategy({
 	else return createSession({
 		...parsedUser.data,
 		avatarUrl: parsedUser.data.avatarUrl || null,
-	}, context);
+	}, request, context);
 }) : null;
 
 const githubStrategy = configServer.auth.github ? new GitHubStrategy({
 	clientId: configServer.auth.github.clientId,
 	clientSecret: configServer.auth.github.clientSecret,
 	redirectURI: configServer.auth.github.redirectUri,
-}, async ({ profile, context }) => {
+}, async ({ profile, context, request }) => {
 	const parsedUser = zodUser.safeParse({
 		email: profile.emails?.[0]?.value,
 		displayName: profile.displayName,
@@ -79,7 +80,7 @@ const githubStrategy = configServer.auth.github ? new GitHubStrategy({
 	else return createSession({
 		...parsedUser.data,
 		avatarUrl: parsedUser.data.avatarUrl || null,
-	}, context);
+	}, request, context);
 }) : null;
 
 const microsoftStrategy = configServer.auth.microsoft ? new MicrosoftStrategy({
@@ -89,7 +90,7 @@ const microsoftStrategy = configServer.auth.microsoft ? new MicrosoftStrategy({
 	tenantId: configServer.auth.microsoft.tenantId,
 	scope: 'openid profile email',
 	prompt: 'consent',
-}, async ({ profile, context }) => {
+}, async ({ profile, context, request }) => {
 	const parsedUser = zodUser.safeParse({
 		email: profile.emails?.[0].value,
 		displayName: profile.displayName || profile.name.givenName,
@@ -101,10 +102,13 @@ const microsoftStrategy = configServer.auth.microsoft ? new MicrosoftStrategy({
 	else return createSession({
 		...parsedUser.data,
 		avatarUrl: parsedUser.data.avatarUrl || null,
-	}, context);
+	}, request, context);
 }) : null;
 
-async function createSession(strategyData: AuthUser, extra?: Partial<Record<'ip' | 'currentUserId' | 'device', string>>) {
+async function createSession(strategyData: AuthUser, request: Request, extra?: Partial<Record<'ip' | 'currentUserId' | 'device', string>>) {
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw new CustomError('Failed to get client IP.', 'CustomError');
+
 	const DBUser = await api?.sessions.createSession({
 		auth: configServer.apiToken,
 		body: {

@@ -1,9 +1,9 @@
 import { VStack, Box, Divider, Text, Table, Thead, Tbody, Tr, Th, Td, Flex, useColorMode, useBreakpointValue } from '@chakra-ui/react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { getIpHeaders, makeResponse } from '~/utils/functions.server';
 import { CustomTooltip } from '~/components/analytics/CustomTooltip';
 import { StatGrid } from '~/components/analytics/StatGrid';
 import { Container } from '~/components/layout/Container';
-import { makeResponse } from '~/utils/functions.server';
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { authenticator } from '~/utils/auth.server';
 import MenuBar from '~/components/layout/MenuBar';
@@ -16,10 +16,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const analytics = await api?.analytics.getUserAnalytics({ auth: token });
-	if (!analytics || 'error' in analytics) throw makeResponse(analytics, 'Failed to get analytics.');
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
 
-	return { analytics: analytics.data };
+	const DBAnalytics = await api?.analytics.getUserAnalytics({ auth: token, headers: ipHeaders });
+	if (!DBAnalytics || 'error' in DBAnalytics) throw makeResponse(DBAnalytics, 'Failed to get analytics.');
+
+	return { analytics: DBAnalytics.data };
 };
 
 export default function UserAnalytics() {

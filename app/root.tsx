@@ -43,13 +43,30 @@ export const meta: MetaFunction = () => {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+	const url = new URL(request.url);
+
+	// Prevent infinite loop: if already on login/logout, don't check auth
+	if (url.pathname === '/login' || url.pathname === '/logout') {
+		return {
+			token: null,
+			user: null,
+			isMobile: isMobileDetect({ ua: request.headers.get('user-agent') || '' }),
+			allowedPlatforms: allowedLoginPlatforms,
+			nullHeader: [
+				{ t: 'board', r: 'routes/groups.$groupId.$categoryId.$boardId._index' },
+				{ t: 'calendar', r: 'routes/groups.$groupId.calendar._index' },
+			] as SidebarObject[],
+		};
+	}
+
 	let data: CachedResponse;
 
 	try {
 		data = await getCachedUser(request);
 		if (data?.data?.status === 401) throw new Error('Unauthorized.');
 	} catch {
-		return authenticator.logout(request, { redirectTo: '/' });
+		// Redirect to logout which will clear session and redirect to login
+		return authenticator.logout(request, { redirectTo: '/login' });
 	}
 
 	return {
@@ -63,6 +80,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 		] as SidebarObject[],
 	};
 };
+
+// Prevent root loader from revalidating on every navigation
+export function shouldRevalidate() {
+	return false;
+}
 
 export default function App() {
 	const { user, token, nullHeader, isMobile, allowedPlatforms } = useLoaderData<typeof loader>();

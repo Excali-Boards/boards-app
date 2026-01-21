@@ -1,7 +1,7 @@
 import { VStack, Box, Flex, Text, Avatar, IconButton, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Button, useColorMode, Badge, HStack, Divider, useToast, FormControl, FormLabel, Input, Tooltip } from '@chakra-ui/react';
 import { FaClipboard, FaEye, FaFolder, FaLock, FaPen, FaQuestionCircle, FaTools, FaTrash, FaUnlock, FaUserPlus, FaUsers } from 'react-icons/fa';
+import { getIpHeaders, makeResObject, makeResponse, securityUtils } from '~/utils/functions.server';
 import { getAll, GrantedEntry, PermUser, ResourceType } from '@excali-boards/boards-api-client';
-import { makeResObject, makeResponse, securityUtils } from '~/utils/functions.server';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
 import { firstToUpperCase, getGrantInfo, getRoleColor } from '~/other/utils';
 import { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
@@ -20,12 +20,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 	if (!api) throw makeResponse(null, 'API client not initialized.');
 
-	const DBUsers = await getAll((page, limit) => api!.admin.getUsers({ auth: token, page, limit }));
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
+
+	const DBUsers = await getAll((page, limit) => api!.admin.getUsers({ auth: token, page, limit, headers: ipHeaders }));
 	if (!DBUsers || 'error' in DBUsers) throw makeResponse(DBUsers, 'Failed to get users.');
 
 	const userIds = DBUsers.data.data.map((user) => user.userId);
-	const allPermissions = await api?.permissions.viewAllPermissions({ auth: token, userIds });
-	if (!allPermissions || 'error' in allPermissions) throw makeResponse(allPermissions, 'Failed to get user permissions.');
+	const DBAllPermissions = await api?.permissions.viewAllPermissions({ auth: token, userIds, headers: ipHeaders });
+	if (!DBAllPermissions || 'error' in DBAllPermissions) throw makeResponse(DBAllPermissions, 'Failed to get user permissions.');
 
 	const findInviter = (invitedByUserId: string | null) => {
 		if (!invitedByUserId) return null;
@@ -33,7 +36,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	};
 
 	return {
-		userPermissions: allPermissions.data,
+		userPermissions: DBAllPermissions.data,
 		allUsers: DBUsers.data.data.map((user) => {
 			const inviter = findInviter(user.invitedBy);
 			return {
@@ -61,6 +64,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 	const formData = await request.formData();
 	const type = formData.get('type') as string;
 
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
+
 	switch (type) {
 		case 'revokePermission': {
 			const userId = formData.get('userId') as string;
@@ -72,7 +78,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 			}
 
 			const result = await api?.permissions.revokePermissions({
-				auth: token,
+				auth: token, headers: ipHeaders,
 				body: { userId, resourceType: resourceType as ResourceType, resourceId },
 			});
 
@@ -85,7 +91,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 			if (!userId || !newUsername) return { status: 400, error: 'Missing required fields.' };
 
 			const result = await api?.users.updateUser({
-				auth: token, userId,
+				auth: token, userId, headers: ipHeaders,
 				body: { displayName: newUsername },
 			});
 
@@ -95,7 +101,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 			const userId = formData.get('userId') as string;
 			if (!userId) return { status: 400, error: 'Invalid user id.' };
 
-			const result = await api?.users.deleteAccount({ auth: token, userId });
+			const result = await api?.users.deleteAccount({ auth: token, userId, headers: ipHeaders });
 			return makeResObject(result, 'Failed to delete user.');
 		}
 		default: {

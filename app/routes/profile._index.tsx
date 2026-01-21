@@ -1,5 +1,5 @@
 import { VStack, Box, Divider, Flex, Input, Button, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, useToast, IconButton, Tooltip, Text, FormControl, FormLabel } from '@chakra-ui/react';
-import { securityUtils, convertPlatform, makeResponse, makeResObject } from '~/utils/functions.server';
+import { securityUtils, convertPlatform, getIpHeaders, makeResponse, makeResObject } from '~/utils/functions.server';
 import { FaChartBar, FaEye, FaEyeSlash, FaLink, FaTrash, FaUnlink, FaUser } from 'react-icons/fa';
 import { Platforms } from '@excali-boards/boards-api-client/prisma/generated/client';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
@@ -27,10 +27,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const DBUser = await api?.users.getUser({ auth: token });
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
+
+	const DBUser = await api?.users.getUser({ auth: token, headers: ipHeaders });
 	if (!DBUser || 'error' in DBUser) throw makeResponse(DBUser, 'Failed to get user data.');
 
-	const DBGroups = await api?.groups.getGroups({ auth: token });
+	const DBGroups = await api?.groups.getGroups({ auth: token, headers: ipHeaders });
 	if (!DBGroups || 'error' in DBGroups) throw makeResponse(DBGroups, 'Failed to get groups.');
 
 	return {
@@ -58,19 +61,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) return makeResObject(null, 'You are not authorized to perform this action.');
 
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
+
 	const formData = await request.formData();
 	const type = formData.get('type') as string;
 
 	switch (type) {
 		case 'updateUser': {
 			const userData = JSON.parse(formData.get('userData') as string);
-			const result = await api?.users.updateUser({ auth: token, body: userData });
+			const result = await api?.users.updateUser({ auth: token, body: userData, headers: ipHeaders });
 
 			if (result?.status === 200) await clearUserCache(token);
 			return makeResObject(result, 'Failed to update user.');
 		}
 		case 'deleteAccount': {
-			const result = await api?.users.deleteAccount({ auth: token });
+			const result = await api?.users.deleteAccount({ auth: token, headers: ipHeaders });
 
 			if (result?.status === 200) return authenticator.logout(request, { redirectTo: '/' });
 			else return makeResObject(result, 'Failed to delete account.');

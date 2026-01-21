@@ -1,5 +1,5 @@
 import { VStack, Box, Divider, Flex, Text, HStack, Avatar, AvatarGroup, Tooltip } from '@chakra-ui/react';
-import { makeResponse } from '~/utils/functions.server';
+import { getIpHeaders, makeResponse } from '~/utils/functions.server';
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { IconLinkButton } from '~/components/Button';
 import { authenticator } from '~/utils/auth.server';
@@ -27,10 +27,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const DBRooms = await api?.admin.getActiveRooms({ auth: token });
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
+
+	const DBRooms = await api?.admin.getActiveRooms({ auth: token, headers: ipHeaders });
 	if (!DBRooms || !('data' in DBRooms)) throw new Response(null, { status: 500, statusText: 'Failed to fetch rooms data.' });
 
-	const DBGroups = await api?.groups.getAllSorted({ auth: token });
+	const DBGroups = await api?.groups.getAllSorted({ auth: token, headers: ipHeaders });
 	if (!DBGroups || 'error' in DBGroups) throw makeResponse(DBGroups, 'Failed to get boards.');
 
 	const allBoards = DBGroups.data.flatMap((group) => group.categories.flatMap((category) => category.boards.map((board) => ({

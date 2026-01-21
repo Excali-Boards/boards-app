@@ -1,10 +1,10 @@
 import { VStack, Box, Divider, Text, Table, Thead, Tbody, Tr, Th, Td, Avatar, Flex, useColorMode, useBreakpointValue } from '@chakra-ui/react';
 import { formatRelativeTime, formatTime, validateParams } from '~/other/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { getIpHeaders, makeResponse } from '~/utils/functions.server';
 import { CustomTooltip } from '~/components/analytics/CustomTooltip';
 import { StatGrid } from '~/components/analytics/StatGrid';
 import { Container } from '~/components/layout/Container';
-import { makeResponse } from '~/utils/functions.server';
 import { BoardMapType, MapType } from '~/other/types';
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { authenticator } from '~/utils/auth.server';
@@ -20,19 +20,22 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const DBGroup = await api?.groups.getGroup({ auth: token, groupId });
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
+
+	const DBGroup = await api?.groups.getGroup({ auth: token, groupId, headers: ipHeaders });
 	if (!DBGroup || 'error' in DBGroup) throw makeResponse(DBGroup, 'Failed to get group.');
 
-	const category = DBGroup.data.categories.find(c => c.id === categoryId);
+	const category = DBGroup.data.categories.find((c) => c.id === categoryId);
 	if (!category) throw makeResponse(null, 'Category not found.');
 
-	const analytics = await api?.analytics.getCategoryAnalytics({ auth: token, categoryId, groupId });
-	if (!analytics || 'error' in analytics) throw makeResponse(analytics, 'Failed to get category analytics.');
+	const DBAnalytics = await api?.analytics.getCategoryAnalytics({ auth: token, categoryId, groupId, headers: ipHeaders });
+	if (!DBAnalytics || 'error' in DBAnalytics) throw makeResponse(DBAnalytics, 'Failed to get category analytics.');
 
 	return {
 		group: DBGroup.data.group,
 		category,
-		analytics: analytics.data,
+		analytics: DBAnalytics.data,
 	};
 };
 

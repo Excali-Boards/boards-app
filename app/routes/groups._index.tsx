@@ -1,8 +1,8 @@
 import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
+import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
-import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { canInviteAndPermit, canManage } from '~/other/utils';
 import { SearchBar } from '~/components/layout/SearchBar';
@@ -20,7 +20,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const DBGroups = await api?.groups.getGroups({ auth: token });
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
+
+	const DBGroups = await api?.groups.getGroups({ auth: token, headers: ipHeaders });
 	if (!DBGroups || 'error' in DBGroups) throw makeResponse(DBGroups, 'Failed to get groups.');
 
 	return {
@@ -32,6 +35,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) return makeResObject(null, 'You are not authorized to perform this action.');
 
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
+
 	const formData = await request.formData();
 	const type = formData.get('type') as string;
 
@@ -39,7 +45,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 		case 'newGroup': {
 			const groupName = formData.get('groupName') as string;
 
-			const result = await api?.groups.createGroup({ auth: token, body: { name: groupName } });
+			const result = await api?.groups.createGroup({ auth: token, body: { name: groupName }, headers: ipHeaders });
 			return makeResObject(result, 'Failed to create group.');
 		}
 		case 'updateGroup': {
@@ -47,21 +53,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 			const groupName = formData.get('groupName') as string;
 			if (!groupId || !groupName) return { status: 400, error: 'Invalid group name.' };
 
-			const result = await api?.groups.updateGroup({ auth: token, groupId, body: { name: groupName } });
+			const result = await api?.groups.updateGroup({ auth: token, groupId, body: { name: groupName }, headers: ipHeaders });
 			return makeResObject(result, 'Failed to update group.');
 		}
 		case 'reorderGroups': {
 			const groups = (formData.get('groups') as string)?.split(',') || [];
 			if (!groups || groups.length && groups.some((category) => typeof category !== 'string')) return { status: 400, error: 'Invalid groups.' };
 
-			const result = await api?.groups.reorderGroups({ auth: token, body: groups });
+			const result = await api?.groups.reorderGroups({ auth: token, body: groups, headers: ipHeaders });
 			return makeResObject(result, 'Failed to reorder groups.');
 		}
 		case 'deleteGroup': {
 			const groupId = formData.get('groupId') as string;
 			if (!groupId) return { status: 400, error: 'Invalid group id.' };
 
-			const result = await api?.groups.deleteGroup({ auth: token, groupId });
+			const result = await api?.groups.deleteGroup({ auth: token, groupId, headers: ipHeaders });
 			return makeResObject(result, 'Failed to delete group.');
 		}
 		default: {

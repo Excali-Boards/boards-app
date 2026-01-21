@@ -2,13 +2,13 @@ import { CalendarEventExternal, createViewDay, createViewMonthGrid, createViewWe
 import { VStack, Box, Flex, useToast, useColorMode, useBreakpointValue } from '@chakra-ui/react';
 import { canEdit, canManage, closest15MinuteCreate, validateParams } from '~/other/utils';
 import { useEffect, useContext, useMemo, useState, useCallback, useRef } from 'react';
+import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { CalendarHeader, CalendarView } from '~/components/calendar/CalendarHeader';
 import { ManageEvent, ModalOpen } from '~/components/calendar/ManageEventModal';
 import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls';
 import { CountryCodeModal } from '~/components/calendar/CountryCodeModal';
 import type { FormattedHoliday } from '@excali-boards/boards-api-client';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
-import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { createEventsServicePlugin } from '@schedule-x/events-service';
 import { useCalendarApp, ScheduleXCalendar } from '@schedule-x/react';
 import { createDragAndDropPlugin } from '@schedule-x/drag-and-drop';
@@ -45,28 +45,31 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const calendarData = await api?.calendar.getCalendar({ auth: token, groupId });
-	if (!calendarData || 'error' in calendarData) throw makeResponse(calendarData, 'Failed to get calendar data.');
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
+
+	const DBCalendarData = await api?.calendar.getCalendar({ auth: token, groupId, headers: ipHeaders });
+	if (!DBCalendarData || 'error' in DBCalendarData) throw makeResponse(DBCalendarData, 'Failed to get calendar data.');
 
 	const currentYear = new Date().getFullYear();
 	const holidays: FormattedHoliday[] = [];
-	if (calendarData.data.group.calendarCode) {
+	if (DBCalendarData.data.group.calendarCode) {
 		const years = [currentYear - 1, currentYear, currentYear + 1];
 
 		for (const year of years) {
-			const holidaysData = await api?.calendar.getHolidays({
+			const DBHolidaysData = await api?.calendar.getHolidays({
 				auth: token,
-				countryCode: calendarData.data.group.calendarCode,
-				year,
+				countryCode: DBCalendarData.data.group.calendarCode,
+				year, headers: ipHeaders,
 			});
 
-			if (holidaysData && !('error' in holidaysData)) {
-				holidays.push(...holidaysData.data);
+			if (DBHolidaysData && !('error' in DBHolidaysData)) {
+				holidays.push(...DBHolidaysData.data);
 			}
 		}
 	}
 
-	return { ...calendarData.data, holidays };
+	return { ...DBCalendarData.data, holidays };
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
@@ -74,6 +77,9 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) return makeResObject(null, 'You are not authorized to perform this action.');
+
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
 
 	const formData = await request.formData();
 	const type = formData.get('type') as string;
@@ -98,6 +104,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 					where: eventLocation,
 					color: eventColor,
 				},
+				headers: ipHeaders,
 			});
 
 			return makeResObject(result, 'Failed to create event.');
@@ -125,6 +132,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 					where: eventLocation,
 					color: eventColor,
 				},
+				headers: ipHeaders,
 			});
 
 			return makeResObject(result, 'Failed to update event.');
@@ -137,6 +145,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 				auth: token,
 				groupId,
 				eventId,
+				headers: ipHeaders,
 			});
 
 			return makeResObject(result, 'Failed to delete event.');
@@ -149,6 +158,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 				auth: token,
 				groupId,
 				calCode,
+				headers: ipHeaders,
 			});
 
 			return makeResObject(result, 'Failed to update country code.');

@@ -1,9 +1,9 @@
 import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
 import { canInviteAndPermit, canManage, formatRelativeTime, validateParams } from '~/other/utils';
+import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { BoardType } from '@excali-boards/boards-api-client/prisma/generated/client';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
-import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { useCallback, useContext, useMemo, useState } from 'react';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { SearchBar } from '~/components/layout/SearchBar';
@@ -24,7 +24,10 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const DBCategory = await api?.categories.getCategory({ auth: token, categoryId, groupId });
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
+
+	const DBCategory = await api?.categories.getCategory({ auth: token, categoryId, groupId, headers: ipHeaders });
 	if (!DBCategory || 'error' in DBCategory) throw makeResponse(DBCategory, 'Failed to get category.');
 
 	return {
@@ -42,6 +45,9 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
+
 	const formData = await request.formData();
 	const type = formData.get('type') as string;
 
@@ -50,7 +56,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 			const boardName = formData.get('boardName') as string;
 			const boardType = formData.get('boardType') as BoardType;
 
-			const result = await api?.categories.createBoardInCategory({ auth: token, categoryId, groupId, body: { name: boardName, type: boardType } });
+			const result = await api?.categories.createBoardInCategory({ auth: token, categoryId, groupId, body: { name: boardName, type: boardType }, headers: ipHeaders });
 			return makeResObject(result, 'Failed to create board.');
 		}
 		case 'updateBoard': {
@@ -58,42 +64,42 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 			const boardName = formData.get('boardName') as string;
 			if (!boardId || !boardName) return { status: 400, error: 'Invalid board name.' };
 
-			const result = await api?.boards.updateBoard({ auth: token, boardId, groupId, categoryId, body: { name: boardName } });
+			const result = await api?.boards.updateBoard({ auth: token, boardId, groupId, categoryId, body: { name: boardName }, headers: ipHeaders });
 			return makeResObject(result, 'Failed to update board.');
 		}
 		case 'reorderBoards': {
 			const boards = (formData.get('boards') as string)?.split(',') || [];
 			if (!boards || boards.length && boards.some((board) => typeof board !== 'string')) return { status: 400, error: 'Invalid boards.' };
 
-			const result = await api?.categories.reorderBoardsInCategory({ auth: token, categoryId, groupId, body: boards });
+			const result = await api?.categories.reorderBoardsInCategory({ auth: token, categoryId, groupId, body: boards, headers: ipHeaders });
 			return makeResObject(result, 'Failed to reorder boards.');
 		}
 		case 'deleteBoard': {
 			const boardId = formData.get('boardId') as string;
 			if (!boardId) return { status: 400, error: 'Invalid board id.' };
 
-			const result = await api?.boards.scheduleBoardDeletion({ auth: token, boardId, groupId, categoryId });
+			const result = await api?.boards.scheduleBoardDeletion({ auth: token, boardId, groupId, categoryId, headers: ipHeaders });
 			return makeResObject(result, 'Failed to delete board.');
 		}
 		case 'forceDeleteBoard': {
 			const boardId = formData.get('boardId') as string;
 			if (!boardId) return { status: 400, error: 'Invalid board id.' };
 
-			const result = await api?.boards.forceDeleteBoard({ auth: token, boardId, groupId, categoryId });
+			const result = await api?.boards.forceDeleteBoard({ auth: token, boardId, groupId, categoryId, headers: ipHeaders });
 			return makeResObject(result, 'Failed to permanently delete board.');
 		}
 		case 'cancelDeletion': {
 			const boardId = formData.get('boardId') as string;
 			if (!boardId) return { status: 400, error: 'Invalid board id.' };
 
-			const result = await api?.boards.cancelBoardDeletion({ auth: token, boardId, groupId, categoryId });
+			const result = await api?.boards.cancelBoardDeletion({ auth: token, boardId, groupId, categoryId, headers: ipHeaders });
 			return makeResObject(result, 'Failed to cancel board deletion.');
 		}
 		case 'initializeFlashcards': {
 			const boardId = formData.get('boardId') as string;
 			if (!boardId) return { status: 400, error: 'Invalid board id.' };
 
-			const result = await api?.flashcards.initializeDeck({ auth: token, boardId, groupId, categoryId });
+			const result = await api?.flashcards.initializeDeck({ auth: token, boardId, groupId, categoryId, headers: ipHeaders });
 			return makeResObject(result, 'Failed to initialize flashcards for board.');
 		}
 		default: {

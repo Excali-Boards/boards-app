@@ -97,3 +97,32 @@ export function makeResponse(data: unknown, message: string): Response {
 export function makeResObject<T>(data: T | null, message: string | null): T | { status: number; error: string; } {
 	return data || { status: getCode(data), error: getError(data, message || 'An unknown error occurred.') };
 }
+
+export function getClientIp(request: Request): string | null {
+	const cfIp = request.headers.get('cf-connecting-ip');
+	if (cfIp) return cfIp;
+
+	const realIp = request.headers.get('x-real-ip');
+	if (realIp) return realIp;
+
+	const forwarded = request.headers.get('x-forwarded-for');
+	if (forwarded) {
+		const ips = forwarded.split(',').map((ip) => ip.trim());
+		return ips[0] || null;
+	}
+
+	const trueClientIp = request.headers.get('true-client-ip');
+	if (trueClientIp) return trueClientIp;
+
+	return null;
+}
+
+export function getIpHeaders(request: Request): Record<string, string> | null {
+	const ip = getClientIp(request);
+	if (!ip) return null;
+
+	return {
+		'Content-Type': 'application/json',
+		'X-Forwarded-For': ip,
+	};
+}

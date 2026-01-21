@@ -2,8 +2,8 @@ import { Box, BoxProps, Button, Flex, HStack, IconButton, Slider, SliderFilledTr
 import { FaArrowLeft, FaArrowRight, FaBookOpen, FaCog, FaList, FaRandom } from 'react-icons/fa';
 import { ActionFunctionArgs, LinkDescriptor, LoaderFunctionArgs } from '@remix-run/node';
 import { useState, useMemo, useCallback, useRef, useEffect, useContext } from 'react';
+import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { themeColor, themeColorLight, WebReturnType } from '~/other/types';
-import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { IconLinkButton, LinkButton } from '~/components/Button';
 import { ConfettiContainer } from '~/components/other/Confetti';
 import { useFetcher, useLoaderData } from '@remix-run/react';
@@ -26,10 +26,13 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const flashcardData = await api?.flashcards.getDeck({ auth: token, groupId, categoryId, boardId });
-	if (!flashcardData || 'error' in flashcardData) throw makeResponse(flashcardData, 'Failed to get flashcard deck.');
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
 
-	return { deck: flashcardData.data, groupId, categoryId, boardId };
+	const DBFlashcardData = await api?.flashcards.getDeck({ auth: token, groupId, categoryId, boardId, headers: ipHeaders });
+	if (!DBFlashcardData || 'error' in DBFlashcardData) throw makeResponse(DBFlashcardData, 'Failed to get flashcard deck.');
+
+	return { deck: DBFlashcardData.data, groupId, categoryId, boardId };
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
@@ -37,6 +40,9 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
+
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
 
 	const formData = await request.formData();
 	const type = formData.get('type') as string;
@@ -52,6 +58,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 				categoryId,
 				boardId,
 				body: { currentIndex, completed },
+				headers: ipHeaders,
 			});
 
 			return makeResObject(result, 'Failed to update progress.');

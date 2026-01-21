@@ -1,8 +1,8 @@
+import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { ResourceInviteModal } from '~/components/permissions/ResourceInviteModal';
 import { ResourceGrantModal } from '~/components/permissions/ResourceGrantModal';
 import { ResourceInvites } from '~/components/permissions/ResourceInvites';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
-import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { ResourceUsers } from '~/components/sessions/ResourceUsers';
 import { canInviteAndPermit, validateParams } from '~/other/utils';
 import { VStack, Box, Divider, useToast } from '@chakra-ui/react';
@@ -23,13 +23,16 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const DBGroup = await api?.groups.getGroup({ auth: token, groupId });
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
+
+	const DBGroup = await api?.groups.getGroup({ auth: token, groupId, headers: ipHeaders });
 	if (!DBGroup || 'error' in DBGroup) throw makeResponse(DBGroup, 'Failed to get group.');
 
-	const DBGroupPermissions = await api?.permissions.viewPermissions({ auth: token, query: { type: 'group', id: groupId } });
+	const DBGroupPermissions = await api?.permissions.viewPermissions({ auth: token, query: { type: 'group', id: groupId }, headers: ipHeaders });
 	if (!DBGroupPermissions || 'error' in DBGroupPermissions) throw makeResponse(DBGroupPermissions, 'Failed to get group permissions.');
 
-	const DBGroupInvites = await api?.invites.getResourceInvites({ auth: token, query: { type: 'group', groupId } });
+	const DBGroupInvites = await api?.invites.getResourceInvites({ auth: token, query: { type: 'group', groupId }, headers: ipHeaders });
 	if (!DBGroupInvites || 'error' in DBGroupInvites) throw makeResponse(DBGroupInvites, 'Failed to get group invites.');
 
 	return {
@@ -44,34 +47,37 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) return makeResObject(null, 'You are not authorized to perform this action.');
 
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
+
 	const formData = await request.formData();
 	const type = formData.get('type') as string;
 
 	switch (type) {
 		case 'createInvite': {
 			const inviteData = JSON.parse(formData.get('inviteData') as string);
-			const result = await api?.invites.createInvite({ auth: token, body: inviteData });
+			const result = await api?.invites.createInvite({ auth: token, body: inviteData, headers: ipHeaders });
 
 			if (result?.status !== 200) return makeResObject(result, 'Failed to create invite.');
 			return makeResObject({ status: result.status, data: 'Invite created successfully.' }, null);
 		}
 		case 'grantPermissions': {
 			const permissionData = JSON.parse(formData.get('permissionData') as string);
-			const result = await api?.permissions.grantPermissions({ auth: token, body: permissionData });
+			const result = await api?.permissions.grantPermissions({ auth: token, body: permissionData, headers: ipHeaders });
 			return makeResObject(result, 'Failed to grant permissions.');
 		}
 		case 'deleteInvite': {
 			const inviteCode = formData.get('inviteCode') as string;
 			if (!inviteCode) return { status: 400, error: 'Invalid invite code.' };
 
-			const result = await api?.invites.revokeInvite({ auth: token, code: inviteCode });
+			const result = await api?.invites.revokeInvite({ auth: token, code: inviteCode, headers: ipHeaders });
 			return makeResObject(result, 'Failed to delete invite.');
 		}
 		case 'renewInvite': {
 			const inviteCode = formData.get('inviteCode') as string;
 			if (!inviteCode) return { status: 400, error: 'Invalid invite code.' };
 
-			const result = await api?.invites.renewInvite({ auth: token, code: inviteCode });
+			const result = await api?.invites.renewInvite({ auth: token, code: inviteCode, headers: ipHeaders });
 			if (result?.status !== 200) return makeResObject(result, 'Failed to renew invite.');
 			return makeResObject({ status: result.status, data: 'Invite renewed successfully.' }, null);
 		}
@@ -87,6 +93,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 			const result = await api?.permissions.revokePermissions({
 				auth: token,
 				body: { userId, resourceType: resourceType as ResourceType, resourceId },
+				headers: ipHeaders,
 			});
 
 			return makeResObject(result, 'Failed to revoke permission.');

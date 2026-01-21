@@ -1,10 +1,10 @@
 import { VStack, Box, Divider, Text, Table, Thead, Tbody, Tr, Th, Td, Avatar, Flex, useColorMode, useBreakpointValue } from '@chakra-ui/react';
 import { formatRelativeTime, formatTime, time, validateParams } from '~/other/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { getIpHeaders, makeResponse } from '~/utils/functions.server';
 import { CustomTooltip } from '~/components/analytics/CustomTooltip';
 import { StatGrid } from '~/components/analytics/StatGrid';
 import { Container } from '~/components/layout/Container';
-import { makeResponse } from '~/utils/functions.server';
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { authenticator } from '~/utils/auth.server';
 import MenuBar from '~/components/layout/MenuBar';
@@ -19,17 +19,20 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const DBBoard = await api?.boards.getBoard({ auth: token, boardId, categoryId, groupId });
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
+
+	const DBBoard = await api?.boards.getBoard({ auth: token, boardId, categoryId, groupId, headers: ipHeaders });
 	if (!DBBoard || 'error' in DBBoard) throw makeResponse(DBBoard, 'Failed to get board.');
 
-	const analytics = await api?.analytics.getBoardAnalytics({ auth: token, boardId, categoryId, groupId });
-	if (!analytics || 'error' in analytics) throw makeResponse(analytics, 'Failed to get board analytics.');
+	const DBAnalytics = await api?.analytics.getBoardAnalytics({ auth: token, boardId, categoryId, groupId, headers: ipHeaders });
+	if (!DBAnalytics || 'error' in DBAnalytics) throw makeResponse(DBAnalytics, 'Failed to get board analytics.');
 
 	return {
 		board: DBBoard.data.board,
 		category: DBBoard.data.category,
 		group: DBBoard.data.group,
-		analytics: analytics.data,
+		analytics: DBAnalytics.data,
 	};
 };
 

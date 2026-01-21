@@ -1,9 +1,9 @@
 import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
+import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { canInviteAndPermit, canManage, validateParams } from '~/other/utils';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
-import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { FaPlus, FaTools, FaCalendarAlt } from 'react-icons/fa';
 import { SearchBar } from '~/components/layout/SearchBar';
@@ -22,7 +22,10 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const DBGroup = await api?.groups.getGroup({ auth: token, groupId });
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
+
+	const DBGroup = await api?.groups.getGroup({ auth: token, groupId, headers: ipHeaders });
 	if (!DBGroup || 'error' in DBGroup) throw makeResponse(DBGroup, 'Failed to get group.');
 
 	return DBGroup.data;
@@ -34,6 +37,9 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) return makeResObject(null, 'You are not authorized to perform this action.');
 
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
+
 	const formData = await request.formData();
 	const type = formData.get('type') as string;
 
@@ -41,7 +47,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 		case 'newCategory': {
 			const categoryName = formData.get('categoryName') as string;
 
-			const result = await api?.groups.createCategoryInGroup({ auth: token, groupId, body: { name: categoryName } });
+			const result = await api?.groups.createCategoryInGroup({ auth: token, groupId, body: { name: categoryName }, headers: ipHeaders });
 			return makeResObject(result, 'Failed to create category.');
 		}
 		case 'updateCategory': {
@@ -49,21 +55,21 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 			const categoryName = formData.get('categoryName') as string;
 			if (!categoryId || !categoryName) return { status: 400, error: 'Invalid category name.' };
 
-			const result = await api?.categories.updateCategory({ auth: token, categoryId, groupId, body: { name: categoryName } });
+			const result = await api?.categories.updateCategory({ auth: token, categoryId, groupId, body: { name: categoryName }, headers: ipHeaders });
 			return makeResObject(result, 'Failed to update category.');
 		}
 		case 'reorderCategories': {
 			const categories = (formData.get('categories') as string)?.split(',') || [];
 			if (!categories || categories.length && categories.some((category) => typeof category !== 'string')) return { status: 400, error: 'Invalid categories.' };
 
-			const result = await api?.groups.reorderCategoriesInGroup({ auth: token, groupId, body: categories });
+			const result = await api?.groups.reorderCategoriesInGroup({ auth: token, groupId, body: categories, headers: ipHeaders });
 			return makeResObject(result, 'Failed to reorder categories.');
 		}
 		case 'deleteCategory': {
 			const categoryId = formData.get('categoryId') as string;
 			if (!categoryId) return { status: 400, error: 'Invalid category id.' };
 
-			const result = await api?.categories.deleteCategory({ auth: token, categoryId, groupId });
+			const result = await api?.categories.deleteCategory({ auth: token, categoryId, groupId, headers: ipHeaders });
 			return makeResObject(result, 'Failed to delete category.');
 		}
 		default: {

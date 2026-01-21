@@ -1,7 +1,7 @@
 import { PresenceContext, PresenceContextValue, PresenceSocket, RootContext } from '~/components/Context';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
-import { makeResObject, makeResponse } from '~/utils/functions.server';
 import { useBreakpointValue, useColorMode } from '@chakra-ui/react';
 import { ExcalidrawBoard } from '~/components/board/Excalidraw';
 import { TldrawBoard } from '~/components/board/Tldraw';
@@ -22,7 +22,10 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const DBBoard = await api?.boards.getBoard({ auth: token, boardId, groupId, categoryId });
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
+
+	const DBBoard = await api?.boards.getBoard({ auth: token, boardId, groupId, categoryId, headers: ipHeaders });
 	if (!DBBoard || 'error' in DBBoard) throw makeResponse(DBBoard, 'Failed to get board.');
 
 	return {
@@ -43,6 +46,9 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
+
 	const formData = await request.formData();
 	const type = formData.get('type') as string;
 
@@ -50,7 +56,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 		case 'kickUser': {
 			const userId = formData.get('userId') as string;
 
-			const result = await api?.boards.kickUserFromRoom({ auth: token, categoryId, groupId, userId, boardId });
+			const result = await api?.boards.kickUserFromRoom({ auth: token, categoryId, groupId, userId, boardId, headers: ipHeaders });
 			return makeResObject(result, 'Failed to kick user from board.');
 		}
 		default: {

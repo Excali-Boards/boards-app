@@ -1,6 +1,6 @@
+import { getIpHeaders, makeResponse, makeResObject } from '~/utils/functions.server';
 import { SessionCard, NoSessionCard } from '~/components/sessions/SessionCard';
 import { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
-import { makeResponse, makeResObject } from '~/utils/functions.server';
 import { VStack, Box, Divider, useToast } from '@chakra-ui/react';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { ConfirmModal } from '~/components/other/ConfirmModal';
@@ -16,7 +16,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const DBSessions = await api?.sessions.getAllSessions({ auth: token });
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
+
+	const DBSessions = await api?.sessions.getAllSessions({ auth: token, headers: ipHeaders });
 	if (!DBSessions || 'error' in DBSessions) throw makeResponse(DBSessions, 'Failed to get sessions.');
 
 	return {
@@ -29,6 +32,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) return makeResObject(null, 'You are not authorized to perform this action.');
 
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
+
 	const formData = await request.formData();
 	const type = formData.get('type') as string;
 
@@ -37,14 +43,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 			const sessionId = formData.get('sessionId') as string;
 			if (!sessionId) return { status: 400, error: 'Invalid request.' };
 
-			const result = await api?.sessions.deleteSession({ auth: token, dbId: sessionId });
+			const result = await api?.sessions.deleteSession({ auth: token, dbId: sessionId, headers: ipHeaders });
 			const isCurrent = formData.get('isCurrent') === 'true';
 
 			if (result?.status === 200 && isCurrent) return authenticator.logout(request, { redirectTo: '/' });
 			else return makeResObject(result, 'Failed to delete session.');
 		}
 		case 'deleteAllSessions': {
-			const result = await api?.sessions.deleteAllSessions({ auth: token });
+			const result = await api?.sessions.deleteAllSessions({ auth: token, headers: ipHeaders });
 
 			if (result?.status === 200) return authenticator.logout(request, { redirectTo: '/' });
 			else return makeResObject(result, 'Failed to delete all sessions.');

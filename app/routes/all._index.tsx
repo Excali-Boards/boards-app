@@ -1,7 +1,7 @@
 import { Flex, VStack, Accordion, AccordionItem, AccordionButton, AccordionPanel, Box, Text, Divider, AccordionIcon, Badge, useColorMode } from '@chakra-ui/react';
 import { formatBytes, formatRelativeTime, getCardDeletionTime } from '~/other/utils';
+import { getIpHeaders, makeResponse } from '~/utils/functions.server';
 import { Container } from '~/components/layout/Container';
-import { makeResponse } from '~/utils/functions.server';
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { IconLinkButton } from '~/components/Button';
 import { authenticator } from '~/utils/auth.server';
@@ -17,7 +17,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const DBResources = await api?.groups.getAllSorted({ auth: token });
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
+
+	const DBResources = await api?.groups.getAllSorted({ auth: token, headers: ipHeaders });
 	if (!DBResources || 'error' in DBResources) throw makeResponse(DBResources, 'Failed to get groups.');
 
 	return DBResources.data.map((group) => ({

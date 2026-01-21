@@ -1,11 +1,11 @@
 import { Box, Flex, HStack, IconButton, SimpleGrid, Text, Tooltip, useColorModeValue, VStack } from '@chakra-ui/react';
 import { FlipCardProps } from './flashcards.$groupId.$categoryId.$boardId._index';
+import { getIpHeaders, makeResponse } from '~/utils/functions.server';
 import { LinkDescriptor, LoaderFunctionArgs } from '@remix-run/node';
 import { themeColor, themeColorLight } from '~/other/types';
 import { useState, useCallback, useContext } from 'react';
 import { FaBookOpen, FaCog, FaEye } from 'react-icons/fa';
 import { validateParams, canEdit } from '~/other/utils';
-import { makeResponse } from '~/utils/functions.server';
 import { TextParser } from '~/components/TextParser';
 import { IconLinkButton } from '~/components/Button';
 import { authenticator } from '~/utils/auth.server';
@@ -25,10 +25,13 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const flashcardData = await api?.flashcards.getDeck({ auth: token, groupId, categoryId, boardId });
-	if (!flashcardData || 'error' in flashcardData) throw makeResponse(flashcardData, 'Failed to get flashcard deck.');
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
 
-	return { deck: flashcardData.data, groupId, categoryId, boardId };
+	const DBFlashcardData = await api?.flashcards.getDeck({ auth: token, groupId, categoryId, boardId, headers: ipHeaders });
+	if (!DBFlashcardData || 'error' in DBFlashcardData) throw makeResponse(DBFlashcardData, 'Failed to get flashcard deck.');
+
+	return { deck: DBFlashcardData.data, groupId, categoryId, boardId };
 };
 
 export default function FlashcardsGrid() {

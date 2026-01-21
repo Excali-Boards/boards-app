@@ -1,6 +1,8 @@
 import { Device } from '@excali-boards/boards-api-client/prisma/generated/client';
 import { GetUsersOutput, WebResponse } from '@excali-boards/boards-api-client';
 import { authenticator } from '~/utils/auth.server';
+import { getIpHeaders } from './functions.server';
+import { CustomError } from './logger.server';
 import { api } from '~/utils/web.server';
 import { UAParser } from 'ua-parser-js';
 
@@ -23,6 +25,9 @@ export async function getCachedUser(request: Request): Promise<CachedResponse> {
 
 	if (cached && cached.expiry > now) return { data: cached.data, token };
 	if (cached) userCache.delete(token);
+
+	const ipHeaders = getIpHeaders(request);
+	if (!ipHeaders) throw new CustomError('Failed to get client IP.', 'CustomError');
 
 	const result = await api?.users.getUser({ auth: token });
 	if (!result) return;
