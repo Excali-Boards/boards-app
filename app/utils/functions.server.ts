@@ -98,28 +98,6 @@ export function makeResObject<T>(data: T | null, message: string | null): T | { 
 	return data || { status: getCode(data), error: getError(data, message || 'An unknown error occurred.') };
 }
 
-export function getErrorClient(error: unknown, fallback?: string): string {
-	if (typeof error === 'object' && error && 'error' in error) return getErrorClient(error.error, fallback);
-	if (typeof error === 'object' && error && 'message' in error) return getErrorClient(error.message, fallback);
-	if (typeof error === 'string') return error;
-	return fallback || 'An unknown error occurred.';
-}
-
-export function getCodeClient(data: unknown): number {
-	if (typeof data === 'object' && data && 'status' in data) return getCodeClient(data.status);
-	if (typeof data === 'object' && data && 'code' in data) return getCodeClient(data.code);
-	if (typeof data === 'number') return data;
-	return 500;
-}
-
-export function makeResponseClient(data: unknown, message: string): Response {
-	return new Response(getErrorClient(data, message), { status: getCodeClient(data), statusText: data && typeof data === 'object' && 'errorName' in data ? data.errorName as string : undefined });
-}
-
-export function makeResObjectClient<T>(data: T | null, message: string): T | { status: number; error: string; } {
-	return data || { status: getCodeClient(data), error: getErrorClient(data, message) };
-}
-
 export function getClientIp(request: Request): string | null {
 	const cfIp = request.headers.get('cf-connecting-ip');
 	if (cfIp) return cfIp;
