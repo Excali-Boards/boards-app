@@ -1,18 +1,20 @@
 import { Box, BoxProps, Button, Flex, HStack, IconButton, Slider, SliderFilledTrack, SliderThumb, SliderTrack, Text, Tooltip, useColorModeValue, VStack } from '@chakra-ui/react';
 import { FaArrowLeft, FaArrowRight, FaBookOpen, FaCog, FaList, FaRandom } from 'react-icons/fa';
+import { getIpHeaders, makeResObjectClient, makeResponse } from '~/utils/functions.server';
 import { ActionFunctionArgs, LinkDescriptor, LoaderFunctionArgs } from '@remix-run/node';
+import { useFetcher, useLoaderData, ClientActionFunctionArgs } from '@remix-run/react';
 import { useState, useMemo, useCallback, useRef, useEffect, useContext } from 'react';
-import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { themeColor, themeColorLight, WebReturnType } from '~/other/types';
 import { IconLinkButton, LinkButton } from '~/components/Button';
 import { ConfettiContainer } from '~/components/other/Confetti';
-import { useFetcher, useLoaderData } from '@remix-run/react';
 import { canEdit, validateParams } from '~/other/utils';
 import { TextParser } from '~/components/TextParser';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
+import configServer from '~/utils/config.server';
 import { useHotkeys } from '~/hooks/useHotkey';
 import { FaDeleteLeft } from 'react-icons/fa6';
+import { apiClient } from '~/other/apiClient';
 import { GiGloop } from 'react-icons/gi';
 import { api } from '~/utils/web.server';
 
@@ -41,10 +43,14 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	const ipHeaders = getIpHeaders(request);
-	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
+	return { token, url: configServer.apiUrl, groupId, categoryId, boardId };
+};
 
-	const formData = await request.formData();
+export const clientAction = async ({ request, serverAction }: ClientActionFunctionArgs) => {
+	const clonedRequest = request.clone();
+	const { token, url, groupId, categoryId, boardId } = await serverAction<typeof action>();
+
+	const formData = await clonedRequest.formData();
 	const type = formData.get('type') as string;
 
 	switch (type) {
@@ -52,16 +58,15 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 			const currentIndex = parseInt(formData.get('currentIndex') as string);
 			const completed = formData.get('completed') === 'true';
 
-			const result = await api?.flashcards.updateProgress({
+			const result = await apiClient(url).flashcards.updateProgress({
 				auth: token,
 				groupId,
 				categoryId,
 				boardId,
 				body: { currentIndex, completed },
-				headers: ipHeaders,
 			});
 
-			return makeResObject(result, 'Failed to update progress.');
+			return makeResObjectClient(result, 'Failed to update progress.');
 		}
 		default: {
 			return { status: 400, error: 'Invalid request.' };
@@ -81,46 +86,121 @@ export default function Flashcards() {
 	const [allCards, setAllCards] = useState(deck.cards);
 
 	const pendingProgressRef = useRef<{ currentIndex: number; completed: boolean; } | null>(null);
+	const lastSubmittedRef = useRef<{ currentIndex: number; completed: boolean; } | null>(null);
+
 	const throttleTimerRef = useRef<NodeJS.Timeout | null>(null);
+	const firstPendingAtRef = useRef<number | null>(null);
 	const fetcher = useFetcher<WebReturnType<string>>();
+
+	const lastChangeAtRef = useRef(0);
+	const lastSubmitAtRef = useRef(0);
 
 	const [rotation, setRotation] = useState(0);
 	const handleFlip = useCallback((isBack = false) => setRotation((r) => r + (isBack ? -180 : 180)), []);
 
-	const submitProgress = useCallback((currentIndex: number, completed: boolean) => {
-		pendingProgressRef.current = { currentIndex, completed };
+	const flushPendingProgress = useCallback((useBeacon = false) => {
+		if (!pendingProgressRef.current) return;
+
 		if (throttleTimerRef.current) clearTimeout(throttleTimerRef.current);
 
-		throttleTimerRef.current = setTimeout(() => {
-			if (pendingProgressRef.current) {
-				const { currentIndex: idx, completed: comp } = pendingProgressRef.current;
+		const { currentIndex: idx, completed: comp } = pendingProgressRef.current;
+		const last = lastSubmittedRef.current;
 
-				fetcher.submit({
-					type: 'updateProgress',
-					currentIndex: idx.toString(),
-					completed: comp.toString(),
-				}, { method: 'post' });
+		if (last && last.currentIndex === idx && last.completed === comp) {
+			pendingProgressRef.current = null;
+			firstPendingAtRef.current = null;
+			return;
+		}
 
-				pendingProgressRef.current = null;
-			}
-		}, 10000);
+		const now = Date.now();
+
+		if (useBeacon && 'sendBeacon' in navigator) {
+			const formData = new FormData();
+			formData.set('type', 'updateProgress');
+			formData.set('currentIndex', idx.toString());
+			formData.set('completed', comp.toString());
+			navigator.sendBeacon(window.location.pathname, formData);
+		} else {
+			fetcher.submit({
+				type: 'updateProgress',
+				currentIndex: idx.toString(),
+				completed: comp.toString(),
+			}, { method: 'post' });
+		}
+
+		lastSubmittedRef.current = { currentIndex: idx, completed: comp };
+		lastSubmitAtRef.current = now;
+		firstPendingAtRef.current = null;
+		pendingProgressRef.current = null;
 	}, [fetcher]);
+
+	const scheduleFlush = useCallback(() => {
+		if (!pendingProgressRef.current) return;
+
+		const debounceMs = 30000; // 30 seconds
+		const maxWaitMs = 120000; // 2 minutes
+		const minIntervalMs = 20000; // 20 seconds
+
+		const now = Date.now();
+		const firstPendingAt = firstPendingAtRef.current ?? now;
+		const lastChangeAt = lastChangeAtRef.current || now;
+		const lastSubmitAt = lastSubmitAtRef.current || 0;
+
+		const earliest = Math.max(lastChangeAt + debounceMs, lastSubmitAt + minIntervalMs);
+		const latest = firstPendingAt + maxWaitMs;
+		const target = Math.min(earliest, latest);
+		const delay = Math.max(0, target - now);
+
+		if (throttleTimerRef.current) clearTimeout(throttleTimerRef.current);
+		throttleTimerRef.current = setTimeout(() => {
+			flushPendingProgress();
+		}, delay);
+	}, [flushPendingProgress]);
+
+	const submitProgress = useCallback((currentIndex: number, completed: boolean) => {
+		const now = Date.now();
+		pendingProgressRef.current = { currentIndex, completed };
+		if (!firstPendingAtRef.current) firstPendingAtRef.current = now;
+		lastChangeAtRef.current = now;
+
+		scheduleFlush();
+	}, [scheduleFlush]);
 
 	useEffect(() => {
 		return () => {
 			if (throttleTimerRef.current) clearTimeout(throttleTimerRef.current);
+			flushPendingProgress();
+		};
+	}, [flushPendingProgress]);
 
-			if (pendingProgressRef.current) {
-				const { currentIndex: idx, completed: comp } = pendingProgressRef.current;
-
-				fetcher.submit({
-					type: 'updateProgress',
-					currentIndex: idx.toString(),
-					completed: comp.toString(),
-				}, { method: 'post' });
+	useEffect(() => {
+		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+			if (pendingProgressRef.current || fetcher.state !== 'idle') {
+				event.preventDefault();
+				event.returnValue = '';
 			}
 		};
-	}, [fetcher]);
+
+		const handlePageHide = () => {
+			flushPendingProgress(true);
+		};
+
+		const handleVisibilityChange = () => {
+			if (document.visibilityState === 'hidden') {
+				flushPendingProgress(true);
+			}
+		};
+
+		window.addEventListener('beforeunload', handleBeforeUnload);
+		window.addEventListener('pagehide', handlePageHide);
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+
+		return () => {
+			window.removeEventListener('beforeunload', handleBeforeUnload);
+			window.removeEventListener('pagehide', handlePageHide);
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+		};
+	}, [fetcher.state, flushPendingProgress]);
 
 	const currentCard = useMemo(() => allCards[currentIndex] || null, [allCards, currentIndex]);
 

@@ -74,7 +74,9 @@ export default function Board() {
 	const [presenceSocket, setPresenceSocket] = useState<PresenceSocket | null>(null);
 	const presenceSocketRef = useRef<PresenceSocket | null>(null);
 	const currentStateRef = useRef<PresenceState>('active');
+	const activityRafRef = useRef<number | null>(null);
 	const idleTimerRef = useRef<number | null>(null);
+	const lastActivityAtRef = useRef(0);
 
 	useEffect(() => {
 		setBoardInfo?.({ accessLevel: board.accessLevel, hideCollaborators: false, hasFlashCards: board.hasFlashcards });
@@ -99,11 +101,24 @@ export default function Board() {
 		setPresence('active');
 
 		if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
-		idleTimerRef.current = window.setTimeout(() => setPresence('idle'), 90_000);
+		idleTimerRef.current = window.setTimeout(() => setPresence('idle'), 90000); // 90 seconds
 	}, [setPresence]);
 
+	const handleActivityEvent = useCallback(() => {
+		const now = Date.now();
+		if (now - lastActivityAtRef.current < 1500) return; // 1.5 seconds (minimum interval between activity bumps)
+
+		lastActivityAtRef.current = now;
+
+		if (activityRafRef.current !== null) return;
+		activityRafRef.current = window.requestAnimationFrame(() => {
+			activityRafRef.current = null;
+			bumpActivity();
+		});
+	}, [bumpActivity]);
+
 	useEffect(() => {
-		const activityEvents = ['mousemove', 'keydown', 'wheel', 'touchstart', 'pointerdown', 'scroll'] as const;
+		const activityEvents = ['mousemove', 'mousedown', 'mouseup', 'click', 'keydown', 'keyup', 'wheel', 'touchstart', 'touchmove', 'pointerdown', 'pointermove', 'scroll', 'focusin'] as const;
 		const handleVisibilityChange = () => {
 			if (document.hidden) setPresence('away');
 			else bumpActivity();
@@ -111,22 +126,26 @@ export default function Board() {
 
 		const handleFocus = () => bumpActivity();
 		const handleBlur = () => setPresence('away');
+		const handlePageShow = () => bumpActivity();
 
-		for (const evt of activityEvents) window.addEventListener(evt, bumpActivity, { passive: true });
+		for (const evt of activityEvents) window.addEventListener(evt, handleActivityEvent, { passive: true });
 		document.addEventListener('visibilitychange', handleVisibilityChange);
 		window.addEventListener('focus', handleFocus);
 		window.addEventListener('blur', handleBlur);
+		window.addEventListener('pageshow', handlePageShow);
 
 		return () => {
-			for (const evt of activityEvents) window.removeEventListener(evt, bumpActivity);
+			for (const evt of activityEvents) window.removeEventListener(evt, handleActivityEvent);
 
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			window.removeEventListener('focus', handleFocus);
 			window.removeEventListener('blur', handleBlur);
+			window.removeEventListener('pageshow', handlePageShow);
 
 			if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
+			if (activityRafRef.current !== null) window.cancelAnimationFrame(activityRafRef.current);
 		};
-	}, [bumpActivity, setPresence]);
+	}, [bumpActivity, handleActivityEvent, setPresence]);
 
 	useEffect(() => {
 		if (!presenceSocket) return;
