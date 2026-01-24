@@ -5,6 +5,10 @@ export type TooltipPayload = {
 	name: string;
 	value: number;
 	color: string;
+	payload?: {
+		fullName?: string;
+		detail?: string;
+	};
 };
 
 export type CustomTooltipProps = {
@@ -37,11 +41,20 @@ export function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 			{payload.map((entry, index: number) => {
 				const isHours = typeof entry.value === 'number' && entry.value < 100 && entry.value % 1 !== 0;
 				const displayValue = isHours ? formatTime(entry.value * 3600, 's', true) : entry.value;
+				const fullName = entry.payload?.fullName || entry.name;
+				const detail = entry.payload?.detail;
 
 				return (
-					<Text key={index} fontSize='sm' color={entry.color}>
-						{entry.name}: {displayValue}
-					</Text>
+					<Box key={index}>
+						<Text fontSize='sm' color={entry.color} fontWeight='semibold'>
+							{fullName}: {displayValue}
+						</Text>
+						{detail && (
+							<Text fontSize='xs' opacity={0.8}>
+								{detail}
+							</Text>
+						)}
+					</Box>
 				);
 			})}
 		</Box>

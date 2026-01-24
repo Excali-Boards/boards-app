@@ -113,6 +113,7 @@ export function getClientIp(request: Request): string | null {
 
 	const trueClientIp = request.headers.get('true-client-ip');
 	if (trueClientIp) return trueClientIp;
+	if (config.isDev) return '127.0.0.1';
 
 	return null;
 }
