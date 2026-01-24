@@ -190,8 +190,17 @@ export default function Profile() {
 									key={p.id}
 									icon={allPlatformData.find((d) => d.name.toLowerCase() === p.id.toLowerCase())?.faIcon({ boxSize: 10 }) || <FaLink />}
 									title={p.name}
-									isConnected={p.isConnected}
-									manageUrl={p.isConnected ? `/unlink/${p.name.toLowerCase()}?backTo=/profile` : `/login?type=${p.name.toLowerCase()}&add=true&backTo=/profile`}
+									primaryAction={p.isConnected ? {
+										label: 'Unlink',
+										icon: <FaUnlink />,
+										colorScheme: 'red',
+										to: `/unlink/${p.name.toLowerCase()}?backTo=/profile`,
+									} : {
+										label: 'Link',
+										icon: <FaLink />,
+										colorScheme: 'gray',
+										to: `/link/${p.name.toLowerCase()}?backTo=/profile`,
+									}}
 									text={p.isConnected ? `Connected with ${p.name} as ${showEmail ? p.connectedEmailDecrypted : p.connectedEmail}.` : `Connect your ${p.name} account.`}
 									addDivider={i < platforms.length - 1}
 								/>
@@ -266,6 +275,7 @@ export default function Profile() {
 					colorScheme='red'
 				/>
 			)}
+
 		</VStack>
 	);
 }
@@ -274,19 +284,17 @@ export type PlatformProps = {
 	icon: JSX.Element;
 	text: string;
 	title: string;
-	manageUrl: string;
-	isConnected: boolean;
 	addDivider?: boolean;
-	otherButtons?: {
-		icon: JSX.Element;
-		colorScheme: string;
-		onClick: () => void;
-		ariaLabel: string;
+	primaryAction: {
 		label: string;
-	}[];
+		colorScheme: string;
+		icon: JSX.Element;
+		to?: string;
+		onClick?: () => void;
+	};
 };
 
-export function Platform({ icon, title, isConnected, manageUrl, text, addDivider, otherButtons }: PlatformProps) {
+export function Platform({ icon, title, text, addDivider, primaryAction }: PlatformProps) {
 	return (
 		<Fragment>
 			<Box
@@ -304,26 +312,25 @@ export function Platform({ icon, title, isConnected, manageUrl, text, addDivider
 					</Box>
 				</Box>
 				<Box display='flex' alignItems='center' width={{ base: '100%', md: 'auto' }}>
-					<LinkButton
-						colorScheme={isConnected ? 'red' : 'gray'}
-						leftIcon={isConnected ? <FaUnlink /> : <FaLink />}
-						width={{ base: '100%', md: 'auto' }}
-						to={manageUrl}
-					>
-						{isConnected ? 'Unlink' : 'Link'}
-					</LinkButton>
-					{otherButtons?.map((b, i) => (
-						<Tooltip key={i} label={b.label} hasArrow>
-							<IconButton
-								ml={2}
-								key={i}
-								icon={b.icon}
-								onClick={b.onClick}
-								colorScheme={b.colorScheme}
-								aria-label={b.ariaLabel}
-							/>
-						</Tooltip>
-					))}
+					{primaryAction.to ? (
+						<LinkButton
+							colorScheme={primaryAction.colorScheme}
+							leftIcon={primaryAction.icon}
+							width={{ base: '100%', md: 'auto' }}
+							to={primaryAction.to}
+						>
+							{primaryAction.label}
+						</LinkButton>
+					) : (
+						<Button
+							colorScheme={primaryAction.colorScheme}
+							leftIcon={primaryAction.icon}
+							width={{ base: '100%', md: 'auto' }}
+							onClick={primaryAction.onClick}
+						>
+							{primaryAction.label}
+						</Button>
+					)}
 				</Box>
 			</Box>
 
@@ -404,7 +411,7 @@ export function UpdateUserModal({ isOpen, onClose, displayName, currentMainPlatf
 								options={linkedPlatforms}
 								placeholder='Select main platform..'
 								onChange={(e) => setMainPlatform(e as Platforms)}
-								isDisabled={linkedPlatforms.length < 2}
+								isDisabled={linkedPlatforms.length < 1}
 							/>
 						</FormControl>
 
