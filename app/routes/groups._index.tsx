@@ -12,6 +12,7 @@ import { useDebounced } from '~/hooks/useDebounced';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
+import configServer from '~/utils/config.server';
 import { FaPlus, FaTools } from 'react-icons/fa';
 import { WebReturnType } from '~/other/types';
 import { api } from '~/utils/web.server';
@@ -27,6 +28,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	if (!DBGroups || 'error' in DBGroups) throw makeResponse(DBGroups, 'Failed to get groups.');
 
 	return {
+		showSearches: configServer.showSearches,
 		groups: DBGroups.data,
 	};
 };
@@ -78,7 +80,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 export default function Groups() {
 	const { user, setCanInvite, setShowAllBoards } = useContext(RootContext) || {};
-	const { groups } = useLoaderData<typeof loader>();
+	const { groups, showSearches } = useLoaderData<typeof loader>();
 
 	const [modalOpen, setModalOpen] = useState<ModalOpen>(null);
 	const [groupId, setGroupId] = useState<string | null>(null);
@@ -135,7 +137,7 @@ export default function Groups() {
 					}] : []}
 				/>
 
-				<SearchBar search={search} setSearch={setSearch} whatSearch={'groups'} id='groups' dividerMY={4} />
+				<SearchBar search={search} setSearch={setSearch} whatSearch={'groups'} id='groups' dividerMY={4} isShown={showSearches} />
 
 				<CardList
 					key={revertKey}

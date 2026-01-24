@@ -13,6 +13,7 @@ import { useDebounced } from '~/hooks/useDebounced';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
+import configServer from '~/utils/config.server';
 import { WebReturnType } from '~/other/types';
 import { api } from '~/utils/web.server';
 
@@ -28,7 +29,11 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const DBGroup = await api?.groups.getGroup({ auth: token, groupId, headers: ipHeaders });
 	if (!DBGroup || 'error' in DBGroup) throw makeResponse(DBGroup, 'Failed to get group.');
 
-	return DBGroup.data;
+	return {
+		group: DBGroup.data.group,
+		categories: DBGroup.data.categories,
+		showSearches: configServer.showSearches,
+	};
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
@@ -79,7 +84,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 };
 
 export default function Categories() {
-	const { group, categories } = useLoaderData<typeof loader>();
+	const { group, categories, showSearches } = useLoaderData<typeof loader>();
 	const { user, setCanInvite } = useContext(RootContext) || {};
 
 	const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -143,7 +148,7 @@ export default function Categories() {
 					}] as const : [])]}
 				/>
 
-				<SearchBar search={search} setSearch={setSearch} whatSearch={'categories'} id='categories' dividerMY={4} />
+				<SearchBar search={search} setSearch={setSearch} whatSearch={'categories'} id='categories' dividerMY={4} isShown={showSearches} />
 
 				<CardList
 					key={revertKey}

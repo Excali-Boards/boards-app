@@ -13,6 +13,7 @@ import { useDebounced } from '~/hooks/useDebounced';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
+import configServer from '~/utils/config.server';
 import { FaPlus, FaTools } from 'react-icons/fa';
 import { WebReturnType } from '~/other/types';
 import Select from '~/components/Select';
@@ -32,6 +33,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
 	return {
 		...DBCategory.data,
+		showSearches: configServer.showSearches,
 		boards: DBCategory.data.boards.map((board) => ({
 			...board,
 			scheduledForDeletionText: board.scheduledForDeletion ? formatRelativeTime(new Date(board.scheduledForDeletion), true) : null,
@@ -109,7 +111,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 };
 
 export default function Boards() {
-	const { group, category, boards } = useLoaderData<typeof loader>();
+	const { group, category, boards, showSearches } = useLoaderData<typeof loader>();
 	const { user } = useContext(RootContext) || {};
 
 	const [modalOpen, setModalOpen] = useState<ModalOpen>(null);
@@ -163,7 +165,7 @@ export default function Boards() {
 					}] : []}
 				/>
 
-				<SearchBar search={search} setSearch={setSearch} whatSearch={'boards'} id='boards' dividerMY={4} />
+				<SearchBar search={search} setSearch={setSearch} whatSearch={'boards'} id='boards' dividerMY={4} isShown={showSearches} />
 
 				<CardList
 					key={revertKey}

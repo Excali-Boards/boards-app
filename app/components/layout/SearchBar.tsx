@@ -6,6 +6,7 @@ export type SearchBarProps = {
 	setSearch: (search: string) => void;
 	whatSearch: string;
 	dividerMY?: number;
+	isShown?: boolean;
 };
 
 export function SearchBar({
@@ -13,6 +14,7 @@ export function SearchBar({
 	setSearch,
 	whatSearch,
 	dividerMY,
+	isShown = true,
 	...props
 }: SearchBarProps & InputProps) {
 	const searchBar = useMemo(() => {
@@ -38,7 +40,8 @@ export function SearchBar({
 		);
 	}, [search, setSearch, whatSearch, props]);
 
-	return dividerMY ? (
+	if (!isShown) return <Divider my={dividerMY} />;
+	else return dividerMY ? (
 		<Fragment>
 			<Divider my={dividerMY} />
 			{searchBar}
