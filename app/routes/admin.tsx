@@ -10,8 +10,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 	const DBUser = (await getCachedUser(request))?.data;
 	if (!DBUser || 'error' in DBUser) throw makeResponse(DBUser, 'Failed to get user data.');
+	else if (!DBUser.data.isDev) throw makeResponse(null, 'You are not authorized to view this page.');
 
-	return { authorized: DBUser.data.isDev };
+	return { authorized: true };
 };
 
 export default function Admin() {

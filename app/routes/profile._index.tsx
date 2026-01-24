@@ -105,13 +105,13 @@ export default function Profile() {
 	const customButtons = useMemo(() => {
 		const buttons: CustomButton<'link'>[] = [{
 			type: 'link',
-			to: '/analytics',
+			to: '/profile/analytics',
 			icon: <FaChartBar />,
 			label: 'View Analytics',
 			tooltip: 'View analytics',
 		}, {
 			type: 'link',
-			to: '/sessions',
+			to: '/profile/sessions',
 			icon: <MdDesktopWindows />,
 			label: 'Manage Sessions',
 			tooltip: 'Manage sessions',

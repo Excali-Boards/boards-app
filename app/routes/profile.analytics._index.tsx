@@ -1,18 +1,16 @@
-import { VStack, Box, Divider, Text, Table, Thead, Tbody, Tr, Th, Td, Avatar, Flex, useColorMode, useBreakpointValue } from '@chakra-ui/react';
-import { formatRelativeTime, formatTime, time, validateParams } from '~/other/utils';
+import { VStack, Box, Divider, Text, Table, Thead, Tbody, Tr, Th, Td, Flex, useColorMode, useBreakpointValue } from '@chakra-ui/react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { getIpHeaders, makeResponse } from '~/utils/functions.server';
 import { CustomTooltip } from '~/components/analytics/CustomTooltip';
 import { StatGrid } from '~/components/analytics/StatGrid';
 import { Container } from '~/components/layout/Container';
-import { BoardMapType, MapType } from '~/other/types';
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { authenticator } from '~/utils/auth.server';
 import MenuBar from '~/components/layout/MenuBar';
 import { useLoaderData } from '@remix-run/react';
+import { formatTime } from '~/other/utils';
 import { colorsArray } from '~/other/vars';
 import { api } from '~/utils/web.server';
-import { FaLink } from 'react-icons/fa';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
@@ -21,15 +19,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const ipHeaders = getIpHeaders(request);
 	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
 
-	const DBAnalytics = await api?.analytics.getGlobalAnalytics({ auth: token, headers: ipHeaders });
-	if (!DBAnalytics || 'error' in DBAnalytics) throw makeResponse(DBAnalytics, 'Failed to get group analytics.');
+	const DBAnalytics = await api?.analytics.getUserAnalytics({ auth: token, headers: ipHeaders });
+	if (!DBAnalytics || 'error' in DBAnalytics) throw makeResponse(DBAnalytics, 'Failed to get analytics.');
 
-	return {
-		analytics: DBAnalytics.data,
-	};
+	return { analytics: DBAnalytics.data };
 };
 
-export default function GroupAnalytics() {
+export default function UserAnalytics() {
 	const { analytics } = useLoaderData<typeof loader>();
 
 	const isMobile = useBreakpointValue({ base: true, md: false });
@@ -40,86 +36,48 @@ export default function GroupAnalytics() {
 		totalActiveSeconds: acc.totalActiveSeconds + item.totalActiveSeconds,
 	}), { totalSessions: 0, totalActiveSeconds: 0 });
 
-	const userData = Array.from(analytics.reduce((acc, item) => {
-		const existing = acc.get(item.user.userId);
-		if (existing) {
-			existing.sessions += item.totalSessions;
-			existing.hours += item.totalActiveSeconds / 3600;
-		} else {
-			acc.set(item.user.userId, {
-				userId: item.user.userId,
-				displayName: item.user.displayName,
-				avatarUrl: item.user.avatarUrl,
-				sessions: item.totalSessions,
-				hours: item.totalActiveSeconds / 3600,
-				lastActive: formatRelativeTime(new Date(item.lastActivityAt), true),
-				time: formatTime(item.totalActiveSeconds, 's', true),
-			});
-		}
-
-		return acc;
-	}, new Map<string, MapType>())).map(([_, data]) => data).sort((a, b) => b.hours - a.hours);
-
-	const boardData = Array.from(analytics.reduce((acc, item) => {
-		const existing = acc.get(item.board.boardId);
-		if (existing) {
-			existing.hours += item.totalActiveSeconds / 3600;
-		} else {
-			acc.set(item.board.boardId, {
-				boardId: item.board.boardId,
-				boardName: item.board.name,
-				hours: item.totalActiveSeconds / 3600,
-			});
-		}
-
-		return acc;
-	}, new Map<string, BoardMapType>())).map(([_, data]) => data).sort((a, b) => b.hours - a.hours);
-
-	const boardPieData = boardData.map((board, index) => ({
-		name: board.boardName.length > 20 ? board.boardName.slice(0, 20) + '..' : board.boardName,
-		value: board.hours,
+	const timePieData = analytics.map((info, index) => ({
+		name: info.board.name.length > 20 ? info.board.name.slice(0, 20) + '..' : info.board.name,
+		value: info.totalActiveSeconds / 3600,
 		color: colorsArray[index % colorsArray.length],
 	}));
 
-	const timePieData = userData.map((user, index) => ({
-		name: user.displayName,
-		value: user.hours,
+	const sessionsPieData = analytics.map((info, index) => ({
+		name: info.board.name.length > 20 ? info.board.name.slice(0, 20) + '..' : info.board.name,
+		value: info.totalSessions,
 		color: colorsArray[index % colorsArray.length],
 	}));
-
-	const avgSessions = userData.length > 0 ? totalStats.totalSessions / userData.length : 0;
 
 	const stats = [
+		{ value: analytics.length, label: 'Boards Viewed' },
 		{ value: totalStats.totalSessions, label: 'Total Sessions' },
-		{ value: avgSessions % 1 === 0 ? avgSessions : avgSessions.toFixed(2), label: 'Avg Sessions per User' },
 		{ value: formatTime(totalStats.totalActiveSeconds, 's', true), label: 'Total Active Time' },
-		{ value: formatTime(totalStats.totalActiveSeconds / (userData.length || 1), 's', true), label: 'Avg Time per User' },
+		{ value: analytics.length > 0 ? formatTime(totalStats.totalActiveSeconds / analytics.length, 's', true) : '0s', label: 'Avg Time per Board' },
 	];
 
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }}>
 			<Box maxWidth='1200px' width={{ base: '100%', sm: '95%', md: '90%', xl: '80%' }}>
 				<MenuBar
-					name={`Analytics Overview`}
-					description={'View activity analytics for all users across all boards.'}
-					goBackPath='/groups'
-					goBackWindow={true}
+					name='My Activity Analytics'
+					description='View your activity across all boards you have access to.'
+					goBackPath='/profile'
 				/>
 
 				<Divider my={4} />
 
 				<StatGrid stats={stats} columns={columns} />
 
-				{analytics.length > 0 && userData.length > 0 ? (
+				{analytics.length > 0 ? (
 					<>
-						{userData.length >= 2 && (
+						{analytics.length >= 2 && (
 							<Box display='grid' gridTemplateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={4} mb={4}>
 								<Container>
-									<Text fontSize='lg' fontWeight='bold' mb={4}>Boards Distribution</Text>
+									<Text fontSize='lg' fontWeight='bold' mb={4}>Sessions Distribution</Text>
 									<ResponsiveContainer width='100%' height={400}>
 										<PieChart>
 											<Pie
-												data={boardPieData}
+												data={sessionsPieData}
 												cx='50%'
 												cy='50%'
 												labelLine={false}
@@ -129,7 +87,7 @@ export default function GroupAnalytics() {
 												dataKey='value'
 												isAnimationActive={false}
 											>
-												{boardPieData.map((entry, index) => (
+												{sessionsPieData.map((entry, index) => (
 													<Cell key={`cell-${index}`} fill={entry.color} />
 												))}
 											</Pie>
@@ -165,28 +123,22 @@ export default function GroupAnalytics() {
 						)}
 
 						<Container>
-							<Text fontSize='lg' fontWeight='bold' mb={2}>All Users</Text>
+							<Text fontSize='lg' fontWeight='bold' mb={2}>All Boards</Text>
 
 							{isMobile ? (
 								<VStack spacing={4}>
-									{userData.map((user) => (
-										<Box key={user.userId} w='100%' p={4} borderWidth={1} borderRadius='md' bg='alpha100'>
-											<Flex align='center' gap={2} mb={3}>
-												<Avatar size='sm' name={user.displayName} src={user.avatarUrl || undefined} />
-												<Text fontWeight='bold' fontSize='md'>{user.displayName}</Text>
-											</Flex>
+									{analytics.sort((a, b) => b.totalActiveSeconds - a.totalActiveSeconds).map((info) => (
+										<Box key={info.board.boardId} w='100%' p={4} borderWidth={1} borderRadius='md' bg='alpha100'>
+											<Text fontWeight='bold' fontSize='md'>{info.board.name}</Text>
+											<Text fontSize='sm' opacity={0.7} mb={3}>{info.board.category.name} • {info.board.category.group.name}</Text>
 
 											<Flex justify='space-between'>
 												<Text fontSize='sm'>Sessions:</Text>
-												<Text fontWeight='bold'>{user.sessions}</Text>
+												<Text fontWeight='bold'>{info.totalSessions}</Text>
 											</Flex>
 											<Flex justify='space-between'>
 												<Text fontSize='sm'>Active Time:</Text>
-												<Text fontWeight='bold'>{user.time}</Text>
-											</Flex>
-											<Flex justify='space-between'>
-												<Text fontSize='sm'>Last Active:</Text>
-												<Text fontWeight='bold'>{user.lastActive}</Text>
+												<Text fontWeight='bold'>{formatTime(info.totalActiveSeconds, 's', true)}</Text>
 											</Flex>
 										</Box>
 									))}
@@ -196,24 +148,20 @@ export default function GroupAnalytics() {
 									<Table variant='simple' size='md'>
 										<Thead>
 											<Tr>
-												<Th>User</Th>
+												<Th>Board</Th>
 												<Th isNumeric>Sessions</Th>
 												<Th isNumeric>Active Time</Th>
-												<Th isNumeric>Last Active</Th>
 											</Tr>
 										</Thead>
 										<Tbody>
-											{userData.map((user) => (
-												<Tr key={user.userId}>
+											{analytics.sort((a, b) => b.totalActiveSeconds - a.totalActiveSeconds).map((info) => (
+												<Tr key={info.board.boardId}>
 													<Td>
-														<Flex align='center' gap={2}>
-															<Avatar size='sm' name={user.displayName} src={user.avatarUrl || undefined} />
-															<Text fontWeight='bold' fontSize='lg'>{user.displayName}</Text>
-														</Flex>
+														<Text fontWeight='bold' fontSize='lg'>{info.board.name}</Text>
+														<Text fontSize='sm' opacity={0.7}>{info.board.category.group.name} • {info.board.category.name}</Text>
 													</Td>
-													<Td isNumeric fontWeight='bold' fontSize='lg'>{user.sessions}</Td>
-													<Td isNumeric fontWeight='bold' fontSize='lg'>{user.time}</Td>
-													<Td isNumeric fontWeight='bold' fontSize='lg'>{user.lastActive}</Td>
+													<Td isNumeric fontWeight='bold' fontSize='lg'>{info.totalSessions}</Td>
+													<Td isNumeric fontWeight='bold' fontSize='lg'>{formatTime(info.totalActiveSeconds, 's', true)}</Td>
 												</Tr>
 											))}
 										</Tbody>

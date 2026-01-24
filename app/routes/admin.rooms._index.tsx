@@ -31,7 +31,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
 
 	const DBRooms = await api?.admin.getActiveRooms({ auth: token, headers: ipHeaders });
-	if (!DBRooms || !('data' in DBRooms)) throw new Response(null, { status: 500, statusText: 'Failed to fetch rooms data.' });
+	if (!DBRooms || 'error' in DBRooms) throw makeResponse(DBRooms, 'Failed to get active rooms.');
 
 	const DBGroups = await api?.groups.getAllSorted({ auth: token, headers: ipHeaders });
 	if (!DBGroups || 'error' in DBGroups) throw makeResponse(DBGroups, 'Failed to get boards.');
