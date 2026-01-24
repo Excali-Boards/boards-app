@@ -5,6 +5,7 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { canInviteAndPermit, canManage } from '~/other/utils';
+import { FaChartBar, FaPlus, FaTools } from 'react-icons/fa';
 import { SearchBar } from '~/components/layout/SearchBar';
 import { NoticeCard } from '~/components/other/Notice';
 import CardList from '~/components/layout/CardList';
@@ -13,7 +14,6 @@ import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
 import configServer from '~/utils/config.server';
-import { FaPlus, FaTools } from 'react-icons/fa';
 import { WebReturnType } from '~/other/types';
 import { api } from '~/utils/web.server';
 
@@ -107,8 +107,9 @@ export default function Groups() {
 		setTempGroups([]);
 	}, [fetcher, tempGroups]);
 
-	const hasAdminOrDevAccess = useMemo(() => groups.some((g) => canInviteAndPermit(g.accessLevel, user?.isDev)), [groups, user?.isDev]);
-	useEffect(() => setCanInvite?.(hasAdminOrDevAccess), [hasAdminOrDevAccess, setCanInvite]);
+	const canManageAnyGroup = useMemo(() => user?.isDev || groups.some((g) => canManage(g.accessLevel, user?.isDev)), [groups, user?.isDev]);
+	const canInviteAnyGroup = useMemo(() => user?.isDev || groups.some((g) => canInviteAndPermit(g.accessLevel, user?.isDev)), [groups, user?.isDev]);
+	useEffect(() => setCanInvite?.(canInviteAnyGroup), [canInviteAnyGroup, setCanInvite]);
 	useEffect(() => setShowAllBoards?.(groups.length !== 0), [setShowAllBoards]);
 
 	return (
@@ -117,24 +118,34 @@ export default function Groups() {
 				<MenuBar
 					name={'Category Groups'}
 					description={'List of all groups that are currently available to you.'}
-					customButtons={hasAdminOrDevAccess ? [{
-						type: 'normal',
-						label: 'Manage Groups',
-						icon: <FaTools />,
-						isDisabled: groups.length === 0,
-						onClick: () => setEditorMode(!editorMode),
-						isLoading: fetcher.state === 'loading',
-						tooltip: 'Manage groups',
-						isActive: editorMode,
-					}, {
-						type: 'normal',
-						label: 'Create Group',
-						icon: <FaPlus />,
-						onClick: () => setModalOpen('createGroup'),
-						isLoading: fetcher.state === 'loading',
-						isDisabled: !user?.isDev,
-						tooltip: 'Create group',
-					}] : []}
+					customButtons={[
+						...(user?.isDev ? [{
+							type: 'link',
+							label: 'Analytics',
+							icon: <FaChartBar />,
+							to: '/analytics',
+							tooltip: 'View analytics overview',
+							reloadDocument: true,
+						}] as const : []),
+						...(canManageAnyGroup ? [{
+							type: 'normal',
+							label: 'Manage Groups',
+							icon: <FaTools />,
+							isDisabled: groups.length === 0,
+							onClick: () => setEditorMode(!editorMode),
+							isLoading: fetcher.state === 'loading',
+							tooltip: 'Manage groups',
+							isActive: editorMode,
+						}] as const : []),
+						...(user?.isDev ? [{
+							type: 'normal',
+							label: 'Create Group',
+							icon: <FaPlus />,
+							onClick: () => setModalOpen('createGroup'),
+							isLoading: fetcher.state === 'loading',
+							tooltip: 'Create group',
+						}] as const : []),
+					]}
 				/>
 
 				<SearchBar search={search} setSearch={setSearch} whatSearch={'groups'} id='groups' dividerMY={4} isShown={showSearches} />

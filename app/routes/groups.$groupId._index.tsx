@@ -112,8 +112,9 @@ export default function Categories() {
 		setTempCategories([]);
 	}, [fetcher, tempCategories]);
 
-	const canManageAnything = useMemo(() => categories.some((c) => canManage(c.accessLevel, user?.isDev)), [categories, user?.isDev]);
-	useEffect(() => setCanInvite?.(canManageAnything), [canManageAnything, setCanInvite]);
+	const canManageAnyCategory = useMemo(() => categories.some((c) => canManage(c.accessLevel, user?.isDev)), [categories, user?.isDev]);
+	const canCreateCategory = useMemo(() => canManage(group.accessLevel, user?.isDev), [group.accessLevel, user?.isDev]);
+	useEffect(() => setCanInvite?.(canManageAnyCategory), [canManageAnyCategory, setCanInvite]);
 
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }} id='a1'>
@@ -129,7 +130,7 @@ export default function Categories() {
 						to: `/groups/${group.id}/calendar`,
 						tooltip: 'View group calendar',
 						reloadDocument: true,
-					}, ...(canManage(group.accessLevel, user?.isDev) ? [{
+					}, ...(canManageAnyCategory ? [{
 						type: 'normal',
 						label: 'Manage Categories',
 						icon: <FaTools />,
@@ -138,7 +139,7 @@ export default function Categories() {
 						isLoading: fetcher.state === 'loading',
 						tooltip: 'Manage categories',
 						isActive: editorMode,
-					}, {
+					}] as const : []), ...(canCreateCategory ? [{
 						type: 'normal',
 						label: 'Create Category',
 						icon: <FaPlus />,
@@ -161,13 +162,12 @@ export default function Categories() {
 						setModalOpen('updateCategory');
 						setCategoryId(finalCategories[index]!.id);
 					} : undefined}
-					onReorder={editorMode ? (orderedIds) => {
+					onReorder={editorMode && canCreateCategory ? (orderedIds) => {
 						setTempCategories(orderedIds);
 					} : undefined}
 					cards={finalCategories.map((c) => ({
 						id: c.id,
 						editorMode,
-						canManageAnything,
 						sizeBytes: c.totalSizeBytes,
 						isDeleteDisabled: c.boards > 0,
 						url: `/groups/${group.id}/${c.id}`,

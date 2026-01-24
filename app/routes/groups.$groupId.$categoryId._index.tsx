@@ -129,6 +129,9 @@ export default function Boards() {
 
 	useFetcherResponse(fetcher, toast, () => setModalOpen(null));
 
+	const canManageAnyBoard = useMemo(() => boards.some((b) => canManage(b.accessLevel, user?.isDev)), [boards, user?.isDev]);
+	const canCreateBoard = useMemo(() => canManage(category.accessLevel, user?.isDev), [category.accessLevel, user?.isDev]);
+
 	const finalBoards = useMemo(() => {
 		if (!dbcSearch) return boards;
 		return boards.filter((b) => dbcSearch ? b.name.includes(dbcSearch) : true);
@@ -146,23 +149,26 @@ export default function Boards() {
 					name={`Boards in category: ${category.name}`}
 					description={'List of all boards that are currently available to you in this category.'}
 					goBackPath={`/groups/${group.id}`}
-					customButtons={canManage(category.accessLevel, user?.isDev) ? [{
-						type: 'normal',
-						label: 'Manage Boards',
-						icon: <FaTools />,
-						isDisabled: boards.length === 0,
-						onClick: () => setEditorMode(!editorMode),
-						isLoading: fetcher.state === 'loading',
-						tooltip: 'Manage boards',
-						isActive: editorMode,
-					}, {
-						type: 'normal',
-						label: 'Create Board',
-						icon: <FaPlus />,
-						onClick: () => setModalOpen('createBoard'),
-						isLoading: fetcher.state === 'loading',
-						tooltip: 'Create board',
-					}] : []}
+					customButtons={[
+						...(canManageAnyBoard ? [{
+							type: 'normal',
+							label: 'Manage Boards',
+							icon: <FaTools />,
+							isDisabled: boards.length === 0,
+							onClick: () => setEditorMode(!editorMode),
+							isLoading: fetcher.state === 'loading',
+							tooltip: 'Manage boards',
+							isActive: editorMode,
+						}] as const : []),
+						...(canCreateBoard ? [{
+							type: 'normal',
+							label: 'Create Board',
+							icon: <FaPlus />,
+							onClick: () => setModalOpen('createBoard'),
+							isLoading: fetcher.state === 'loading',
+							tooltip: 'Create board',
+						}] as const : []),
+					]}
 				/>
 
 				<SearchBar search={search} setSearch={setSearch} whatSearch={'boards'} id='boards' dividerMY={4} isShown={showSearches} />
@@ -182,7 +188,7 @@ export default function Boards() {
 						setModalOpen('updateBoard');
 						setBoardId(finalBoards[index]!.id);
 					} : undefined}
-					onReorder={editorMode ? (orderedIds) => {
+					onReorder={editorMode && canCreateBoard ? (orderedIds) => {
 						setTempBoards(orderedIds);
 					} : undefined}
 					onFlashCreate={editorMode ? (index) => {
