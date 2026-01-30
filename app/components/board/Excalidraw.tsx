@@ -1,6 +1,6 @@
 import { Excalidraw, getSceneVersion, getVisibleSceneBounds, isSyncableElement, newElementWith, reconcileElements, WelcomeScreen, zoomToFitBounds } from '~/components/board/Imports';
+import { ExcalidrawTextElement, FileId, InitializedExcalidrawImageElement, Ordered, OrderedExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { AppState, BinaryFileData, Collaborator, DataURL, ExcalidrawInitialDataState, Gesture, SocketId } from '@excalidraw/excalidraw/types';
-import { FileId, InitializedExcalidrawImageElement, OrderedExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { isInitializedImageElement, throttleRAF, measureText, getFontString, isTextElement } from '~/other/excalidraw';
 import { ClientData, ClientToServerEvents, SceneBroadcastData, ServerToClientEvents, StatsData } from '~/other/types';
 import { CollabUser, BoardsManager } from '@excali-boards/boards-api-client';
@@ -744,33 +744,71 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		});
 	};
 
-	enableAutoResize = () => {
-		if (!this.state.excalidrawAPI) return;
+	tidySelectedTextElements = () => {
+		const api = this.state.excalidrawAPI;
+		if (!api) return;
 
-		const appState = this.state.excalidrawAPI.getAppState();
-		const selectedElementIds = Object.keys(appState.selectedElementIds);
+		const appState = api.getAppState();
+		const selectedElementIds = Object.entries(appState.selectedElementIds ?? {}).filter(([, isSelected]) => isSelected).map(([id]) => id);
 		if (selectedElementIds.length === 0) return;
 
-		this.state.excalidrawAPI.updateScene({
-			elements: this.state.excalidrawAPI.getSceneElementsIncludingDeleted().map((element) => {
-				if (selectedElementIds.includes(element.id) && isTextElement(element) && !element.autoResize) {
-					const metrics = measureText(element.originalText, getFontString(element), element.lineHeight);
+		const gapPx = 15;
 
-					return newElementWith(element, {
-						autoResize: true,
-						width: metrics.width,
-						height: metrics.height,
-						text: element.originalText,
-					});
-				}
+		const shouldSnap: boolean = !!appState.gridModeEnabled;
+		const snapUnit: number = appState.gridSize ?? appState.gridStep ?? 10;
+		const snap = (v: number): number => (shouldSnap ? Math.round(v / snapUnit) * snapUnit : v);
 
-				return element;
+		const elements = api.getSceneElementsIncludingDeleted();
+
+		const isSelected = (id: string): boolean => selectedElementIds.includes(id);
+		const isNonDeletedSelectedText = (el: OrderedExcalidrawElement): el is Ordered<ExcalidrawTextElement> => isSelected(el.id) && !el.isDeleted && isTextElement(el);
+
+		const prepared = elements.filter(isNonDeletedSelectedText).map((el) => {
+			const normalizedText: string = (el.originalText ?? el.text ?? '').replace(/\s*\n\s*/g, ' ').replace(/\s+/g, ' ').trim();
+			const metrics = measureText(normalizedText, getFontString(el), el.lineHeight);
+
+			return {
+				id: el.id,
+				x: el.x,
+				y: el.y,
+				height: metrics.height,
+				patch: {
+					autoResize: true,
+					text: normalizedText,
+					originalText: normalizedText,
+					width: metrics.width,
+					height: metrics.height,
+				},
+			};
+		}).sort((a, b) => (a.y - b.y) || (a.x - b.x));
+
+		if (prepared.length === 0) return;
+
+		const minX = Math.min(...prepared.map((p) => p.x));
+		const minY = Math.min(...prepared.map((p) => p.y));
+		const targetX = snap(minX);
+		const startY = snap(minY);
+
+		const maxHeight = Math.max(...prepared.map((p) => p.height));
+		const step = snap(maxHeight + gapPx);
+
+		const updatesById = new Map(prepared.map((p, i) => [p.id, {
+			...p.patch,
+			x: targetX,
+			y: startY + i * step,
+		}]));
+
+		api.updateScene({
+			elements: elements.map((el) => {
+				const update = updatesById.get(el.id);
+				return update && isTextElement(el) ? newElementWith(el, update) : el;
 			}),
 		});
 
-		this.state.excalidrawAPI.setToast({
-			message: `Enabled auto-resize for ${selectedElementIds.length} element${selectedElementIds.length > 1 ? 's' : ''}.`,
-			closable: true, duration: 1000,
+		api.setToast({
+			message: `Tidied ${prepared.length} text element${prepared.length > 1 ? 's' : ''}.`,
+			closable: true,
+			duration: 1000,
 		});
 	};
 
@@ -787,7 +825,7 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 
 		if (ctrlOrMeta && event.shiftKey && event.key.toLowerCase() === 'a') {
 			event.preventDefault();
-			this.enableAutoResize();
+			this.tidySelectedTextElements();
 		}
 	};
 
