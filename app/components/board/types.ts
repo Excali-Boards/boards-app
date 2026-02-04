@@ -41,5 +41,17 @@ export type BoardExcalidrawState = {
 	socketIO: Socket<ServerToClientEvents, ClientToServerEvents> | null;
 } & DefaultBoardState;
 
-
-
+export type PreparedElement = {
+	id: string;
+	x: number;
+	y: number;
+	height: number;
+	width: number;
+	patch: {
+		autoResize: true;
+		text: string;
+		originalText: string;
+		width: number;
+		height: number;
+	};
+};

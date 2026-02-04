@@ -1,7 +1,7 @@
 import { Button, Container, Text, VStack, Badge, Divider, HStack, useToast, Icon, Spinner, Flex, Avatar } from '@chakra-ui/react';
-import { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction, redirect } from '@remix-run/node';
+import { LoaderFunctionArgs, MetaFunction, redirect } from '@remix-run/node';
 import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
-import { Form, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
+import { useFetcher, useLoaderData } from '@remix-run/react';
 import { UseInviteOutput } from '@excali-boards/boards-api-client';
 import { ConfettiContainer } from '~/components/other/Confetti';
 import { themeColor, WebReturnType } from '~/other/types';
@@ -54,41 +54,54 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
 
 	const DBInviteDetails = await api?.invites.getInviteDetails({ auth: token, code, headers: ipHeaders });
-	if (!DBInviteDetails || 'error' in DBInviteDetails) throw makeResponse(DBInviteDetails, 'Failed to fetch invite details.');
+	if (!DBInviteDetails || 'error' in DBInviteDetails) return makeResObject(DBInviteDetails, 'Failed to fetch invite details.');
 
 	return DBInviteDetails.data;
-};
-
-export const action = async ({ request, params }: ActionFunctionArgs) => {
-	const { code } = validateParams(params, ['code']);
-
-	const token = await authenticator.isAuthenticated(request);
-	if (!token) return redirect(`/login?backTo=${encodeURIComponent(request.url)}`);
-
-	const ipHeaders = getIpHeaders(request);
-	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
-
-	const result = await api?.invites.useInvite({ auth: token, code, headers: ipHeaders });
-	if (!result || 'error' in result) return makeResObject(result, 'Failed to accept invite.');
-
-	return makeResObject(result, 'Successfully accepted invite.');
 };
 
 export default function AcceptInvite() {
 	const invite = useLoaderData<typeof loader>();
 	const { user } = useContext(RootContext) || {};
 
-	const actionData = useActionData<WebReturnType<UseInviteOutput>>();
-	const navigation = useNavigation();
+	const fetcher = useFetcher<WebReturnType<UseInviteOutput>>();
+	const actionData = fetcher.data;
 	const toast = useToast();
 
 	const [showConfetti, setShowConfetti] = useState(false);
 
-	const isSubmitting = navigation.state === 'submitting';
+	const isSubmitting = fetcher.state === 'submitting';
 
 	useEffect(() => {
 		if (actionData && 'data' in actionData) setShowConfetti(true);
 	}, [actionData, toast]);
+
+	if (invite && 'error' in invite) {
+		return (
+			<Container maxW='lg' mt={{ base: 16, md: 32 }}>
+				<Flex
+					direction='column'
+					align='center'
+					p={8}
+					rounded='lg'
+					bg='alpha100'
+					transition='all 0.3s ease'
+					w='full'
+					gap={6}
+				>
+					<Icon as={FaGift} boxSize={14} color='red.300' />
+					<Text fontSize='2xl' fontWeight='bold'>
+						Invalid Invite
+					</Text>
+
+					<Divider />
+
+					<Text fontSize='md' textAlign='center'>
+						{invite.error}
+					</Text>
+				</Flex>
+			</Container>
+		);
+	}
 
 	const expiresAt = new Date(invite.expiresAt);
 	const isExpired = expiresAt < new Date();
@@ -208,7 +221,7 @@ export default function AcceptInvite() {
 
 				<Divider />
 
-				<Form method='post' style={{ width: '100%' }}>
+				<fetcher.Form method='post' action={`/invites/${invite.code}/accept`} style={{ width: '100%' }}>
 					<Button
 						type='submit'
 						size='lg'
@@ -220,7 +233,7 @@ export default function AcceptInvite() {
 					>
 						{isExpired ? 'Invite Expired' : isAtMaxUses ? 'Invite Maxed Out' : isInviter ? 'Owned Invite' : 'Accept Invite'}
 					</Button>
-				</Form>
+				</fetcher.Form>
 			</Flex>
 		</Container>
 	);

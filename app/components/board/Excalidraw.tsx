@@ -4,7 +4,7 @@ import { AppState, BinaryFileData, Collaborator, DataURL, ExcalidrawInitialDataS
 import { isInitializedImageElement, throttleRAF, measureText, getFontString, isTextElement } from '~/other/excalidraw';
 import { ClientData, ClientToServerEvents, SceneBroadcastData, ServerToClientEvents, StatsData } from '~/other/types';
 import { CollabUser, BoardsManager } from '@excali-boards/boards-api-client';
-import { BoardExcalidrawState, BoardProps } from './types';
+import { BoardExcalidrawState, BoardProps, PreparedElement } from './types';
 import { Component, ContextType, Suspense } from 'react';
 import { PresenceContext } from '~/components/Context';
 import { Box, Flex, Spinner } from '@chakra-ui/react';
@@ -753,17 +753,16 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		if (selectedElementIds.length === 0) return;
 
 		const gapPx = 15;
-
+		const rowTolerance = 5;
 		const shouldSnap: boolean = !!appState.gridModeEnabled;
 		const snapUnit: number = appState.gridSize ?? appState.gridStep ?? 10;
 		const snap = (v: number): number => (shouldSnap ? Math.round(v / snapUnit) * snapUnit : v);
 
 		const elements = api.getSceneElementsIncludingDeleted();
-
 		const isSelected = (id: string): boolean => selectedElementIds.includes(id);
 		const isNonDeletedSelectedText = (el: OrderedExcalidrawElement): el is Ordered<ExcalidrawTextElement> => isSelected(el.id) && !el.isDeleted && isTextElement(el);
 
-		const prepared = elements.filter(isNonDeletedSelectedText).map((el) => {
+		const prepared: PreparedElement[] = elements.filter(isNonDeletedSelectedText).map((el) => {
 			const normalizedText: string = (el.originalText ?? el.text ?? '').replace(/\s*\n\s*/g, ' ').replace(/\s+/g, ' ').trim();
 			const metrics = measureText(normalizedText, getFontString(el), el.lineHeight);
 
@@ -772,31 +771,65 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 				x: el.x,
 				y: el.y,
 				height: metrics.height,
+				width: metrics.width,
 				patch: {
-					autoResize: true,
+					autoResize: true as const,
 					text: normalizedText,
 					originalText: normalizedText,
 					width: metrics.width,
 					height: metrics.height,
 				},
 			};
-		}).sort((a, b) => (a.y - b.y) || (a.x - b.x));
-
+		}).sort((a, b) => a.y - b.y || a.x - b.x);
 		if (prepared.length === 0) return;
 
-		const minX = Math.min(...prepared.map((p) => p.x));
-		const minY = Math.min(...prepared.map((p) => p.y));
-		const targetX = snap(minX);
-		const startY = snap(minY);
+		const rows: PreparedElement[][] = [];
+		for (let i = 0; i < prepared.length; i++) {
+			const current: PreparedElement = prepared[i]!;
+			if (rows.length === 0) rows.push([current]);
+			else {
+				const lastRow: PreparedElement[] = rows[rows.length - 1]!;
+				const firstInRow: PreparedElement = lastRow[0]!;
+				const lastRowY: number = firstInRow.y;
 
-		const maxHeight = Math.max(...prepared.map((p) => p.height));
-		const step = snap(maxHeight + gapPx);
+				if (Math.abs(current.y - lastRowY) <= rowTolerance) lastRow.push(current);
+				else rows.push([current]);
+			}
+		}
 
-		const updatesById = new Map(prepared.map((p, i) => [p.id, {
-			...p.patch,
-			x: targetX,
-			y: startY + i * step,
-		}]));
+		const minX: number = Math.min(...prepared.map((p) => p.x));
+		const minY: number = Math.min(...prepared.map((p) => p.y));
+		const targetX: number = snap(minX);
+		let currentY: number = snap(minY);
+
+		const updatesById = new Map<string, Partial<ExcalidrawTextElement>>();
+
+		for (let i = 0; i < rows.length; i++) {
+			const row: PreparedElement[] = rows[i]!;
+			const rowMaxHeight: number = Math.max(...row.map((p) => p.height));
+
+			if (row.length === 1) {
+				const single: PreparedElement = row[0]!;
+				updatesById.set(single.id, {
+					...single.patch,
+					x: targetX,
+					y: currentY,
+				});
+			} else {
+				let currentX: number = targetX;
+				for (let j = 0; j < row.length; j++) {
+					const item: PreparedElement = row[j]!;
+					updatesById.set(item.id, {
+						...item.patch,
+						x: currentX,
+						y: currentY,
+					});
+					currentX = snap(currentX + item.width + gapPx);
+				}
+			}
+
+			currentY = snap(currentY + rowMaxHeight + gapPx);
+		}
 
 		api.updateScene({
 			elements: elements.map((el) => {
@@ -805,8 +838,15 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 			}),
 		});
 
+		const rowCount: number = rows.length;
+		const multiRowCount: number = rows.filter((r) => r.length > 1).length;
+		const message: string =
+			multiRowCount > 0
+				? `Tidied ${prepared.length} elements (${rowCount} rows, ${multiRowCount} horizontal).`
+				: `Tidied ${prepared.length} text element${prepared.length > 1 ? 's' : ''}.`;
+
 		api.setToast({
-			message: `Tidied ${prepared.length} text element${prepared.length > 1 ? 's' : ''}.`,
+			message,
 			closable: true,
 			duration: 1000,
 		});
