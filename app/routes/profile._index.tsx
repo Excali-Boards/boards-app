@@ -315,18 +315,19 @@ export function Platform({ icon, title, text, addDivider, primaryAction }: Platf
 					{primaryAction.to ? (
 						<LinkButton
 							colorScheme={primaryAction.colorScheme}
-							leftIcon={primaryAction.icon}
 							width={{ base: '100%', md: 'auto' }}
+							leftIcon={primaryAction.icon}
 							to={primaryAction.to}
+							reloadDocument
 						>
 							{primaryAction.label}
 						</LinkButton>
 					) : (
 						<Button
 							colorScheme={primaryAction.colorScheme}
-							leftIcon={primaryAction.icon}
 							width={{ base: '100%', md: 'auto' }}
 							onClick={primaryAction.onClick}
+							leftIcon={primaryAction.icon}
 						>
 							{primaryAction.label}
 						</Button>
