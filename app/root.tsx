@@ -81,9 +81,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	};
 };
 
-// Prevent root loader from revalidating on every navigation
-export function shouldRevalidate() {
-	return false;
+// Revalidate on form actions and fetcher actions, but not on simple navigation.
+export function shouldRevalidate({ formAction, defaultShouldRevalidate, actionStatus }) {
+	if (formAction) return true;
+	if (actionStatus === 'loading') return true;
+	
+	return defaultShouldRevalidate;
 }
 
 export default function App() {
