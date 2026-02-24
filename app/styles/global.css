@@ -12,31 +12,58 @@ body {
 	outline: none !important;
 }
 
-.chakra-menu__menu-list {
+.chakra-ui-dark .chakra-menu__menu-list {
 	background-color: var(--chakra-colors-brand-800) !important;
 	border: 1px solid var(--chakra-colors-whiteAlpha-200) !important;
 	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2) !important;
 }
 
-.chakra-menu__menu-button:not([data-calendar-view-menu]) {
+.chakra-ui-light .chakra-menu__menu-list {
+	background-color: var(--chakra-colors-white) !important;
+	border: 1px solid var(--chakra-colors-blackAlpha-200) !important;
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.12), 0 4px 6px -2px rgba(0, 0, 0, 0.08) !important;
+}
+
+.chakra-ui-dark .chakra-menu__menu-button:not([data-calendar-view-menu]) {
 	background-color: transparent !important;
 	border: 1px solid var(--chakra-colors-whiteAlpha-200) !important;
 	color: var(--chakra-colors-whiteAlpha-900) !important;
 }
 
-.chakra-menu__menu-button:not([data-calendar-view-menu]):hover {
+.chakra-ui-light .chakra-menu__menu-button:not([data-calendar-view-menu]) {
+	background-color: transparent !important;
+	border: 1px solid var(--chakra-colors-blackAlpha-300) !important;
+	color: var(--chakra-colors-gray-800) !important;
+}
+
+.chakra-ui-dark .chakra-menu__menu-button:not([data-calendar-view-menu]):hover {
 	background-color: var(--chakra-colors-whiteAlpha-100) !important;
 	border-color: var(--chakra-colors-whiteAlpha-300) !important;
 }
 
-.chakra-menu__menuitem:not([data-calendar-view-menu-item]) {
+.chakra-ui-light .chakra-menu__menu-button:not([data-calendar-view-menu]):hover {
+	background-color: var(--chakra-colors-blackAlpha-100) !important;
+	border-color: var(--chakra-colors-blackAlpha-400) !important;
+}
+
+.chakra-ui-dark .chakra-menu__menuitem:not([data-calendar-view-menu-item]) {
 	color: var(--chakra-colors-whiteAlpha-900) !important;
 	background-color: transparent !important;
 }
 
-.chakra-menu__menuitem:not([data-calendar-view-menu-item]):hover,
-.chakra-menu__menuitem:not([data-calendar-view-menu-item]):focus {
+.chakra-ui-light .chakra-menu__menuitem:not([data-calendar-view-menu-item]) {
+	color: var(--chakra-colors-gray-800) !important;
+	background-color: transparent !important;
+}
+
+.chakra-ui-dark .chakra-menu__menuitem:not([data-calendar-view-menu-item]):hover,
+.chakra-ui-dark .chakra-menu__menuitem:not([data-calendar-view-menu-item]):focus {
 	background-color: var(--chakra-colors-whiteAlpha-100) !important;
+}
+
+.chakra-ui-light .chakra-menu__menuitem:not([data-calendar-view-menu-item]):hover,
+.chakra-ui-light .chakra-menu__menuitem:not([data-calendar-view-menu-item]):focus {
+	background-color: var(--chakra-colors-blackAlpha-100) !important;
 }
 
 .react-datepicker-wrapper {
