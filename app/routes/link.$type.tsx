@@ -17,8 +17,6 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
 	const addToUser = backToCookie.currentUserId;
 	if (addToUser) {
-		backToCookie.currentUserId = undefined;
-
 		try {
 			return await authenticator.authenticate(type, request, {
 				successRedirect: backTo,
