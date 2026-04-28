@@ -1,19 +1,20 @@
 import { DndContext, closestCenter, MouseSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable } from '@dnd-kit/sortable';
 import { Card, CardProps, NoCard } from '~/components/layout/Card';
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import { VStack } from '@chakra-ui/react';
 import { CSS } from '@dnd-kit/utilities';
 
 export type CardListProps = {
 	cards: CardProps[];
 	noWhat: string;
-	onEdit?: (index: number) => void;
-	onDelete?: (index: number) => void;
+	onEdit?: (id: string) => void;
+	onDelete?: (id: string) => void;
+	onMove?: (id: string) => void;
 	onReorder?: (orderedIds: string[]) => void;
-	onFlashCreate?: (index: number) => void;
-	onForceDelete?: (index: number) => void;
-	onCancelDeletion?: (index: number) => void;
+	onFlashCreate?: (id: string) => void;
+	onForceDelete?: (id: string) => void;
+	onCancelDeletion?: (id: string) => void;
 };
 
 export default function CardList({
@@ -21,6 +22,7 @@ export default function CardList({
 	noWhat,
 	onEdit,
 	onDelete,
+	onMove,
 	onReorder,
 	onFlashCreate,
 	onForceDelete,
@@ -28,16 +30,14 @@ export default function CardList({
 }: CardListProps) {
 	const [items, setItems] = useState(cards.map((card) => card.id));
 	const isReorderingRef = useRef(false);
+	const canReorder = Boolean(onReorder);
+	const cardsById = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards]);
 
 	useEffect(() => {
 		if (isReorderingRef.current) return;
 
 		const newIds = cards.map((card) => card.id);
-		const currentIds = items;
-
-		const idsChanged = newIds.length !== currentIds.length ||
-			newIds.some((id) => !currentIds.includes(id)) ||
-			currentIds.some((id) => !newIds.includes(id));
+		const idsChanged = newIds.length !== items.length || newIds.some((id, index) => id !== items[index]);
 
 		if (idsChanged) setItems(newIds);
 	}, [cards, items]);
@@ -48,6 +48,8 @@ export default function CardList({
 	);
 
 	const handleDragEnd = useCallback((event: DragEndEvent) => {
+		if (!onReorder) return;
+
 		const { active, over } = event;
 
 		if (over && active.id !== over?.id) {
@@ -58,9 +60,7 @@ export default function CardList({
 				const newIndex = items.indexOf(over.id.toString());
 
 				const newItems = arrayMove(items, oldIndex, newIndex);
-				if (onReorder) {
-					onReorder(newItems);
-				}
+				onReorder(newItems);
 
 				setTimeout(() => {
 					isReorderingRef.current = false;
@@ -71,22 +71,23 @@ export default function CardList({
 		}
 	}, [onReorder]);
 
-	return onReorder ? (
+	return (
 		<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
 			<SortableContext items={items}>
 				<VStack w={'100%'} spacing={2}>
-					{cards.length ? items.map((id, i) => {
-						const card = cards.find((card) => card.id === id);
-						if (!card) return <></>;
+					{cards.length ? items.map((id) => {
+						const card = cardsById.get(id);
+						if (!card) return null;
 
 						return (
-							<SortableItem key={id + '|' + i} id={id}>
+							<SortableItem key={id} id={id} isDisabled={!canReorder}>
 								<Card
-									onCancelDeletion={onCancelDeletion ? () => onCancelDeletion(i) : undefined}
-									onForceDelete={onForceDelete ? () => onForceDelete(i) : undefined}
-									onFlashCreate={onFlashCreate ? () => onFlashCreate(i) : undefined}
-									onDelete={onDelete ? () => onDelete(i) : undefined}
-									onEdit={onEdit ? () => onEdit(i) : undefined}
+									onCancelDeletion={onCancelDeletion ? () => onCancelDeletion(id) : undefined}
+									onForceDelete={onForceDelete ? () => onForceDelete(id) : undefined}
+									onFlashCreate={onFlashCreate ? () => onFlashCreate(id) : undefined}
+									onDelete={onDelete ? () => onDelete(id) : undefined}
+									onMove={onMove ? () => onMove(id) : undefined}
+									onEdit={onEdit ? () => onEdit(id) : undefined}
 									{...card}
 								/>
 							</SortableItem>
@@ -97,36 +98,29 @@ export default function CardList({
 				</VStack>
 			</SortableContext>
 		</DndContext>
-	) : (
-		<VStack w={'100%'} spacing={2}>
-			{cards.length ? cards.map((card, i) => (
-				<Card
-					onCancelDeletion={onCancelDeletion ? () => onCancelDeletion(i) : undefined}
-					onFlashCreate={onFlashCreate ? () => onFlashCreate(i) : undefined}
-					onDelete={onDelete ? () => onDelete(i) : undefined}
-					onEdit={onEdit ? () => onEdit(i) : undefined}
-					key={card.id + '|' + i}
-					{...card}
-				/>
-			)) : (
-				<NoCard noWhat={noWhat} />
-			)}
-		</VStack>
 	);
 }
 
-function SortableItem({ id, children }: { id: string; children: React.ReactNode }) {
-	const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+function SortableItem({ id, isDisabled, children }: { id: string; isDisabled: boolean; children: React.ReactNode }) {
+	const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+		id,
+		disabled: isDisabled,
+	});
 
 	const style = {
 		transform: CSS.Transform.toString(transform),
-		transition,
+		transition: isDisabled ? 'none' : transition,
 		width: '100%',
 		height: '100%',
 	};
 
 	return (
-		<div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+		<div
+			ref={setNodeRef}
+			style={style}
+			{...(isDisabled ? {} : attributes)}
+			{...(isDisabled ? {} : listeners)}
+		>
 			{children}
 		</div>
 	);

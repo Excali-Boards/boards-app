@@ -10,6 +10,9 @@
 	"exclude": [
 		"../build/server/remix.js",
 		"build",
+		"build/**",
+		"dist",
+		"dist/**"
 	],
 	"compilerOptions": {
 		"lib": [
@@ -48,7 +51,7 @@
 		"moduleResolution": "Bundler",
 		"esModuleInterop": true,
 		"baseUrl": ".",
-		"declaration": true,
+		"declaration": false,
 		"skipLibCheck": true,
 		"resolveJsonModule": true,
 		"noUncheckedIndexedAccess": true,
@@ -62,7 +65,7 @@
 		/* Source Map Options */
 		"isolatedModules": true,
 		"jsx": "react-jsx",
-		"allowJs": true,
+		"allowJs": false,
 
 		/* Paths */
 		"paths": {

@@ -1,8 +1,8 @@
-import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
+import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text } from '@chakra-ui/react';
 import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { canInviteAndPermit, canManage, validateParams } from '~/other/utils';
+import { camelCaseToTitle, canInviteAndPermit, canManage, parseOptionalNonNegativeInteger, splitCamelCaseWords, validateParams } from '~/other/utils';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { FaPlus, FaTools, FaCalendarAlt } from 'react-icons/fa';
@@ -13,9 +13,40 @@ import { useDebounced } from '~/hooks/useDebounced';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
+import Select from '~/components/Select';
 import configServer from '~/utils/config.server';
 import { WebReturnType } from '~/other/types';
 import { api } from '~/utils/web.server';
+
+export type MoveTargetCategory = {
+	id: string;
+	name: string;
+};
+
+export type MoveTargetGroup = {
+	id: string;
+	name: string;
+	categories: MoveTargetCategory[];
+};
+
+export type MoveTargetsResponse = WebReturnType<string> & {
+	moveTargets?: MoveTargetGroup[];
+};
+
+export type ModalOpen = 'createCategory' | 'updateCategory' | 'moveCategory' | 'deleteCategory' | null;
+export type ManageCategoryProps = {
+	isOpen: boolean;
+	onClose: () => void;
+
+	type: NonNullable<ModalOpen>;
+	fetcher: FetcherWithComponents<unknown>;
+
+	defaultName?: string;
+	categoryId?: string;
+	currentGroupId: string;
+	moveTargets: MoveTargetGroup[];
+	isMoveTargetsLoading: boolean;
+};
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const { groupId } = validateParams(params, ['groupId']);
@@ -63,6 +94,47 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 			const result = await api?.categories.updateCategory({ auth: token, categoryId, groupId, body: { name: categoryName }, headers: ipHeaders });
 			return makeResObject(result, 'Failed to update category.');
 		}
+		case 'moveCategory': {
+			const categoryId = formData.get('categoryId') as string;
+			const targetGroupId = formData.get('targetGroupId') as string;
+			const targetIndex = parseOptionalNonNegativeInteger(formData.get('targetIndex'));
+
+			if (!categoryId) return { status: 400, error: 'Invalid category id.' };
+			if (!targetGroupId) return { status: 400, error: 'Invalid target group id.' };
+			if (targetGroupId === groupId) return { status: 400, error: 'Target group must be different from current group.' };
+			if (targetIndex === null) return { status: 400, error: 'Target index must be a non-negative integer.' };
+
+			const result = await api?.categories.moveCategory({
+				auth: token,
+				groupId,
+				categoryId,
+				body: {
+					targetGroupId,
+					...(targetIndex !== undefined ? { targetIndex } : {}),
+				},
+				headers: ipHeaders,
+			});
+
+			if (!result || 'error' in result) return makeResObject(result, 'Failed to move category.');
+			return { status: 200, data: 'Category moved successfully.' };
+		}
+		case 'getMoveTargets': {
+			const DBResources = await api?.groups.getAllSorted({ auth: token, headers: ipHeaders });
+			if (!DBResources || 'error' in DBResources) return makeResObject(DBResources, 'Failed to load move targets.');
+
+			return {
+				status: 200,
+				data: 'Move targets loaded.',
+				moveTargets: DBResources.data.map((targetGroup) => ({
+					id: targetGroup.id,
+					name: targetGroup.name,
+					categories: targetGroup.categories.map((targetCategory) => ({
+						id: targetCategory.id,
+						name: targetCategory.name,
+					})),
+				})),
+			};
+		}
 		case 'reorderCategories': {
 			const categories = (formData.get('categories') as string)?.split(',') || [];
 			if (!categories || categories.length && categories.some((category) => typeof category !== 'string')) return { status: 400, error: 'Invalid categories.' };
@@ -98,19 +170,52 @@ export default function Categories() {
 	const dbcSearch = useDebounced(search, [search], 300);
 
 	const fetcher = useFetcher<WebReturnType<string>>();
+	const moveTargetsFetcher = useFetcher<MoveTargetsResponse>();
 	const toast = useToast();
 
 	useFetcherResponse(fetcher, toast, () => setModalOpen(null));
 
+	useEffect(() => {
+		if (!moveTargetsFetcher.data || moveTargetsFetcher.data.status === 200) return;
+
+		toast({
+			title: moveTargetsFetcher.data.error,
+			status: 'error',
+			variant: 'subtle',
+			position: 'bottom-right',
+			isClosable: true,
+		});
+	}, [moveTargetsFetcher.data, toast]);
+
 	const finalCategories = useMemo(() => {
-		if (!dbcSearch) return categories;
-		return categories.filter((b) => dbcSearch ? b.name.includes(dbcSearch) : true);
+		const normalizedSearch = dbcSearch.trim().toLowerCase();
+		if (!normalizedSearch) return categories;
+		return categories.filter((category) => category.name.toLowerCase().includes(normalizedSearch));
 	}, [categories, dbcSearch]);
+
+	const selectedCategory = useMemo(
+		() => categories.find((category) => category.id === categoryId) ?? null,
+		[categories, categoryId],
+	);
+
+	const moveTargets = useMemo(() => {
+		if (!moveTargetsFetcher.data || moveTargetsFetcher.data.status !== 200) return [];
+		return moveTargetsFetcher.data.moveTargets || [];
+	}, [moveTargetsFetcher.data]);
+	const hasMoveTargetsLoaded = moveTargetsFetcher.data?.status === 200;
 
 	const handleSave = useCallback(() => {
 		fetcher.submit({ type: 'reorderCategories', categories: tempCategories.join(',') }, { method: 'post' });
 		setTempCategories([]);
 	}, [fetcher, tempCategories]);
+
+	const handleMoveCategory = useCallback((id: string) => {
+		setCategoryId(id);
+		setModalOpen('moveCategory');
+		if (!hasMoveTargetsLoaded && moveTargetsFetcher.state === 'idle') {
+			moveTargetsFetcher.submit({ type: 'getMoveTargets' }, { method: 'post' });
+		}
+	}, [hasMoveTargetsLoaded, moveTargetsFetcher]);
 
 	const canManageAnyCategory = useMemo(() => categories.some((c) => canManage(c.accessLevel, user?.isDev)), [categories, user?.isDev]);
 	const canCreateCategory = useMemo(() => canManage(group.accessLevel, user?.isDev), [group.accessLevel, user?.isDev]);
@@ -154,14 +259,15 @@ export default function Categories() {
 				<CardList
 					key={revertKey}
 					noWhat='categories'
-					onDelete={editorMode ? (index) => {
+					onDelete={editorMode ? (id) => {
 						setModalOpen('deleteCategory');
-						setCategoryId(finalCategories[index]!.id);
+						setCategoryId(id);
 					} : undefined}
-					onEdit={editorMode ? (index) => {
+					onEdit={editorMode ? (id) => {
 						setModalOpen('updateCategory');
-						setCategoryId(finalCategories[index]!.id);
+						setCategoryId(id);
 					} : undefined}
+					onMove={editorMode ? handleMoveCategory : undefined}
 					onReorder={editorMode && canCreateCategory ? (orderedIds) => {
 						setTempCategories(orderedIds);
 					} : undefined}
@@ -183,8 +289,11 @@ export default function Categories() {
 					onClose={() => setModalOpen(null)}
 					type={modalOpen || 'createCategory'}
 					fetcher={fetcher}
-					defaultName={finalCategories.find((g) => g.id === categoryId)?.name || ''}
+					defaultName={selectedCategory?.name || ''}
 					categoryId={categoryId || undefined}
+					currentGroupId={group.id}
+					moveTargets={moveTargets}
+					isMoveTargetsLoading={moveTargetsFetcher.state !== 'idle'}
 				/>
 
 				<NoticeCard
@@ -206,20 +315,45 @@ export default function Categories() {
 	);
 }
 
-export type ModalOpen = 'createCategory' | 'updateCategory' | 'deleteCategory' | null;
-export type ManageCategoryProps = {
-	isOpen: boolean;
-	onClose: () => void;
-
-	type: NonNullable<ModalOpen>;
-	fetcher: FetcherWithComponents<unknown>;
-
-	defaultName?: string;
-	categoryId?: string;
-};
-
-export function ManageCategory({ isOpen, onClose, type, fetcher, defaultName, categoryId }: ManageCategoryProps) {
+export function ManageCategory({
+	isOpen,
+	onClose,
+	type,
+	fetcher,
+	defaultName,
+	categoryId,
+	currentGroupId,
+	moveTargets,
+	isMoveTargetsLoading,
+}: ManageCategoryProps) {
 	const { colorMode } = useColorMode();
+	const modalTitle = useMemo(() => camelCaseToTitle(type), [type]);
+	const submitLabel = useMemo(() => splitCamelCaseWords(type)[0] || 'Submit', [type]);
+	const availableGroups = useMemo(
+		() => moveTargets.filter((targetGroup) => targetGroup.id !== currentGroupId),
+		[moveTargets, currentGroupId],
+	);
+	const targetGroupOptions = useMemo(
+		() => availableGroups.map((group) => ({ label: group.name, value: group.id })),
+		[availableGroups],
+	);
+
+	const [targetGroupId, setTargetGroupId] = useState('');
+
+	useEffect(() => {
+		if (type !== 'moveCategory') return;
+
+		if (availableGroups.length === 0) {
+			setTargetGroupId('');
+			return;
+		}
+
+		setTargetGroupId((prev) => (
+			prev && availableGroups.some((group) => group.id === prev)
+				? prev
+				: availableGroups[0]!.id
+		));
+	}, [type, availableGroups]);
 
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} size='lg' isCentered>
@@ -227,7 +361,7 @@ export function ManageCategory({ isOpen, onClose, type, fetcher, defaultName, ca
 			<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
 				<fetcher.Form method={'post'}>
 					<ModalHeader>
-						{type.split(/(?=[A-Z])/).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+						{modalTitle}
 					</ModalHeader>
 					<ModalCloseButton />
 					<ModalBody>
@@ -272,6 +406,43 @@ export function ManageCategory({ isOpen, onClose, type, fetcher, defaultName, ca
 								</>
 							)}
 
+							{type === 'moveCategory' && (
+								<>
+									<VisuallyHiddenInput onChange={() => { }} name='type' value='moveCategory' />
+									<VisuallyHiddenInput onChange={() => { }} name='categoryId' value={categoryId || ''} />
+
+									<Box>
+										<Text mb={2} fontSize='sm' fontWeight='semibold'>Target Group</Text>
+										<Select
+											id='targetGroupId'
+											name='targetGroupId'
+											value={targetGroupOptions.find((option) => option.value === targetGroupId) || null}
+											onChange={(option) => setTargetGroupId(option?.value || '')}
+											placeholder='Select target group'
+											options={targetGroupOptions}
+											isDisabled={isMoveTargetsLoading || availableGroups.length === 0}
+										/>
+									</Box>
+
+									<Box>
+										<Text mb={2} fontSize='sm' fontWeight='semibold'>Target Index (optional)</Text>
+										<Input
+											id='targetIndex'
+											name='targetIndex'
+											type='number'
+											min={0}
+											step={1}
+											placeholder='Leave empty to append at end'
+										/>
+									</Box>
+
+									{isMoveTargetsLoading && <Text fontSize='sm'>Loading move targets...</Text>}
+									{!isMoveTargetsLoading && availableGroups.length === 0 && (
+										<Text fontSize='sm'>No valid target groups available for this category.</Text>
+									)}
+								</>
+							)}
+
 							{type === 'deleteCategory' && (
 								<>
 									<VisuallyHiddenInput onChange={() => { }} name='type' value='deleteCategory' />
@@ -293,10 +464,11 @@ export function ManageCategory({ isOpen, onClose, type, fetcher, defaultName, ca
 						<Button
 							flex={1}
 							isLoading={fetcher.state === 'loading' || fetcher.state === 'submitting'}
+							isDisabled={type === 'moveCategory' && (isMoveTargetsLoading || !targetGroupId)}
 							colorScheme={type === 'deleteCategory' ? 'red' : 'blue'}
 							type='submit'
 						>
-							{type.split(/(?=[A-Z])/).map((word) => word.charAt(0).toUpperCase() + word.slice(1))[0]}
+							{submitLabel}
 						</Button>
 					</ModalFooter>
 				</fetcher.Form>

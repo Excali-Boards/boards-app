@@ -1,4 +1,4 @@
-import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
+import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput } from '@chakra-ui/react';
 import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
@@ -98,8 +98,9 @@ export default function Groups() {
 	useFetcherResponse(fetcher, toast, () => setModalOpen(null));
 
 	const finalGroups = useMemo(() => {
-		if (!dbcSearch) return groups;
-		return groups.filter((b) => dbcSearch ? b.name.includes(dbcSearch) : true);
+		const normalizedSearch = dbcSearch.trim().toLowerCase();
+		if (!normalizedSearch) return groups;
+		return groups.filter((g) => g.name.toLowerCase().includes(normalizedSearch));
 	}, [groups, dbcSearch]);
 
 	const handleSave = useCallback(() => {
@@ -110,7 +111,7 @@ export default function Groups() {
 	const canManageAnyGroup = useMemo(() => user?.isDev || groups.some((g) => canManage(g.accessLevel, user?.isDev)), [groups, user?.isDev]);
 	const canInviteAnyGroup = useMemo(() => user?.isDev || groups.some((g) => canInviteAndPermit(g.accessLevel, user?.isDev)), [groups, user?.isDev]);
 	useEffect(() => setCanInvite?.(canInviteAnyGroup), [canInviteAnyGroup, setCanInvite]);
-	useEffect(() => setShowAllBoards?.(groups.length !== 0), [setShowAllBoards]);
+	useEffect(() => setShowAllBoards?.(groups.length !== 0), [groups.length, setShowAllBoards]);
 
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }} id='a1'>
@@ -153,13 +154,13 @@ export default function Groups() {
 				<CardList
 					key={revertKey}
 					noWhat='groups'
-					onDelete={editorMode ? (index) => {
+					onDelete={editorMode ? (id) => {
 						setModalOpen('deleteGroup');
-						setGroupId(finalGroups[index]!.id);
+						setGroupId(id);
 					} : undefined}
-					onEdit={editorMode ? (index) => {
+					onEdit={editorMode ? (id) => {
 						setModalOpen('updateGroup');
-						setGroupId(finalGroups[index]!.id);
+						setGroupId(id);
 					} : undefined}
 					onReorder={editorMode ? (orderedIds) => {
 						setTempGroups(orderedIds);

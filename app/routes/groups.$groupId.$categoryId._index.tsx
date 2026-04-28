@@ -1,10 +1,10 @@
-import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
-import { canInviteAndPermit, canManage, formatRelativeTime, validateParams } from '~/other/utils';
+import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text } from '@chakra-ui/react';
+import { camelCaseToTitle, canInviteAndPermit, canManage, formatRelativeTime, parseOptionalNonNegativeInteger, splitCamelCaseWords, validateParams } from '~/other/utils';
 import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { BoardType } from '@excali-boards/boards-api-client/prisma/generated/client';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
 import { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
-import { useCallback, useContext, useMemo, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { SearchBar } from '~/components/layout/SearchBar';
 import { NoticeCard } from '~/components/other/Notice';
@@ -18,6 +18,38 @@ import { FaPlus, FaTools } from 'react-icons/fa';
 import { WebReturnType } from '~/other/types';
 import Select from '~/components/Select';
 import { api } from '~/utils/web.server';
+
+export type MoveTargetCategory = {
+	id: string;
+	name: string;
+	groupId: string;
+	groupName: string;
+};
+
+export type MoveTargetGroup = {
+	id: string;
+	name: string;
+	categories: MoveTargetCategory[];
+};
+
+export type MoveTargetsResponse = WebReturnType<string> & {
+	moveTargets?: MoveTargetGroup[];
+};
+
+export type ModalOpen = 'createBoard' | 'updateBoard' | 'moveBoard' | 'deleteBoard' | 'forceDeleteBoard' | null;
+export type ManageBoardProps = {
+	isOpen: boolean;
+	onClose: () => void;
+
+	type: NonNullable<ModalOpen>;
+	fetcher: FetcherWithComponents<unknown>;
+
+	defaultName?: string;
+	boardId?: string;
+	currentCategoryId: string;
+	moveTargets: MoveTargetGroup[];
+	isMoveTargetsLoading: boolean;
+};
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const { groupId, categoryId } = validateParams(params, ['groupId', 'categoryId']);
@@ -38,7 +70,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 			...board,
 			scheduledForDeletionText: board.scheduledForDeletion ? formatRelativeTime(new Date(board.scheduledForDeletion), true) : null,
 		})),
-	}
+	};
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
@@ -68,6 +100,50 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
 			const result = await api?.boards.updateBoard({ auth: token, boardId, groupId, categoryId, body: { name: boardName }, headers: ipHeaders });
 			return makeResObject(result, 'Failed to update board.');
+		}
+		case 'moveBoard': {
+			const boardId = formData.get('boardId') as string;
+			const targetCategoryId = formData.get('targetCategoryId') as string;
+			const targetIndex = parseOptionalNonNegativeInteger(formData.get('targetIndex'));
+
+			if (!boardId) return { status: 400, error: 'Invalid board id.' };
+			if (!targetCategoryId) return { status: 400, error: 'Invalid target category id.' };
+			if (targetCategoryId === categoryId) return { status: 400, error: 'Target category must be different from current category.' };
+			if (targetIndex === null) return { status: 400, error: 'Target index must be a non-negative integer.' };
+
+			const result = await api?.boards.moveBoard({
+				auth: token,
+				groupId,
+				categoryId,
+				boardId,
+				body: {
+					targetCategoryId,
+					...(targetIndex !== undefined ? { targetIndex } : {}),
+				},
+				headers: ipHeaders,
+			});
+
+			if (!result || 'error' in result) return makeResObject(result, 'Failed to move board.');
+			return { status: 200, data: 'Board moved successfully.' };
+		}
+		case 'getMoveTargets': {
+			const DBResources = await api?.groups.getAllSorted({ auth: token, headers: ipHeaders });
+			if (!DBResources || 'error' in DBResources) return makeResObject(DBResources, 'Failed to load move targets.');
+
+			return {
+				status: 200,
+				data: 'Move targets loaded.',
+				moveTargets: DBResources.data.map((targetGroup) => ({
+					id: targetGroup.id,
+					name: targetGroup.name,
+					categories: targetGroup.categories.map((targetCategory) => ({
+						id: targetCategory.id,
+						name: targetCategory.name,
+						groupId: targetGroup.id,
+						groupName: targetGroup.name,
+					})),
+				})),
+			};
 		}
 		case 'reorderBoards': {
 			const boards = (formData.get('boards') as string)?.split(',') || [];
@@ -125,22 +201,63 @@ export default function Boards() {
 	const dbcSearch = useDebounced(search, [search], 300);
 
 	const fetcher = useFetcher<WebReturnType<string>>();
+	const moveTargetsFetcher = useFetcher<MoveTargetsResponse>();
 	const toast = useToast();
 
 	useFetcherResponse(fetcher, toast, () => setModalOpen(null));
+
+	useEffect(() => {
+		if (!moveTargetsFetcher.data || moveTargetsFetcher.data.status === 200) return;
+
+		toast({
+			title: moveTargetsFetcher.data.error,
+			status: 'error',
+			variant: 'subtle',
+			position: 'bottom-right',
+			isClosable: true,
+		});
+	}, [moveTargetsFetcher.data, toast]);
 
 	const canManageAnyBoard = useMemo(() => boards.some((b) => canManage(b.accessLevel, user?.isDev)), [boards, user?.isDev]);
 	const canCreateBoard = useMemo(() => canManage(category.accessLevel, user?.isDev), [category.accessLevel, user?.isDev]);
 
 	const finalBoards = useMemo(() => {
-		if (!dbcSearch) return boards;
-		return boards.filter((b) => dbcSearch ? b.name.includes(dbcSearch) : true);
-	}, [boards, dbcSearch, fetcher.state]);
+		const normalizedSearch = dbcSearch.trim().toLowerCase();
+		if (!normalizedSearch) return boards;
+		return boards.filter((board) => board.name.toLowerCase().includes(normalizedSearch));
+	}, [boards, dbcSearch]);
+
+	const selectedBoard = useMemo(
+		() => boards.find((board) => board.id === boardId) ?? null,
+		[boards, boardId],
+	);
+
+	const moveTargets = useMemo(() => {
+		if (!moveTargetsFetcher.data || moveTargetsFetcher.data.status !== 200) return [];
+		return moveTargetsFetcher.data.moveTargets || [];
+	}, [moveTargetsFetcher.data]);
+	const hasMoveTargetsLoaded = moveTargetsFetcher.data?.status === 200;
+	const boardsById = useMemo(() => new Map(boards.map((board) => [board.id, board])), [boards]);
 
 	const handleSave = useCallback(() => {
 		fetcher.submit({ type: 'reorderBoards', boards: tempBoards.join(',') }, { method: 'post' });
 		setTempBoards([]);
 	}, [fetcher, tempBoards]);
+
+	const handleOpenMoveBoard = useCallback((id: string) => {
+		setBoardId(id);
+		setModalOpen('moveBoard');
+		if (!hasMoveTargetsLoaded && moveTargetsFetcher.state === 'idle') {
+			moveTargetsFetcher.submit({ type: 'getMoveTargets' }, { method: 'post' });
+		}
+	}, [hasMoveTargetsLoaded, moveTargetsFetcher]);
+
+	const handleCancelDeletion = useCallback((id: string) => {
+		const board = boardsById.get(id);
+		if (!board?.scheduledForDeletion) return;
+
+		fetcher.submit({ type: 'cancelDeletion', boardId: id }, { method: 'post' });
+	}, [boardsById, fetcher]);
 
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }} id='a1'>
@@ -176,47 +293,40 @@ export default function Boards() {
 				<CardList
 					key={revertKey}
 					noWhat='boards'
-					onDelete={editorMode ? (index) => {
+					onDelete={editorMode ? (id) => {
 						setModalOpen('deleteBoard');
-						setBoardId(finalBoards[index]!.id);
+						setBoardId(id);
 					} : undefined}
-					onForceDelete={editorMode && user?.isDev ? (index) => {
+					onForceDelete={editorMode && user?.isDev ? (id) => {
 						setModalOpen('forceDeleteBoard');
-						setBoardId(finalBoards[index]!.id);
+						setBoardId(id);
 					} : undefined}
-					onEdit={editorMode ? (index) => {
+					onEdit={editorMode ? (id) => {
 						setModalOpen('updateBoard');
-						setBoardId(finalBoards[index]!.id);
+						setBoardId(id);
 					} : undefined}
+					onMove={editorMode ? handleOpenMoveBoard : undefined}
 					onReorder={editorMode && canCreateBoard ? (orderedIds) => {
 						setTempBoards(orderedIds);
 					} : undefined}
-					onFlashCreate={editorMode ? (index) => {
-						const board = finalBoards[index];
-						if (!board) return;
-
-						fetcher.submit({ type: 'initializeFlashcards', boardId: board.id }, { method: 'post' });
+					onFlashCreate={editorMode ? (id) => {
+						fetcher.submit({ type: 'initializeFlashcards', boardId: id }, { method: 'post' });
 					} : undefined}
-					onCancelDeletion={editorMode ? (index) => {
-						const board = finalBoards[index];
-						if (!board?.scheduledForDeletion) return;
-
-						fetcher.submit({ type: 'cancelDeletion', boardId: board.id }, { method: 'post' });
-					} : undefined}
-					cards={finalBoards.map((b) => ({
-						id: b.id,
+					onCancelDeletion={editorMode ? handleCancelDeletion : undefined}
+					cards={finalBoards.map((board) => ({
+						id: board.id,
 						editorMode,
-						sizeBytes: b.totalSizeBytes,
-						hasPerms: canManage(b.accessLevel, user?.isDev),
-						url: `/groups/${group.id}/${category.id}/${b.id}`,
-						name: b.name.charAt(0).toUpperCase() + b.name.slice(1),
+						sizeBytes: board.totalSizeBytes,
+						hasPerms: canManage(board.accessLevel, user?.isDev),
+						url: `/groups/${group.id}/${category.id}/${board.id}`,
+						name: board.name.charAt(0).toUpperCase() + board.name.slice(1),
 
-						flashExists: b.hasFlashcards,
-						flashUrl: `/flashcards/${group.id}/${category.id}/${b.id}`,
-						isScheduledForDeletionText: b.scheduledForDeletionText || undefined,
-						isScheduledForDeletion: b.scheduledForDeletion ? new Date(b.scheduledForDeletion) : undefined,
-						permsUrl: canManage(b.accessLevel, user?.isDev) ? `/permissions/${group.id}/${category.id}/${b.id}` : undefined,
-						analyticsUrl: canInviteAndPermit(b.accessLevel, user?.isDev) ? `/analytics/${group.id}/${category.id}/${b.id}` : undefined,
+						flashExists: board.hasFlashcards,
+						flashUrl: `/flashcards/${group.id}/${category.id}/${board.id}`,
+						isScheduledForDeletionText: board.scheduledForDeletionText || undefined,
+						isScheduledForDeletion: board.scheduledForDeletion ? new Date(board.scheduledForDeletion) : undefined,
+						permsUrl: canManage(board.accessLevel, user?.isDev) ? `/permissions/${group.id}/${category.id}/${board.id}` : undefined,
+						analyticsUrl: canInviteAndPermit(board.accessLevel, user?.isDev) ? `/analytics/${group.id}/${category.id}/${board.id}` : undefined,
 					}))}
 				/>
 
@@ -226,7 +336,10 @@ export default function Boards() {
 					boardId={boardId || undefined}
 					type={modalOpen || 'createBoard'}
 					onClose={() => setModalOpen(null)}
-					defaultName={finalBoards.find((g) => g.id === boardId)?.name || ''}
+					defaultName={selectedBoard?.name || ''}
+					currentCategoryId={category.id}
+					moveTargets={moveTargets}
+					isMoveTargetsLoading={moveTargetsFetcher.state !== 'idle'}
 				/>
 
 				<NoticeCard
@@ -248,20 +361,51 @@ export default function Boards() {
 	);
 }
 
-export type ModalOpen = 'createBoard' | 'updateBoard' | 'deleteBoard' | 'forceDeleteBoard' | null;
-export type ManageBoardProps = {
-	isOpen: boolean;
-	onClose: () => void;
-
-	type: NonNullable<ModalOpen>;
-	fetcher: FetcherWithComponents<unknown>;
-
-	defaultName?: string;
-	boardId?: string;
-};
-
-export function ManageBoard({ isOpen, onClose, type, fetcher, defaultName, boardId }: ManageBoardProps) {
+export function ManageBoard({
+	isOpen,
+	onClose,
+	type,
+	fetcher,
+	defaultName,
+	boardId,
+	currentCategoryId,
+	moveTargets,
+	isMoveTargetsLoading,
+}: ManageBoardProps) {
 	const { colorMode } = useColorMode();
+	const modalTitle = useMemo(() => camelCaseToTitle(type), [type]);
+	const submitLabel = useMemo(() => splitCamelCaseWords(type)[0] || 'Submit', [type]);
+
+	const availableCategories = useMemo(
+		() => moveTargets
+			.flatMap((group) => group.categories)
+			.filter((category) => category.id !== currentCategoryId),
+		[moveTargets, currentCategoryId],
+	);
+	const targetCategoryOptions = useMemo(
+		() => availableCategories.map((category) => ({
+			label: `${category.groupName} -> ${category.name}`,
+			value: category.id,
+		})),
+		[availableCategories],
+	);
+
+	const [targetCategoryId, setTargetCategoryId] = useState('');
+
+	useEffect(() => {
+		if (type !== 'moveBoard') return;
+
+		if (availableCategories.length === 0) {
+			setTargetCategoryId('');
+			return;
+		}
+
+		setTargetCategoryId((prev) => (
+			prev && availableCategories.some((category) => category.id === prev)
+				? prev
+				: availableCategories[0]!.id
+		));
+	}, [type, availableCategories]);
 
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} size='lg' isCentered>
@@ -269,7 +413,7 @@ export function ManageBoard({ isOpen, onClose, type, fetcher, defaultName, board
 			<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
 				<fetcher.Form method={'post'}>
 					<ModalHeader>
-						{type.split(/(?=[A-Z])/).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+						{modalTitle}
 					</ModalHeader>
 					<ModalCloseButton />
 					<ModalBody>
@@ -297,7 +441,7 @@ export function ManageBoard({ isOpen, onClose, type, fetcher, defaultName, board
 											id='boardType'
 											name='boardType'
 											placeholder='Board Type'
-											options={['Excalidraw', 'Tldraw'].map((type) => ({ label: type, value: type }))}
+											options={['Excalidraw', 'Tldraw'].map((boardType) => ({ label: boardType, value: boardType }))}
 											defaultValue={{ label: 'Excalidraw', value: 'Excalidraw' }}
 										/>
 									</Box>
@@ -320,6 +464,43 @@ export function ManageBoard({ isOpen, onClose, type, fetcher, defaultName, board
 											autoFocus
 										/>
 									</Box>
+								</>
+							)}
+
+							{type === 'moveBoard' && (
+								<>
+									<VisuallyHiddenInput onChange={() => { }} name='type' value='moveBoard' />
+									<VisuallyHiddenInput onChange={() => { }} name='boardId' value={boardId || ''} />
+
+									<Box>
+										<Text mb={2} fontSize='sm' fontWeight='semibold'>Target Category</Text>
+										<Select
+											id='targetCategoryId'
+											name='targetCategoryId'
+											value={targetCategoryOptions.find((option) => option.value === targetCategoryId) || null}
+											onChange={(option) => setTargetCategoryId(option?.value || '')}
+											placeholder='Select target category'
+											options={targetCategoryOptions}
+											isDisabled={isMoveTargetsLoading || availableCategories.length === 0}
+										/>
+									</Box>
+
+									<Box>
+										<Text mb={2} fontSize='sm' fontWeight='semibold'>Target Index (optional)</Text>
+										<Input
+											id='targetIndex'
+											name='targetIndex'
+											type='number'
+											min={0}
+											step={1}
+											placeholder='Leave empty to append at end'
+										/>
+									</Box>
+
+									{isMoveTargetsLoading && <Text fontSize='sm'>Loading move targets...</Text>}
+									{!isMoveTargetsLoading && availableCategories.length === 0 && (
+										<Text fontSize='sm'>No valid target categories available for this board.</Text>
+									)}
 								</>
 							)}
 
@@ -353,10 +534,11 @@ export function ManageBoard({ isOpen, onClose, type, fetcher, defaultName, board
 						<Button
 							flex={1}
 							isLoading={fetcher.state === 'loading' || fetcher.state === 'submitting'}
+							isDisabled={type === 'moveBoard' && (isMoveTargetsLoading || !targetCategoryId)}
 							colorScheme={type === 'deleteBoard' || type === 'forceDeleteBoard' ? 'red' : 'blue'}
 							type='submit'
 						>
-							{type.split(/(?=[A-Z])/).map((word) => word.charAt(0).toUpperCase() + word.slice(1))[0]}
+							{submitLabel}
 						</Button>
 					</ModalFooter>
 				</fetcher.Form>

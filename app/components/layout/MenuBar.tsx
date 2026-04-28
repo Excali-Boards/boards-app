@@ -1,6 +1,6 @@
 import { Avatar, Divider, Flex, HStack, IconButton, Text, Tooltip, useBreakpointValue } from '@chakra-ui/react';
 import { FaDeleteLeft } from 'react-icons/fa6';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Link } from '@remix-run/react';
 
 export type CustomButton<T extends 'normal' | 'link'> = (T extends 'normal' ? {
@@ -38,64 +38,8 @@ export default function MenuBar({
 	customButtons,
 }: MenuBarProps) {
 	const showDivider = useBreakpointValue({ base: false, md: true });
-	const [areLoading, setAreLoading] = useState<number[]>([]);
-
-	const CustomButtons = useCallback(() => {
-		return customButtons?.map((button, index) => (
-			<Tooltip
-				key={'custom-button-' + index}
-				label={button.tooltip}
-				aria-label={button.tooltip}
-				closeOnClick={false}
-				placement={'top'}
-				hasArrow
-			>
-				{button.type === 'link' ? (
-					<IconButton
-						as={Link}
-						to={(button as CustomButton<'link'>).to}
-						variant={'ghost'}
-						rounded={'full'}
-						bg={'alpha100'}
-						aria-label={button.label}
-						boxSize={10}
-						alignItems={'center'}
-						justifyContent={'center'}
-						isDisabled={button.isDisabled}
-						isLoading={areLoading.includes(index) || button.isLoading}
-						onClick={() => 'loadOnClick' in button ? setAreLoading((prev) => [...prev, index]) : undefined}
-						icon={button.icon}
-						isActive={button.isActive}
-						colorScheme={button.colorScheme}
-						reloadDocument={(button as CustomButton<'link'>).reloadDocument}
-						_hover={{ bg: 'alpha300' }}
-						_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-					/>
-				) : (
-					<IconButton
-						onClick={() => {
-							if ('loadOnClick' in button) setAreLoading((prev) => [...prev, index]);
-							(button as CustomButton<'normal'>).onClick();
-						}}
-						variant={'ghost'}
-						rounded={'full'}
-						bg={'alpha100'}
-						aria-label={button.label}
-						boxSize={10}
-						alignItems={'center'}
-						justifyContent={'center'}
-						isDisabled={button.isDisabled}
-						isLoading={areLoading.includes(index) || button.isLoading}
-						isActive={button.isActive}
-						colorScheme={button.colorScheme}
-						icon={button.icon}
-						_hover={{ bg: 'alpha300' }}
-						_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-					/>
-				)}
-			</Tooltip>
-		));
-	}, [areLoading, customButtons]);
+	const [loadingKeys, setLoadingKeys] = useState<Set<string>>(new Set());
+	const getButtonKey = (button: CustomButton<'normal' | 'link'>, index: number) => `custom-button-${button.type}-${button.label}-${index}`;
 
 	return (
 		<Flex
@@ -159,7 +103,65 @@ export default function MenuBar({
 						/>
 					</Tooltip>
 
-					{!!customButtons?.length && <CustomButtons />}
+					{!!customButtons?.length && customButtons.map((button, index) => {
+						const buttonKey = getButtonKey(button, index);
+						const isLoading = loadingKeys.has(buttonKey) || button.isLoading;
+
+						return (
+						<Tooltip
+							key={buttonKey}
+							label={button.tooltip}
+							aria-label={button.tooltip}
+							closeOnClick={false}
+							placement={'top'}
+							hasArrow
+						>
+							{button.type === 'link' ? (
+								<IconButton
+									as={Link}
+									to={(button as CustomButton<'link'>).to}
+									variant={'ghost'}
+									rounded={'full'}
+									bg={'alpha100'}
+									aria-label={button.label}
+									boxSize={10}
+									alignItems={'center'}
+									justifyContent={'center'}
+									isDisabled={button.isDisabled}
+									isLoading={isLoading}
+									onClick={() => button.loadOnClick ? setLoadingKeys((prev) => new Set(prev).add(buttonKey)) : undefined}
+									icon={button.icon}
+									isActive={button.isActive}
+									colorScheme={button.colorScheme}
+									reloadDocument={(button as CustomButton<'link'>).reloadDocument}
+									_hover={{ bg: 'alpha300' }}
+									_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+								/>
+							) : (
+								<IconButton
+									onClick={() => {
+										if (button.loadOnClick) setLoadingKeys((prev) => new Set(prev).add(buttonKey));
+										(button as CustomButton<'normal'>).onClick();
+									}}
+									variant={'ghost'}
+									rounded={'full'}
+									bg={'alpha100'}
+									aria-label={button.label}
+									boxSize={10}
+									alignItems={'center'}
+									justifyContent={'center'}
+									isDisabled={button.isDisabled}
+									isLoading={isLoading}
+									isActive={button.isActive}
+									colorScheme={button.colorScheme}
+									icon={button.icon}
+									_hover={{ bg: 'alpha300' }}
+									_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+								/>
+							)}
+						</Tooltip>
+						);
+					})}
 				</HStack>
 			</Flex>
 		</Flex>

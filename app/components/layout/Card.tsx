@@ -1,5 +1,6 @@
-import { Flex, Text, HStack, Divider, IconButton, FlexProps, useColorMode, Badge, useBreakpointValue, Tooltip, Menu, MenuButton, MenuList, MenuItem } from '@chakra-ui/react';
+import { Box, Flex, Text, HStack, Divider, IconButton, FlexProps, useColorMode, Badge, useBreakpointValue, Tooltip, Menu, MenuButton, MenuList, MenuItem } from '@chakra-ui/react';
 import { FaLink, FaList, FaPen, FaTrash, FaTrashRestore, FaUsers, FaChartBar } from 'react-icons/fa';
+import { FaRightLeft } from 'react-icons/fa6';
 import { formatBytes, getCardDeletionTime } from '~/other/utils';
 import { Fragment, useContext, useState } from 'react';
 import { IconLinkButton } from '~/components/Button';
@@ -32,6 +33,7 @@ export type CardProps = {
 	onFlashCreate?: () => void;
 	onRestore?: () => void;
 	onDelete?: () => void;
+	onMove?: () => void;
 	onEdit?: () => void;
 };
 
@@ -53,15 +55,42 @@ export function Card({
 	onForceDelete,
 	onFlashCreate,
 	onDelete,
+	onMove,
 	onEdit,
 }: CardProps & FlexProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const { colorMode } = useColorMode();
+	const actionBoxSize = 10;
 
 	const { user } = useContext(RootContext) || {};
 
 	const isDeletedSoon = getCardDeletionTime(isScheduledForDeletion || null, colorMode);
 	const isMobile = useBreakpointValue({ base: true, md: false }) || false;
+	const canShowEditorActions = Boolean(editorMode && hasPerms);
+	const canShowRestore = canShowEditorActions && Boolean(onCancelDeletion && isScheduledForDeletion);
+	const canShowDelete = canShowEditorActions && Boolean(onDelete && !isScheduledForDeletion);
+	const canShowEdit = canShowEditorActions && Boolean(onEdit);
+	const canShowMove = canShowEditorActions && Boolean(onMove);
+	const canShowAnalytics = Boolean(analyticsUrl);
+	const canShowPerms = Boolean(editorMode && permsUrl);
+	const canShowFlash = Boolean((flashExists && flashUrl) || (editorMode && onFlashCreate));
+	const shouldKeepActionSlots = Boolean(editorMode);
+	const hasDeleteSlot = Boolean(onDelete || onCancelDeletion);
+	const hasEditSlot = Boolean(onEdit);
+	const hasMoveSlot = Boolean(onMove);
+	const hasAnalyticsSlot = Boolean(analyticsUrl);
+	const hasPermsSlot = Boolean(permsUrl);
+	const hasFlashSlot = Boolean((flashExists && flashUrl) || onFlashCreate);
+	const stableSlotCount = [
+		hasDeleteSlot,
+		hasEditSlot,
+		hasMoveSlot,
+		hasAnalyticsSlot,
+		hasPermsSlot,
+		hasFlashSlot,
+		true,
+	].filter(Boolean).length;
+	const actionAreaMinWidth = stableSlotCount > 0 ? `${(stableSlotCount * 40) + ((stableSlotCount - 1) * 8)}px` : 'auto';
 
 	return (
 		<Flex
@@ -73,10 +102,10 @@ export function Card({
 			alignItems={'center'}
 			bg={isDeletedSoon.bg}
 			wordBreak={'break-word'}
-			transition={'all 0.3s ease'}
+			transition={'background-color 0.2s ease, border-color 0.2s ease'}
 			justifyContent={'space-between'}
 			_hover={{ bg: isDeletedSoon.borderColor }}
-			flexDirection={editorMode ? { base: 'column', md: 'row' } : 'row'}
+			flexDirection={{ base: 'column', md: 'row' }}
 		>
 			<Flex
 				justifyContent='center'
@@ -117,12 +146,20 @@ export function Card({
 				justifyContent={'center'}
 				flexDir={'row'}
 				gap={4}
+				w={{ base: '100%', md: 'auto' }}
 			>
-				<Divider orientation={'vertical'} color={'red'} height={'50px'} display={isMobile && editorMode ? 'none' : 'block'} />
+				<Divider orientation={'vertical'} color={'red'} height={'50px'} display={isMobile ? 'none' : 'block'} />
 
-				<HStack spacing={2}>
-					{/* Edit/Delete/Restore */}
-					{onCancelDeletion && isScheduledForDeletion && hasPerms && (
+				<HStack
+					spacing={2}
+					minW={{ base: 'auto', md: shouldKeepActionSlots ? actionAreaMinWidth : 'auto' }}
+					justifyContent='flex-end'
+					flexWrap='nowrap'
+					transition='none'
+					flexShrink={0}
+				>
+					{/* Restore/Delete slot */}
+					{canShowRestore ? (
 						<Fragment>
 							{user?.isDev && onForceDelete ? (
 								<Tooltip label='Restore' hasArrow>
@@ -132,6 +169,7 @@ export function Card({
 											rounded={'full'}
 											bg={'alpha100'}
 											icon={<FaList />}
+											boxSize={actionBoxSize}
 											alignItems={'center'}
 											justifyContent={'center'}
 											_hover={{ bg: 'alpha300' }}
@@ -166,6 +204,7 @@ export function Card({
 										variant={'ghost'}
 										rounded={'full'}
 										bg={'alpha100'}
+										boxSize={actionBoxSize}
 										icon={<FaTrashRestore />}
 										aria-label={'Restore'}
 										alignItems={'center'}
@@ -176,15 +215,14 @@ export function Card({
 								</Tooltip>
 							)}
 						</Fragment>
-					)}
-
-					{onDelete && !isScheduledForDeletion && hasPerms && (
+					) : canShowDelete ? (
 						<Tooltip label='Delete' hasArrow>
 							<IconButton
 								onClick={onDelete}
 								variant={'ghost'}
 								rounded={'full'}
 								bg={'alpha100'}
+								boxSize={actionBoxSize}
 								icon={<FaTrash />}
 								aria-label={'Delete'}
 								alignItems={'center'}
@@ -194,15 +232,19 @@ export function Card({
 								_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
 							/>
 						</Tooltip>
-					)}
+					) : (shouldKeepActionSlots && hasDeleteSlot) ? (
+						<Box boxSize={actionBoxSize} visibility='hidden' />
+					) : null}
 
-					{onEdit && hasPerms && (
+					{/* Edit slot */}
+					{canShowEdit ? (
 						<Tooltip label='Edit' hasArrow>
 							<IconButton
 								onClick={onEdit}
 								variant={'ghost'}
 								rounded={'full'}
 								bg={'alpha100'}
+								boxSize={actionBoxSize}
 								aria-label={'Edit'}
 								icon={<FaPen />}
 								alignItems={'center'}
@@ -212,10 +254,34 @@ export function Card({
 								_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
 							/>
 						</Tooltip>
-					)}
+					) : (shouldKeepActionSlots && hasEditSlot) ? (
+						<Box boxSize={actionBoxSize} visibility='hidden' />
+					) : null}
+
+					{/* Move slot */}
+					{canShowMove ? (
+						<Tooltip label='Move' hasArrow>
+							<IconButton
+								onClick={onMove}
+								variant={'ghost'}
+								rounded={'full'}
+								bg={'alpha100'}
+								boxSize={actionBoxSize}
+								aria-label={'Move'}
+								icon={<FaRightLeft />}
+								alignItems={'center'}
+								justifyContent={'center'}
+								_hover={{ bg: 'alpha300' }}
+								isDisabled={!!isScheduledForDeletion}
+								_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+							/>
+						</Tooltip>
+					) : (shouldKeepActionSlots && hasMoveSlot) ? (
+						<Box boxSize={actionBoxSize} visibility='hidden' />
+					) : null}
 
 					{/* Analytics */}
-					{analyticsUrl && (
+					{canShowAnalytics ? (
 						<Tooltip label='View Analytics' hasArrow>
 							<span>
 								<IconLinkButton
@@ -224,6 +290,7 @@ export function Card({
 									rounded={'full'}
 									bg={'alpha100'}
 									icon={<FaChartBar />}
+									boxSize={actionBoxSize}
 									alignItems={'center'}
 									isDisabled={!analyticsUrl}
 									reloadDocument={refresh}
@@ -236,10 +303,12 @@ export function Card({
 								/>
 							</span>
 						</Tooltip>
-					)}
+					) : (shouldKeepActionSlots && hasAnalyticsSlot) ? (
+						<Box boxSize={actionBoxSize} visibility='hidden' />
+					) : null}
 
 					{/* Permissions */}
-					{permsUrl && editorMode && (
+					{canShowPerms ? (
 						<Tooltip label='Manage Permissions' hasArrow>
 							<span>
 								<IconLinkButton
@@ -248,6 +317,7 @@ export function Card({
 									rounded={'full'}
 									bg={'alpha100'}
 									icon={<FaUsers />}
+									boxSize={actionBoxSize}
 									alignItems={'center'}
 									isDisabled={!permsUrl}
 									reloadDocument={refresh}
@@ -260,10 +330,12 @@ export function Card({
 								/>
 							</span>
 						</Tooltip>
-					)}
+					) : (shouldKeepActionSlots && hasPermsSlot) ? (
+						<Box boxSize={actionBoxSize} visibility='hidden' />
+					) : null}
 
 					{/* Flashcards */}
-					{((flashExists && flashUrl) || (editorMode && onFlashCreate)) && (
+					{canShowFlash ? (
 						editorMode ? (
 							flashExists ? (
 								<Tooltip label='Manage Flashcards' hasArrow>
@@ -274,6 +346,7 @@ export function Card({
 											rounded='full'
 											bg='alpha100'
 											icon={<IoFlash />}
+											boxSize={actionBoxSize}
 											alignItems='center'
 											reloadDocument={refresh}
 											justifyContent='center'
@@ -292,6 +365,7 @@ export function Card({
 										variant='ghost'
 										rounded='full'
 										bg='alpha100'
+										boxSize={actionBoxSize}
 										icon={<IoFlash />}
 										alignItems='center'
 										justifyContent='center'
@@ -309,6 +383,7 @@ export function Card({
 										rounded='full'
 										bg='alpha100'
 										icon={<IoFlash />}
+										boxSize={actionBoxSize}
 										alignItems='center'
 										reloadDocument={refresh}
 										justifyContent='center'
@@ -321,7 +396,9 @@ export function Card({
 								</span>
 							</Tooltip>
 						)
-					)}
+					) : (shouldKeepActionSlots && hasFlashSlot) ? (
+						<Box boxSize={actionBoxSize} visibility='hidden' />
+					) : null}
 
 					{/* Normal Resource */}
 					<IconLinkButton
@@ -330,6 +407,7 @@ export function Card({
 						rounded={'full'}
 						bg={'alpha100'}
 						icon={<FaLink />}
+						boxSize={actionBoxSize}
 						aria-label={'Open'}
 						alignItems={'center'}
 						reloadDocument={refresh}

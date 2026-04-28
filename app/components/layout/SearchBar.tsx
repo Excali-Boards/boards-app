@@ -1,5 +1,5 @@
 import { Divider, Flex, Input, InputProps } from '@chakra-ui/react';
-import { Fragment, useMemo } from 'react';
+import { Fragment } from 'react';
 
 export type SearchBarProps = {
 	search: string;
@@ -17,28 +17,26 @@ export function SearchBar({
 	isShown = true,
 	...props
 }: SearchBarProps & InputProps) {
-	const searchBar = useMemo(() => {
-		return (
-			<Flex
-				alignItems={'center'}
-				justifyContent={'center'}
-				flexDir={'row'}
-				gap={4}
-			>
-				<Input
-					{...props}
-					value={search}
-					onChange={(e) => setSearch(e.target.value)}
-					placeholder={`Search ${whatSearch}..`}
-					_focus={{ bg: 'alpha200' }}
-					variant={'filled'}
-					bg={'alpha100'}
-					rounded={'full'}
-					px={4}
-				/>
-			</Flex>
-		);
-	}, [search, setSearch, whatSearch, props]);
+	const searchBar = (
+		<Flex
+			alignItems={'center'}
+			justifyContent={'center'}
+			flexDir={'row'}
+			gap={4}
+		>
+			<Input
+				{...props}
+				value={search}
+				onChange={(e) => setSearch(e.target.value)}
+				placeholder={`Search ${whatSearch}..`}
+				_focus={{ bg: 'alpha200' }}
+				variant={'filled'}
+				bg={'alpha100'}
+				rounded={'full'}
+				px={4}
+			/>
+		</Flex>
+	);
 
 	if (!isShown) return <Divider my={dividerMY} />;
 	else return dividerMY ? (

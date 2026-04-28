@@ -385,3 +385,23 @@ export function makeResponseClient(data: unknown, message: string): Response {
 export function makeResObjectClient<T>(data: T | null, message: string): T | { status: number; error: string; } {
 	return data || { status: getCodeClient(data), error: getErrorClient(data, message) };
 }
+
+export function parseOptionalNonNegativeInteger(value: FormDataEntryValue | null): number | null | undefined {
+	if (value === null) return undefined;
+
+	const parsedValue = value.toString().trim();
+	if (!parsedValue) return undefined;
+
+	const numberValue = Number(parsedValue);
+	if (!Number.isInteger(numberValue) || numberValue < 0) return null;
+
+	return numberValue;
+}
+
+export function splitCamelCaseWords(value: string): string[] {
+	return value.split(/(?=[A-Z])/).map((word) => firstToUpperCase(word.toLowerCase())).filter(Boolean);
+}
+
+export function camelCaseToTitle(value: string): string {
+	return splitCamelCaseWords(value).join(' ');
+}
