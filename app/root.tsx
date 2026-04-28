@@ -1,4 +1,4 @@
-import { Outlet, isRouteErrorResponse, useLoaderData, useMatches, useRouteError } from '@remix-run/react';
+import { Outlet, ShouldRevalidateFunctionArgs, isRouteErrorResponse, useLoaderData, useMatches, useRouteError } from '@remix-run/react';
 import { LoaderFunctionArgs, LinksFunction, MetaFunction } from '@remix-run/node';
 import { allowedPlatforms as allowedLoginPlatforms } from '~/utils/config.server';
 import Layout, { BoardInfo, SidebarObject } from '~/components/Layout';
@@ -82,10 +82,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 // Revalidate on form actions and fetcher actions, but not on simple navigation.
-export function shouldRevalidate({ formAction, defaultShouldRevalidate, actionStatus }) {
+export function shouldRevalidate({ formAction, defaultShouldRevalidate, actionStatus }: ShouldRevalidateFunctionArgs) {
 	if (formAction) return true;
-	if (actionStatus === 'loading') return true;
-	
+	if (typeof actionStatus === 'number') return true;
+
 	return defaultShouldRevalidate;
 }
 
