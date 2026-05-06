@@ -1,9 +1,9 @@
 import { Box, Flex, Text, HStack, Divider, IconButton, FlexProps, useColorMode, Badge, useBreakpointValue, Tooltip, Menu, MenuButton, MenuList, MenuItem } from '@chakra-ui/react';
 import { FaLink, FaList, FaPen, FaTrash, FaTrashRestore, FaUsers, FaChartBar } from 'react-icons/fa';
-import { FaRightLeft } from 'react-icons/fa6';
 import { formatBytes, getCardDeletionTime } from '~/other/utils';
 import { Fragment, useContext, useState } from 'react';
 import { IconLinkButton } from '~/components/Button';
+import { FaRightLeft } from 'react-icons/fa6';
 import { IoFlash } from 'react-icons/io5';
 import { RootContext } from '../Context';
 
@@ -66,30 +66,22 @@ export function Card({
 
 	const isDeletedSoon = getCardDeletionTime(isScheduledForDeletion || null, colorMode);
 	const isMobile = useBreakpointValue({ base: true, md: false }) || false;
-	const canShowEditorActions = Boolean(editorMode && hasPerms);
-	const canShowRestore = canShowEditorActions && Boolean(onCancelDeletion && isScheduledForDeletion);
-	const canShowDelete = canShowEditorActions && Boolean(onDelete && !isScheduledForDeletion);
-	const canShowEdit = canShowEditorActions && Boolean(onEdit);
-	const canShowMove = canShowEditorActions && Boolean(onMove);
-	const canShowAnalytics = Boolean(analyticsUrl);
-	const canShowPerms = Boolean(editorMode && permsUrl);
-	const canShowFlash = Boolean((flashExists && flashUrl) || (editorMode && onFlashCreate));
-	const shouldKeepActionSlots = Boolean(editorMode);
-	const hasDeleteSlot = Boolean(onDelete || onCancelDeletion);
-	const hasEditSlot = Boolean(onEdit);
-	const hasMoveSlot = Boolean(onMove);
-	const hasAnalyticsSlot = Boolean(analyticsUrl);
-	const hasPermsSlot = Boolean(permsUrl);
-	const hasFlashSlot = Boolean((flashExists && flashUrl) || onFlashCreate);
-	const stableSlotCount = [
-		hasDeleteSlot,
-		hasEditSlot,
-		hasMoveSlot,
-		hasAnalyticsSlot,
-		hasPermsSlot,
-		hasFlashSlot,
-		true,
-	].filter(Boolean).length;
+	const canShowEditorActions = editorMode && hasPerms;
+	const shouldKeepActionSlots = editorMode;
+
+	const slots = {
+		delete: canShowEditorActions && ((onCancelDeletion && isScheduledForDeletion) || (onDelete && !isScheduledForDeletion)),
+		edit: canShowEditorActions && onEdit,
+		move: canShowEditorActions && onMove,
+		analytics: analyticsUrl,
+		perms: editorMode && permsUrl,
+		flash: (flashExists && flashUrl) || (editorMode && onFlashCreate),
+	};
+
+	const canShowRestore = slots.delete && onCancelDeletion && isScheduledForDeletion;
+	const canShowDelete = slots.delete && onDelete && !isScheduledForDeletion;
+
+	const stableSlotCount = Object.values(slots).filter(Boolean).length + 1; // +1 for the link button
 	const actionAreaMinWidth = stableSlotCount > 0 ? `${(stableSlotCount * 40) + ((stableSlotCount - 1) * 8)}px` : 'auto';
 
 	return (
@@ -232,12 +224,12 @@ export function Card({
 								_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
 							/>
 						</Tooltip>
-					) : (shouldKeepActionSlots && hasDeleteSlot) ? (
+					) : (shouldKeepActionSlots && slots.delete) ? (
 						<Box boxSize={actionBoxSize} visibility='hidden' />
 					) : null}
 
 					{/* Edit slot */}
-					{canShowEdit ? (
+					{slots.edit ? (
 						<Tooltip label='Edit' hasArrow>
 							<IconButton
 								onClick={onEdit}
@@ -254,12 +246,12 @@ export function Card({
 								_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
 							/>
 						</Tooltip>
-					) : (shouldKeepActionSlots && hasEditSlot) ? (
+					) : (shouldKeepActionSlots && slots.edit) ? (
 						<Box boxSize={actionBoxSize} visibility='hidden' />
 					) : null}
 
 					{/* Move slot */}
-					{canShowMove ? (
+					{slots.move ? (
 						<Tooltip label='Move' hasArrow>
 							<IconButton
 								onClick={onMove}
@@ -276,12 +268,12 @@ export function Card({
 								_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
 							/>
 						</Tooltip>
-					) : (shouldKeepActionSlots && hasMoveSlot) ? (
+					) : (shouldKeepActionSlots && slots.move) ? (
 						<Box boxSize={actionBoxSize} visibility='hidden' />
 					) : null}
 
 					{/* Analytics */}
-					{canShowAnalytics ? (
+					{slots.analytics ? (
 						<Tooltip label='View Analytics' hasArrow>
 							<span>
 								<IconLinkButton
@@ -303,12 +295,12 @@ export function Card({
 								/>
 							</span>
 						</Tooltip>
-					) : (shouldKeepActionSlots && hasAnalyticsSlot) ? (
+					) : (shouldKeepActionSlots && slots.analytics) ? (
 						<Box boxSize={actionBoxSize} visibility='hidden' />
 					) : null}
 
 					{/* Permissions */}
-					{canShowPerms ? (
+					{slots.perms ? (
 						<Tooltip label='Manage Permissions' hasArrow>
 							<span>
 								<IconLinkButton
@@ -330,12 +322,12 @@ export function Card({
 								/>
 							</span>
 						</Tooltip>
-					) : (shouldKeepActionSlots && hasPermsSlot) ? (
+					) : (shouldKeepActionSlots && slots.perms) ? (
 						<Box boxSize={actionBoxSize} visibility='hidden' />
 					) : null}
 
 					{/* Flashcards */}
-					{canShowFlash ? (
+					{slots.flash ? (
 						editorMode ? (
 							flashExists ? (
 								<Tooltip label='Manage Flashcards' hasArrow>
@@ -396,7 +388,7 @@ export function Card({
 								</span>
 							</Tooltip>
 						)
-					) : (shouldKeepActionSlots && hasFlashSlot) ? (
+					) : (shouldKeepActionSlots && slots.flash) ? (
 						<Box boxSize={actionBoxSize} visibility='hidden' />
 					) : null}
 
