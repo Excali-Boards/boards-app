@@ -1,4 +1,4 @@
-import { VStack, Box, Divider, Flex, Text, HStack, Avatar, AvatarGroup, Tooltip } from '@chakra-ui/react';
+import { VStack, Box, Divider, Flex, Text, HStack, Avatar, AvatarGroup, Tooltip, Badge } from '@chakra-ui/react';
 import { getIpHeaders, makeResponse } from '~/utils/functions.server';
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { IconLinkButton } from '~/components/Button';
@@ -43,7 +43,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	}))));
 
 	return {
-		rooms: DBRooms.data.map((room) => {
+		rooms: DBRooms.data.rooms.map((room) => {
 			const boardData = allBoards.find((b) => b.board.id === room.boardId);
 			if (!boardData) return null;
 
@@ -62,11 +62,112 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 				})),
 			};
 		}).filter((room) => room !== null) as RoomData[] || [],
+		recentlyActiveRooms: (DBRooms.data.recentlyActiveRooms || []).map((room) => {
+			const boardData = allBoards.find((b) => b.board.id === room.boardId);
+			if (!boardData) return null;
+
+			return {
+				boardId: room.boardId,
+				groupId: boardData.group.id || 'Unknown',
+				categoryId: boardData.category.id || 'Unknown',
+				groupName: boardData.group.name || 'Unknown',
+				categoryName: boardData.category.name || 'Unknown',
+				name: boardData.board.name || 'Unknown',
+				elements: room.elements,
+				collaborators: room.lastCollaborators.map((collab) => ({
+					id: collab.id,
+					username: collab.username,
+					avatarUrl: collab.avatarUrl,
+				})),
+				lastActiveAt: room.lastActiveAt,
+			};
+		}).filter((room) => room !== null) as (RoomData & { lastActiveAt: number })[] || [],
 	};
 };
 
 export default function AdminRooms() {
-	const { rooms } = useLoaderData<typeof loader>();
+	const { rooms, recentlyActiveRooms } = useLoaderData<typeof loader>();
+
+	const formatLastActive = (timestamp: number) => {
+		const diff = Date.now() - timestamp;
+		const minutes = Math.floor(diff / 60000);
+		if (minutes < 1) return 'Just now';
+		if (minutes < 60) return `${minutes}m ago`;
+		const hours = Math.floor(minutes / 60);
+		if (hours < 24) return `${hours}h ago`;
+		const days = Math.floor(hours / 24);
+		return `${days}d ago`;
+	};
+
+	const renderRoomCard = (b: RoomData, extra?: { lastActiveAt?: number }) => (
+		<Flex
+			key={b.boardId + (extra?.lastActiveAt || '')}
+			rounded={'lg'}
+			bg={'alpha100'}
+			py={4}
+			px={6}
+			w={'100%'}
+			_hover={{ bg: 'alpha200' }}
+			transition={'all 0.3s ease'}
+			alignItems={'center'}
+			justifyContent={'space-between'}
+			wordBreak={'break-word'}
+		>
+			<Flex
+				alignItems={'start'}
+				flexDir={'column'}
+				justifyContent={'center'}
+				gap={0}
+				textAlign={'start'}
+			>
+				<Flex alignItems={{ base: 'start', md: 'center' }} flexDir={{ base: 'column', md: 'row' }} gap={{ base: 0, md: 2 }}>
+					<Text fontSize={'2xl'} fontWeight={'bold'}>{b.name}</Text>
+					<Text fontSize={'lg'} fontWeight={'bold'} color={'gray.500'}>({b.elements} element{b.elements === 1 ? '' : 's'})</Text>
+					{extra?.lastActiveAt && (
+						<Badge colorScheme={'gray'}>{formatLastActive(extra.lastActiveAt)}</Badge>
+					)}
+				</Flex>
+				<Text fontSize={'sm'} color={'gray.500'}>{b.groupName} • {b.categoryName}</Text>
+			</Flex>
+			<Flex
+				alignItems={'center'}
+				justifyContent={'center'}
+				flexDir={'row'}
+				gap={4}
+			>
+				<Tooltip key={b.boardId} label={`Collaborators: ${b.collaborators.map((collab) => collab.username).join(', ')}`} placement='top' hasArrow>
+					<AvatarGroup size={'sm'} max={5}>
+						{b.collaborators.map((collab, i) => (
+							<Avatar
+								key={i}
+								name={collab.username}
+								src={collab.avatarUrl || undefined}
+								cursor={'pointer'}
+								bg={'alpha300'}
+								loading='lazy'
+								size={'sm'}
+							/>
+						))}
+					</AvatarGroup>
+				</Tooltip>
+				<Divider orientation={'vertical'} color={'red'} height={'50px'} />
+				<HStack spacing={2}>
+					<IconLinkButton
+						to={`/groups/${b.groupId}/${b.categoryId}/${b.boardId}`}
+						variant={'ghost'}
+						rounded={'full'}
+						bg={'alpha100'}
+						icon={<FaLink />}
+						aria-label={'Manage'}
+						alignItems={'center'}
+						justifyContent={'center'}
+						_hover={{ bg: 'alpha300' }}
+						_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+					/>
+				</HStack>
+			</Flex>
+		</Flex>
+	);
 
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }} id='a1'>
@@ -159,6 +260,16 @@ export default function AdminRooms() {
 						</Flex>
 					)}
 				</VStack>
+
+				{recentlyActiveRooms.length > 0 && (
+					<>
+						<Divider my={6} />
+						<Text fontSize={'xl'} fontWeight={'bold'} mb={4}>Recently Active Rooms</Text>
+						<VStack w={'100%'} spacing={2}>
+							{recentlyActiveRooms.map((b) => renderRoomCard(b, { lastActiveAt: b.lastActiveAt }))}
+						</VStack>
+					</>
+				)}
 			</Box>
 		</VStack>
 	);

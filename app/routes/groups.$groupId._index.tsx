@@ -45,6 +45,7 @@ export type ManageCategoryProps = {
 	categoryId?: string;
 	currentGroupId: string;
 	moveTargets: MoveTargetGroup[];
+	availableCategories?: { id: string; name: string; groupName: string }[];
 	isMoveTargetsLoading: boolean;
 };
 
@@ -82,8 +83,9 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 	switch (type) {
 		case 'newCategory': {
 			const categoryName = formData.get('categoryName') as string;
+			const copyPermissionsFromCategoryId = (formData.get('copyPermissionsFromCategoryId') as string) || undefined;
 
-			const result = await api?.groups.createCategoryInGroup({ auth: token, groupId, body: { name: categoryName }, headers: ipHeaders });
+			const result = await api?.groups.createCategoryInGroup({ auth: token, groupId, body: { name: categoryName, copyPermissionsFromCategoryId }, headers: ipHeaders });
 			return makeResObject(result, 'Failed to create category.');
 		}
 		case 'updateCategory': {
@@ -293,6 +295,7 @@ export default function Categories() {
 					categoryId={categoryId || undefined}
 					currentGroupId={group.id}
 					moveTargets={moveTargets}
+					availableCategories={categories.map((c) => ({ id: c.id, name: c.name, groupName: group.name }))}
 					isMoveTargetsLoading={moveTargetsFetcher.state !== 'idle'}
 				/>
 
@@ -324,6 +327,7 @@ export function ManageCategory({
 	categoryId,
 	currentGroupId,
 	moveTargets,
+	availableCategories: availableCategoriesProp,
 	isMoveTargetsLoading,
 }: ManageCategoryProps) {
 	const { colorMode } = useColorMode();
@@ -338,7 +342,32 @@ export function ManageCategory({
 		[availableGroups],
 	);
 
+	const availableCategories = useMemo(() => {
+		if (availableCategoriesProp) return availableCategoriesProp;
+		return moveTargets.flatMap((group) =>
+			group.categories.map((cat) => ({
+				id: cat.id,
+				name: cat.name,
+				groupName: group.name,
+			})),
+		);
+	}, [moveTargets, availableCategoriesProp]);
+
+	const categoryOptions = useMemo(() =>
+		availableCategories.map((cat) => ({
+			label: `${cat.groupName} -> ${cat.name}`,
+			value: cat.id,
+		})),
+		[availableCategories],
+	);
+
 	const [targetGroupId, setTargetGroupId] = useState('');
+	const [copyFromCategoryId, setCopyFromCategoryId] = useState('');
+
+	useEffect(() => {
+		if (type !== 'createCategory') return;
+		setCopyFromCategoryId('');
+	}, [type]);
 
 	useEffect(() => {
 		if (type !== 'moveCategory') return;
@@ -383,6 +412,21 @@ export function ManageCategory({
 											minLength={1}
 											autoFocus
 										/>
+									</Box>
+									<Box>
+										<Text mb={2} fontSize='sm' fontWeight='semibold'>Copy permissions from (optional)</Text>
+										<Select
+											id='copyPermissionsFromCategoryId'
+											name='copyPermissionsFromCategoryId'
+											value={categoryOptions.find((o) => o.value === copyFromCategoryId) || null}
+											onChange={(option) => setCopyFromCategoryId(option?.value || '')}
+											placeholder='Select a category to copy permissions from...'
+											options={categoryOptions}
+											isDisabled={availableCategories.length === 0}
+										/>
+										{availableCategories.length === 0 && (
+											<Text fontSize='xs' color='gray.500' mt={1}>No existing categories to copy from.</Text>
+										)}
 									</Box>
 								</>
 							)}

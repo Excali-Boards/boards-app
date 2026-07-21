@@ -26,7 +26,6 @@
 		],
 
 		/* Basic Options */
-		"incremental": true,
 		"module": "ESNext",
 		"target": "ES2022",
 		"outDir": "./dist",
@@ -50,7 +49,6 @@
 		/* Module Resolution Options */
 		"moduleResolution": "Bundler",
 		"esModuleInterop": true,
-		"baseUrl": ".",
 		"declaration": false,
 		"skipLibCheck": true,
 		"resolveJsonModule": true,

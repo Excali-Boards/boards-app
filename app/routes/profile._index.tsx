@@ -16,7 +16,7 @@ import { platformButtons } from '~/other/platforms';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import { MdDesktopWindows } from 'react-icons/md';
-import { LinkButton } from '~/components/Button';
+import { LinkButton, IconLinkButton } from '~/components/Button';
 import { WebReturnType } from '~/other/types';
 import { GrConfigure } from 'react-icons/gr';
 import { FiLogOut } from 'react-icons/fi';
@@ -154,6 +154,16 @@ export default function Profile() {
 							<Flex flexDir={'column'} gap={2} flex={1}>
 								<Text fontWeight='bold'>User Id</Text>
 								<Input value={user.userId} isReadOnly />
+							</Flex>
+
+							<Flex flexDir={'column'} gap={2} justifyContent='flex-end'>
+								<Tooltip label='Refresh username from your main platform.' hasArrow>
+									<IconLinkButton
+										icon={<FaUser />}
+										aria-label={'Refresh Username'}
+										to={`/login?type=${user.mainLoginType.toLowerCase()}&refreshProfile=true&backTo=/profile`}
+									/>
+								</Tooltip>
 							</Flex>
 
 							<Flex flexDir={'column'} gap={2} justifyContent='flex-end'>

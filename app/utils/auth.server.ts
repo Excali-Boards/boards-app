@@ -105,7 +105,7 @@ const microsoftStrategy = configServer.auth.microsoft ? new MicrosoftStrategy({
 	}, request, context);
 }) : null;
 
-async function createSession(strategyData: AuthUser, request: Request, extra?: Partial<Record<'ip' | 'currentUserId' | 'device', string>>) {
+async function createSession(strategyData: AuthUser, request: Request, extra?: Partial<Record<'ip' | 'currentUserId' | 'device' | 'refreshProfile', string>>) {
 	const ipHeaders = getIpHeaders(request);
 	if (!ipHeaders) throw new CustomError('Failed to get client IP.', 'CustomError');
 
@@ -119,6 +119,7 @@ async function createSession(strategyData: AuthUser, request: Request, extra?: P
 			currentUserId: 'currentUserId' in (extra || {}) ? extra?.currentUserId : undefined,
 			device: 'device' in (extra || {}) ? extra?.device as Device : undefined,
 			ip: 'ip' in (extra || {}) ? extra?.ip : undefined,
+			refreshProfile: 'refreshProfile' in (extra || {}) ? extra?.refreshProfile === 'true' : undefined,
 		},
 	});
 

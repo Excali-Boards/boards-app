@@ -1,14 +1,17 @@
 import { Button, Flex, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, useToast } from '@chakra-ui/react';
-import { QRCode, IProps } from 'react-qrcode-logo';
+import { QRCode } from 'react-qrcode-logo';
 import { useCallback } from 'react';
+
+type QRCodeProps = Partial<Record<string, unknown>>;
 
 export type QRCodeModalProps = {
 	isOpen: boolean;
 	qrCodeDataUrl: string;
 	onClose: () => void;
-} & IProps;
+	qrCodeProps?: QRCodeProps;
+};
 
-export function QRCodeModal({ isOpen, qrCodeDataUrl, onClose, ...props }: QRCodeModalProps) {
+export function QRCodeModal({ isOpen, qrCodeDataUrl, onClose, qrCodeProps }: QRCodeModalProps) {
 	const { colorMode } = useColorMode();
 	const toast = useToast();
 
@@ -59,7 +62,7 @@ export function QRCodeModal({ isOpen, qrCodeDataUrl, onClose, ...props }: QRCode
 							style={{
 								borderRadius: '12px',
 							}}
-							{...props}
+							{...(qrCodeProps || {})}
 						/>
 					</Flex>
 				</ModalBody>

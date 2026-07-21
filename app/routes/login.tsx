@@ -19,6 +19,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 	const type = query.get('type') as string | undefined;
 	const backTo = query.get('backTo') || '/';
+	const refreshProfile = query.get('refreshProfile') === 'true';
 
 	if (!type || !allowedPlatforms.some((p) => p.toLowerCase() === type.toLowerCase())) {
 		if (token) return redirect('/');
@@ -34,11 +35,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 		}
 	}
 
-	if (token && DBUser && 'data' in DBUser && type === DBUser.data.mainLoginType.toLowerCase()) return redirect(backTo || '/');
+	if (token && DBUser && 'data' in DBUser && !refreshProfile && type === DBUser.data.mainLoginType.toLowerCase()) return redirect(backTo || '/');
 
 	const cookieHeader = request.headers.get('Cookie');
 	const backToCookie = await loginInfo.parse(cookieHeader) || {};
 	backToCookie.backTo = backTo;
+	backToCookie.refreshProfile = refreshProfile;
 
 	if (query.get('add') === 'true' && DBUser && 'data' in DBUser) {
 		backToCookie.currentUserId = DBUser.data.userId;
@@ -56,6 +58,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 				currentUserId: 'currentUserId' in backToCookie ? backToCookie.currentUserId : undefined,
 				device: parseUserAgent(request.headers.get('user-agent')),
 				ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || request.headers.get('cf-connecting-ip') || undefined,
+				refreshProfile: 'refreshProfile' in backToCookie ? String(backToCookie.refreshProfile) : undefined,
 			},
 		});
 	} catch (error) { // This is really ingenious way.

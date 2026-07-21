@@ -48,6 +48,7 @@ export type ManageBoardProps = {
 	boardId?: string;
 	currentCategoryId: string;
 	moveTargets: MoveTargetGroup[];
+	availableBoards?: { id: string; name: string; categoryName: string; groupName: string }[];
 	isMoveTargetsLoading: boolean;
 };
 
@@ -89,8 +90,9 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 		case 'newBoard': {
 			const boardName = formData.get('boardName') as string;
 			const boardType = formData.get('boardType') as BoardType;
+			const copyPermissionsFromBoardId = (formData.get('copyPermissionsFromBoardId') as string) || undefined;
 
-			const result = await api?.categories.createBoardInCategory({ auth: token, categoryId, groupId, body: { name: boardName, type: boardType }, headers: ipHeaders });
+			const result = await api?.categories.createBoardInCategory({ auth: token, categoryId, groupId, body: { name: boardName, type: boardType, copyPermissionsFromBoardId }, headers: ipHeaders });
 			return makeResObject(result, 'Failed to create board.');
 		}
 		case 'updateBoard': {
@@ -339,6 +341,7 @@ export default function Boards() {
 					defaultName={selectedBoard?.name || ''}
 					currentCategoryId={category.id}
 					moveTargets={moveTargets}
+					availableBoards={boards.map((b) => ({ id: b.id, name: b.name, categoryName: category.name, groupName: group.name }))}
 					isMoveTargetsLoading={moveTargetsFetcher.state !== 'idle'}
 				/>
 
@@ -370,6 +373,7 @@ export function ManageBoard({
 	boardId,
 	currentCategoryId,
 	moveTargets,
+	availableBoards,
 	isMoveTargetsLoading,
 }: ManageBoardProps) {
 	const { colorMode } = useColorMode();
@@ -391,6 +395,20 @@ export function ManageBoard({
 	);
 
 	const [targetCategoryId, setTargetCategoryId] = useState('');
+	const [copyFromBoardId, setCopyFromBoardId] = useState('');
+
+	const boardOptions = useMemo(() =>
+		(availableBoards || []).map((b) => ({
+			label: `${b.groupName} > ${b.categoryName} > ${b.name}`,
+			value: b.id,
+		})),
+		[availableBoards],
+	);
+
+	useEffect(() => {
+		if (type !== 'createBoard') return;
+		setCopyFromBoardId('');
+	}, [type]);
 
 	useEffect(() => {
 		if (type !== 'moveBoard') return;
@@ -444,6 +462,21 @@ export function ManageBoard({
 											options={['Excalidraw', 'Tldraw'].map((boardType) => ({ label: boardType, value: boardType }))}
 											defaultValue={{ label: 'Excalidraw', value: 'Excalidraw' }}
 										/>
+									</Box>
+									<Box>
+										<Text mb={2} fontSize='sm' fontWeight='semibold'>Copy permissions from (optional)</Text>
+										<Select
+											id='copyPermissionsFromBoardId'
+											name='copyPermissionsFromBoardId'
+											value={boardOptions.find((o) => o.value === copyFromBoardId) || null}
+											onChange={(option) => setCopyFromBoardId(option?.value || '')}
+											placeholder='Select a board to copy permissions from...'
+											options={boardOptions}
+											isDisabled={!availableBoards || availableBoards.length === 0}
+										/>
+										{availableBoards && availableBoards.length === 0 && (
+											<Text fontSize='xs' color='gray.500' mt={1}>No existing boards to copy from.</Text>
+										)}
 									</Box>
 								</>
 							)}

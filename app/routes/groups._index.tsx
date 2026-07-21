@@ -1,4 +1,4 @@
-import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput } from '@chakra-ui/react';
+import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text } from '@chakra-ui/react';
 import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
@@ -13,6 +13,7 @@ import { useDebounced } from '~/hooks/useDebounced';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
+import Select from '~/components/Select';
 import configServer from '~/utils/config.server';
 import { WebReturnType } from '~/other/types';
 import { api } from '~/utils/web.server';
@@ -46,8 +47,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 	switch (type) {
 		case 'newGroup': {
 			const groupName = formData.get('groupName') as string;
+			const copyPermissionsFromGroupId = (formData.get('copyPermissionsFromGroupId') as string) || undefined;
 
-			const result = await api?.groups.createGroup({ auth: token, body: { name: groupName }, headers: ipHeaders });
+			const result = await api?.groups.createGroup({ auth: token, body: { name: groupName, copyPermissionsFromGroupId }, headers: ipHeaders });
 			return makeResObject(result, 'Failed to create group.');
 		}
 		case 'updateGroup': {
@@ -185,6 +187,7 @@ export default function Groups() {
 					fetcher={fetcher}
 					defaultName={finalGroups.find((g) => g.id === groupId)?.name || ''}
 					groupId={groupId || undefined}
+					availableGroups={groups.map((g) => ({ id: g.id, name: g.name }))}
 				/>
 
 				<NoticeCard
@@ -216,10 +219,22 @@ export type ManageGroupProps = {
 
 	defaultName?: string;
 	groupId?: string;
+	availableGroups?: { id: string; name: string }[];
 };
 
-export function ManageGroup({ isOpen, onClose, type, fetcher, defaultName, groupId }: ManageGroupProps) {
+export function ManageGroup({ isOpen, onClose, type, fetcher, defaultName, groupId, availableGroups }: ManageGroupProps) {
 	const { colorMode } = useColorMode();
+	const [copyFromGroupId, setCopyFromGroupId] = useState('');
+
+	useEffect(() => {
+		if (type !== 'createGroup') return;
+		setCopyFromGroupId('');
+	}, [type]);
+
+	const groupOptions = useMemo(() =>
+		(availableGroups || []).map((g) => ({ label: g.name, value: g.id })),
+		[availableGroups],
+	);
 
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} size='lg' isCentered>
@@ -249,6 +264,21 @@ export function ManageGroup({ isOpen, onClose, type, fetcher, defaultName, group
 											minLength={1}
 											autoFocus
 										/>
+									</Box>
+									<Box>
+										<Text mb={2} fontSize='sm' fontWeight='semibold'>Copy permissions from (optional)</Text>
+										<Select
+											id='copyPermissionsFromGroupId'
+											name='copyPermissionsFromGroupId'
+											value={groupOptions.find((o) => o.value === copyFromGroupId) || null}
+											onChange={(option) => setCopyFromGroupId(option?.value || '')}
+											placeholder='Select a group to copy permissions from...'
+											options={groupOptions}
+											isDisabled={!availableGroups || availableGroups.length === 0}
+										/>
+										{availableGroups && availableGroups.length === 0 && (
+											<Text fontSize='xs' color='gray.500' mt={1}>No existing groups to copy from.</Text>
+										)}
 									</Box>
 								</>
 							)}
