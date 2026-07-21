@@ -16,6 +16,17 @@
 		"updates": "pnpm npm-check-updates -i --format group"
 	},
 	"license": "GPL-3.0",
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"@excali-boards/boards-api-client",
+			"@parcel/watcher",
+			"@prisma/client",
+			"@prisma/engines",
+			"core-js",
+			"esbuild",
+			"prisma"
+		]
+	},
 	"dependencies": {
 		"@chakra-ui/icons": "2.2.4",
 		"@chakra-ui/react": "2.8.2",
