@@ -1,4 +1,4 @@
-import { VStack, Box, useToast, Button, Flex, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, IconButton, Divider, HStack, Tooltip, Textarea } from '@chakra-ui/react';
+import { VStack, Box, useToast, Button, Flex, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, VisuallyHiddenInput, Text, IconButton, Divider, HStack, Tooltip, Textarea } from '@chakra-ui/react';
 import { LoaderFunctionArgs, ActionFunctionArgs, redirect, LinkDescriptor } from '@remix-run/node';
 import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { FetcherWithComponents, useFetcher, useLoaderData } from '@remix-run/react';
@@ -99,9 +99,9 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
 			const lines = importData.split(lineSeparator === '\\n' ? '\n' : lineSeparator);
 			const cards = lines
-				.map(line => line.trim())
-				.filter(line => line.length > 0)
-				.map(line => {
+				.map((line) => line.trim())
+				.filter((line) => line.length > 0)
+				.map((line) => {
 					const parts = line.split(answerSeparator);
 					if (parts.length !== 2) return null;
 					return {
@@ -109,7 +109,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 						back: parts[1]!.trim(),
 					};
 				})
-				.filter(card => card !== null);
+				.filter((card) => card !== null);
 
 			if (cards.length === 0) {
 				return { status: 400, error: 'No valid cards found in import data.' };
@@ -400,7 +400,7 @@ export function ManageModal({ isOpen, onClose, type, fetcher, selectedCard, allC
 					back: parts[1]!.trim(),
 				};
 			})
-			.filter((card) => card !== null)
+			.filter((card) => card !== null);
 	}, [importData, lineSeparator, answerSeparator]);
 
 	const parsedPreview = useMemo(() => {

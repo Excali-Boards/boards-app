@@ -358,7 +358,7 @@ export function ManageCategory({
 			label: `${cat.groupName} -> ${cat.name}`,
 			value: cat.id,
 		})),
-		[availableCategories],
+	[availableCategories],
 	);
 
 	const [targetGroupId, setTargetGroupId] = useState('');

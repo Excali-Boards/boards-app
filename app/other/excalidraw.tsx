@@ -1,5 +1,5 @@
-import { ExcalidrawElement, InitializedExcalidrawImageElement, ExcalidrawImageElement, ExcalidrawTextElement, FontString, FontFamilyValues } from '@excalidraw/excalidraw/element/types';
-import { ResolvablePromise } from '@excalidraw/excalidraw/utils';
+import type { ExcalidrawElement, InitializedExcalidrawImageElement, ExcalidrawImageElement, ExcalidrawTextElement, FontString, FontFamilyValues } from '@excalidraw/excalidraw/element/types';
+import type { ResolvablePromise } from '@excalidraw/excalidraw/utils';
 
 let textMetricsProvider: CanvasTextMetricsProvider | null = null;
 

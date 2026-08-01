@@ -1,6 +1,6 @@
-import { AccessLevel, PermissionHierarchy, SimplePermissionHierarchy } from '@excali-boards/boards-api-client';
-import { bgColor, FindConflictsProps, TimeUnits } from '~/other/types';
-import { ColorMode } from '@chakra-ui/react';
+import { PermissionHierarchy, SimplePermissionHierarchy, type AccessLevel } from '@excali-boards/boards-api-client';
+import { bgColor, type FindConflictsProps, type TimeUnits } from '~/other/types';
+import type { ColorMode } from '@chakra-ui/react';
 import { z, ZodError } from 'zod';
 
 export function getBackground(colorMode: ColorMode): string {

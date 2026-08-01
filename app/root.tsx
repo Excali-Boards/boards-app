@@ -1,9 +1,9 @@
 import { Outlet, ShouldRevalidateFunctionArgs, isRouteErrorResponse, useLoaderData, useMatches, useRouteError } from '@remix-run/react';
-import { LoaderFunctionArgs, LinksFunction, MetaFunction } from '@remix-run/node';
-import { allowedPlatforms as allowedLoginPlatforms } from '~/utils/config.server';
+import type { LoaderFunctionArgs, LinksFunction, MetaFunction } from '@remix-run/node';
+import config, { allowedPlatforms as allowedLoginPlatforms } from '~/utils/config.server';
 import Layout, { BoardInfo, SidebarObject } from '~/components/Layout';
 import { CachedResponse, getCachedUser } from './utils/session.server';
-import { CollabUser } from '@excali-boards/boards-api-client';
+import type { CollabUser } from '@excali-boards/boards-api-client';
 import { ChakraProvider, Flex } from '@chakra-ui/react';
 import { cssBundleHref } from '@remix-run/css-bundle';
 import { useEffect, useMemo, useState } from 'react';
@@ -52,6 +52,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 			user: null,
 			isMobile: isMobileDetect({ ua: request.headers.get('user-agent') || '' }),
 			allowedPlatforms: allowedLoginPlatforms,
+			personalBoardsMode: config.personalBoardsMode,
 			nullHeader: [
 				{ t: 'board', r: 'routes/groups.$groupId.$categoryId.$boardId._index' },
 				{ t: 'calendar', r: 'routes/groups.$groupId.calendar._index' },
@@ -74,6 +75,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 		user: data?.data && 'data' in data.data ? data.data.data : null,
 		isMobile: isMobileDetect({ ua: request.headers.get('user-agent') || '' }),
 		allowedPlatforms: allowedLoginPlatforms,
+		personalBoardsMode: config.personalBoardsMode,
 		nullHeader: [
 			{ t: 'board', r: 'routes/groups.$groupId.$categoryId.$boardId._index' },
 			{ t: 'calendar', r: 'routes/groups.$groupId.calendar._index' },
@@ -90,7 +92,7 @@ export function shouldRevalidate({ formAction, defaultShouldRevalidate, actionSt
 }
 
 export default function App() {
-	const { user, token, nullHeader, isMobile, allowedPlatforms } = useLoaderData<typeof loader>();
+	const { user, token, nullHeader, isMobile, allowedPlatforms, personalBoardsMode } = useLoaderData<typeof loader>();
 
 	const [sideBarHeader, setSiteBarHeader] = useState<'header' | 'sidebar' | 'none'>('header');
 	const [boardActiveCollaborators, setBoardActiveCollaborators] = useState<CollabUser[]>([]);
@@ -116,21 +118,27 @@ export default function App() {
 		else setSiteBarHeader('header');
 	}, [isMobile, sideBarType, nullHeader]);
 
+	const contextValue = useMemo(() => ({
+		boardActiveCollaborators, setBoardActiveCollaborators,
+		useOppositeColorForBoard, setUseOppositeColorForBoard,
+		sideBarHeader, setSiteBarHeader,
+		showAllBoards, setShowAllBoards,
+		boardInfo, setBoardInfo,
+		canInvite, setCanInvite,
+		allowedPlatforms,
+		personalBoardsMode,
+		sideBarType,
+		token,
+		user,
+	}), [
+		allowedPlatforms, personalBoardsMode, boardActiveCollaborators, boardInfo, canInvite, showAllBoards,
+		sideBarHeader, sideBarType, token, useOppositeColorForBoard, user,
+	]);
+
 	return (
 		<Document>
 			<ChakraProvider theme={theme}>
-				<RootContext.Provider value={{
-					boardActiveCollaborators, setBoardActiveCollaborators,
-					useOppositeColorForBoard, setUseOppositeColorForBoard,
-					sideBarHeader, setSiteBarHeader,
-					showAllBoards, setShowAllBoards,
-					boardInfo, setBoardInfo,
-					canInvite, setCanInvite,
-					allowedPlatforms,
-					sideBarType,
-					token,
-					user,
-				}}>
+				<RootContext.Provider value={contextValue}>
 					<Layout
 						user={user}
 						sideBarHeader={sideBarHeader}

@@ -90,7 +90,7 @@ export default function AnalyticsUsers({ analytics, menuBar, emptyMessage }: Ana
 
 		return acc;
 	}, new Map<string, AggregatedUser>()))
-		.map(([_, data]) => data)
+		.map(([, data]) => data)
 		.sort((a, b) => b.totalActiveSeconds - a.totalActiveSeconds);
 
 	const boardData = Array.from(analytics.reduce((acc, item) => {
@@ -111,7 +111,7 @@ export default function AnalyticsUsers({ analytics, menuBar, emptyMessage }: Ana
 
 		return acc;
 	}, new Map<string, AggregatedBoard>()))
-		.map(([_, data]) => data)
+		.map(([, data]) => data)
 		.sort((a, b) => b.hours - a.hours);
 
 	const boardPieData = boardData.map((board, index) => ({

@@ -79,7 +79,7 @@ export default function MenuBar({
 				{showDivider && <Divider orientation={'vertical'} color={'red'} height={'50px'} />}
 
 				<HStack w={'100%'} spacing={2}>
-					<Tooltip
+					{(goBackPath || goBackWindow) && <Tooltip
 						label={'Back'}
 						aria-label={'Back'}
 						placement={'top'}
@@ -101,65 +101,65 @@ export default function MenuBar({
 							_hover={{ bg: 'alpha300' }}
 							_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
 						/>
-					</Tooltip>
+					</Tooltip>}
 
 					{!!customButtons?.length && customButtons.map((button, index) => {
 						const buttonKey = getButtonKey(button, index);
 						const isLoading = loadingKeys.has(buttonKey) || button.isLoading;
 
 						return (
-						<Tooltip
-							key={buttonKey}
-							label={button.tooltip}
-							aria-label={button.tooltip}
-							closeOnClick={false}
-							placement={'top'}
-							hasArrow
-						>
-							{button.type === 'link' ? (
-								<IconButton
-									as={Link}
-									to={(button as CustomButton<'link'>).to}
-									variant={'ghost'}
-									rounded={'full'}
-									bg={'alpha100'}
-									aria-label={button.label}
-									boxSize={10}
-									alignItems={'center'}
-									justifyContent={'center'}
-									isDisabled={button.isDisabled}
-									isLoading={isLoading}
-									onClick={() => button.loadOnClick ? setLoadingKeys((prev) => new Set(prev).add(buttonKey)) : undefined}
-									icon={button.icon}
-									isActive={button.isActive}
-									colorScheme={button.colorScheme}
-									reloadDocument={(button as CustomButton<'link'>).reloadDocument}
-									_hover={{ bg: 'alpha300' }}
-									_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-								/>
-							) : (
-								<IconButton
-									onClick={() => {
-										if (button.loadOnClick) setLoadingKeys((prev) => new Set(prev).add(buttonKey));
-										(button as CustomButton<'normal'>).onClick();
-									}}
-									variant={'ghost'}
-									rounded={'full'}
-									bg={'alpha100'}
-									aria-label={button.label}
-									boxSize={10}
-									alignItems={'center'}
-									justifyContent={'center'}
-									isDisabled={button.isDisabled}
-									isLoading={isLoading}
-									isActive={button.isActive}
-									colorScheme={button.colorScheme}
-									icon={button.icon}
-									_hover={{ bg: 'alpha300' }}
-									_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
-								/>
-							)}
-						</Tooltip>
+							<Tooltip
+								key={buttonKey}
+								label={button.tooltip}
+								aria-label={button.tooltip}
+								closeOnClick={false}
+								placement={'top'}
+								hasArrow
+							>
+								{button.type === 'link' ? (
+									<IconButton
+										as={Link}
+										to={(button as CustomButton<'link'>).to}
+										variant={'ghost'}
+										rounded={'full'}
+										bg={'alpha100'}
+										aria-label={button.label}
+										boxSize={10}
+										alignItems={'center'}
+										justifyContent={'center'}
+										isDisabled={button.isDisabled}
+										isLoading={isLoading}
+										onClick={() => button.loadOnClick ? setLoadingKeys((prev) => new Set(prev).add(buttonKey)) : undefined}
+										icon={button.icon}
+										isActive={button.isActive}
+										colorScheme={button.colorScheme}
+										reloadDocument={(button as CustomButton<'link'>).reloadDocument}
+										_hover={{ bg: 'alpha300' }}
+										_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+									/>
+								) : (
+									<IconButton
+										onClick={() => {
+											if (button.loadOnClick) setLoadingKeys((prev) => new Set(prev).add(buttonKey));
+											(button as CustomButton<'normal'>).onClick();
+										}}
+										variant={'ghost'}
+										rounded={'full'}
+										bg={'alpha100'}
+										aria-label={button.label}
+										boxSize={10}
+										alignItems={'center'}
+										justifyContent={'center'}
+										isDisabled={button.isDisabled}
+										isLoading={isLoading}
+										isActive={button.isActive}
+										colorScheme={button.colorScheme}
+										icon={button.icon}
+										_hover={{ bg: 'alpha300' }}
+										_active={{ bg: 'alpha300', animation: 'bounce 0.3s ease' }}
+									/>
+								)}
+							</Tooltip>
 						);
 					})}
 				</HStack>

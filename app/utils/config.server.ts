@@ -8,6 +8,7 @@ const config = {
 
 	sessionSecret: process.env.SESSION_SECRET!,
 	apiToken: process.env.API_TOKEN!,
+	personalBoardsMode: (process.env.PERSONAL_BOARDS_MODE || 'none') as 'none' | 'devs' | 'anyone',
 
 	showSearches: process.env.SHOW_SEARCHES === 'true',
 	tldrawLicense: process.env.TLDRAW_LICENSE || null,
@@ -49,6 +50,7 @@ const ConfigSchema = z.object({
 
 	sessionSecret: z.string(),
 	apiToken: z.string(),
+	personalBoardsMode: z.enum(['none', 'devs', 'anyone']),
 
 	showSearches: z.coerce.boolean().default(false),
 	tldrawLicense: z.string().nullable(),

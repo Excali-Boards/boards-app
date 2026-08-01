@@ -233,7 +233,7 @@ export function ManageGroup({ isOpen, onClose, type, fetcher, defaultName, group
 
 	const groupOptions = useMemo(() =>
 		(availableGroups || []).map((g) => ({ label: g.name, value: g.id })),
-		[availableGroups],
+	[availableGroups],
 	);
 
 	return (

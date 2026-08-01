@@ -1,14 +1,12 @@
 import { Device } from '@excali-boards/boards-api-client/prisma/generated/client';
 import { GetUsersOutput, WebResponse } from '@excali-boards/boards-api-client';
 import { authenticator } from '~/utils/auth.server';
-import { getIpHeaders } from './functions.server';
 import { api } from '~/utils/web.server';
 import { UAParser } from 'ua-parser-js';
 
 export type UserResponse = WebResponse<GetUsersOutput>;
 const userCache = new Map<string, { data: UserResponse; expiry: number }>();
-
-const userAgentParser = new UAParser('user-agent');
+const maxUserCacheEntries = 1000;
 
 export type CachedResponse = {
 	data: UserResponse;
@@ -25,11 +23,9 @@ export async function getCachedUser(request: Request): Promise<CachedResponse> {
 	if (cached && cached.expiry > now) return { data: cached.data, token };
 	if (cached) userCache.delete(token);
 
-	const ipHeaders = getIpHeaders(request);
-	if (!ipHeaders) return;
-
 	const result = await api?.users.getUser({ auth: token });
 	if (!result) return;
+	pruneUserCache(now);
 
 	userCache.set(token, {
 		data: result,
@@ -49,12 +45,26 @@ export async function clearUserCache(requestOrToken: Request | string): Promise<
 export function parseUserAgent(uaString: string | null): Device {
 	if (!uaString) return 'Other';
 
-	const ua = userAgentParser.setUA(uaString).getDevice();
+	const ua = new UAParser(uaString).getDevice();
 
 	switch (ua.type) {
 		case 'desktop': return 'Desktop';
 		case 'mobile': return 'Mobile';
 		case 'tablet': return 'Tablet';
 		default: return 'Other';
+	}
+}
+
+function pruneUserCache(now: number): void {
+	if (userCache.size < maxUserCacheEntries) return;
+
+	for (const [token, cached] of userCache) {
+		if (cached.expiry <= now) userCache.delete(token);
+	}
+
+	while (userCache.size >= maxUserCacheEntries) {
+		const oldestToken = userCache.keys().next().value;
+		if (!oldestToken) break;
+		userCache.delete(oldestToken);
 	}
 }

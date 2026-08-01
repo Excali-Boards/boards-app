@@ -1,7 +1,7 @@
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { GetAllSortedOutput } from '@excali-boards/boards-api-client';
+import type { GetAllSortedOutput } from '@excali-boards/boards-api-client';
 import type { Collaborator } from '@excalidraw/excalidraw/types';
-import { RoomSnapshot } from '@tldraw/sync';
+import type { RoomSnapshot } from '@tldraw/sync';
 
 export type Simplify<T> = {
 	[K in keyof T]: T[K];

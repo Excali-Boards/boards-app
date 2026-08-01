@@ -169,7 +169,7 @@ export default function AdminUsers() {
 						>
 							<Flex gap={4} alignItems={'center'} flex={1}>
 								<Avatar
-									size={{ base: 'md', md: 'lg' }}
+									size={{ base: 'sm', md: 'md' }}
 									src={user.avatarUrl || undefined}
 									name={user.displayName}
 								/>
@@ -181,11 +181,12 @@ export default function AdminUsers() {
 								>
 									<HStack spacing={2}>
 										<Text
-											fontSize={{ base: 'lg', md: '2xl' }}
+											fontSize={{ base: 'md', md: 'xl' }}
 											fontWeight={'bold'}
 										>
 											{user.displayName}
 										</Text>
+
 										{user.inviterDetails && (
 											<Tooltip
 												hasArrow
@@ -212,20 +213,7 @@ export default function AdminUsers() {
 									</HStack>
 
 									<Flex gap={{ base: 0, md: 2 }} alignItems={'start'} flexDir={{ base: 'column', md: 'row' }}>
-										<Text
-											fontSize={{ base: 'sm', md: 'lg' }}
-											fontWeight={'bold'}
-											color={'gray.500'}
-										>
-											({user.userId})
-										</Text>
-										<Text
-											fontSize={{ base: 'sm', md: 'lg' }}
-											fontWeight={'bold'}
-											color={'gray.500'}
-										>
-											({user.decryptedEmail})
-										</Text>
+										<Text fontSize={{ base: 'sm', md: 'md' }} opacity={0.75}>{user.userId} · {user.decryptedEmail}</Text>
 									</Flex>
 								</Flex>
 							</Flex>

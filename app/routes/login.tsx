@@ -8,7 +8,7 @@ import { useSearchParams } from '@remix-run/react';
 import { RootContext } from '~/components/Context';
 import { loginInfo } from '~/utils/storage.server';
 import { LinkButton } from '~/components/Button';
-import { Box, VStack } from '@chakra-ui/react';
+import { Box, VStack, useColorMode } from '@chakra-ui/react';
 import { useContext, useMemo } from 'react';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -76,6 +76,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function Login() {
 	const { allowedPlatforms = [] } = useContext(RootContext) || {};
+	const { colorMode } = useColorMode();
 	const allButtons = useMemo(() => platformButtons(allowedPlatforms), [allowedPlatforms]);
 	const [searchParams] = useSearchParams();
 
@@ -92,6 +93,7 @@ export default function Login() {
 							rounded={12}
 							key={platform.name}
 							bgColor={platform.color}
+							color={colorMode === 'dark' ? 'gray.900' : 'white'}
 							leftIcon={platform.icon({ boxSize: 6 })}
 							pl={{ base: '25%', md: '30%' }}
 							justifyContent='flex-start'

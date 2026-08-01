@@ -327,7 +327,7 @@ export function ManageEvent({ isOpen, onClose, canEdit, type, fetcher, defaultEv
 											<Select
 												name='eventColor'
 												placeholder='Select event color..'
-												defaultValue={colorOptions.find(c => c.value === selectedColor)}
+												defaultValue={colorOptions.find((c) => c.value === selectedColor)}
 												onChange={(option) => setSelectedColor(option?.value || calendarColors.skyline)}
 												options={colorOptions}
 												optionStyles={(_, { data }) => ({
@@ -434,7 +434,7 @@ export function ManageEvent({ isOpen, onClose, canEdit, type, fetcher, defaultEv
 											<Select
 												name='eventColor'
 												placeholder='Select event color..'
-												defaultValue={colorOptions.find(c => c.value === selectedColor)}
+												defaultValue={colorOptions.find((c) => c.value === selectedColor)}
 												onChange={(option) => setSelectedColor(option?.value || calendarColors.skyline)}
 												options={colorOptions}
 												optionStyles={(_, { data }) => ({
@@ -500,7 +500,7 @@ export function ManageEvent({ isOpen, onClose, canEdit, type, fetcher, defaultEv
 										<Text fontWeight='bold' mb={2}>Color</Text>
 										<HStack>
 											<Box w={4} h={4} bg={defaultEvent?.color || calendarColors.skyline} borderRadius='sm' />
-											<Text>{colorOptions.find(c => c.value === defaultEvent?.color)?.label || 'Unknown'}</Text>
+											<Text>{colorOptions.find((c) => c.value === defaultEvent?.color)?.label || 'Unknown'}</Text>
 										</HStack>
 									</Box>
 								</VStack>

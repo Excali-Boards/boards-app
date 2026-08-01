@@ -1,10 +1,8 @@
 import { PresenceContext, PresenceContextValue, PresenceSocket, RootContext } from '~/components/Context';
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { useBreakpointValue, useColorMode } from '@chakra-ui/react';
-import { ExcalidrawBoard } from '~/components/board/Excalidraw';
-import { TldrawBoard } from '~/components/board/Tldraw';
 import { canEdit, validateParams } from '~/other/utils';
 import { authenticator } from '~/utils/auth.server';
 import configServer from '~/utils/config.server';
@@ -12,6 +10,16 @@ import { useLoaderData } from '@remix-run/react';
 import InfoComponent from '~/components/Info';
 import { PresenceState } from '~/other/types';
 import { api } from '~/utils/web.server';
+
+const ExcalidrawBoard = lazy(async () => {
+	const module = await import('~/components/board/Excalidraw');
+	return { default: module.ExcalidrawBoard };
+});
+
+const TldrawBoard = lazy(async () => {
+	const module = await import('~/components/board/Tldraw');
+	return { default: module.TldrawBoard };
+});
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const { boardId, groupId, categoryId } = validateParams(params, ['boardId', 'groupId', 'categoryId']);
@@ -158,13 +166,12 @@ export default function Board() {
 		};
 	}, [presenceSocket, bumpActivity]);
 
-	const Component = board.type === 'Excalidraw' ? ExcalidrawBoard : board.type === 'Tldraw' ? TldrawBoard : null;
 	const presenceContextValue = useMemo<PresenceContextValue>(() => ({
 		socket: presenceSocket,
 		setSocket: setPresenceSocket,
 	}), [presenceSocket]);
 
-	if (!Component) return <div>Board type not supported.</div>;
+	if (board.type !== 'Excalidraw' && board.type !== 'Tldraw') return <div>Board type not supported.</div>;
 
 	if (!token || !user) return (
 		<InfoComponent
@@ -175,26 +182,46 @@ export default function Board() {
 
 	return (
 		<PresenceContext.Provider value={presenceContextValue}>
-			<Component
-				updateCollaborators={setBoardActiveCollaborators || (() => { })}
-				canEdit={isPreview ? false : canEdit(board.accessLevel, user?.isDev)}
-				useOppositeColorForBoard={useOppositeColorForBoard || false}
-				hideCollaborators={boardInfo?.hideCollaborators || false}
-				canReallyEdit={canEdit(board.accessLevel, user?.isDev)}
-				name={`${category.name} - ${board.name}`}
-				licenseKey={licenseKey || undefined}
-				isMobile={isMobile || false}
-				categoryId={category.id}
-				currentUrl={currentUrl}
-				colorMode={colorMode}
-				socketUrl={socketUrl}
-				s3Bucket={s3Bucket}
-				boardId={board.id}
-				groupId={group.id}
-				token={token}
-				s3Url={s3Url}
-				user={user}
-			/>
+			<Suspense fallback={<div>Loading board editor…</div>}>
+				{board.type === 'Excalidraw' ? <ExcalidrawBoard
+					updateCollaborators={setBoardActiveCollaborators || (() => { })}
+					canEdit={isPreview ? false : canEdit(board.accessLevel, user?.isDev)}
+					useOppositeColorForBoard={useOppositeColorForBoard || false}
+					hideCollaborators={boardInfo?.hideCollaborators || false}
+					canReallyEdit={canEdit(board.accessLevel, user?.isDev)}
+					name={`${category.name} - ${board.name}`}
+					isMobile={isMobile || false}
+					categoryId={category.id}
+					currentUrl={currentUrl}
+					colorMode={colorMode}
+					socketUrl={socketUrl}
+					s3Bucket={s3Bucket}
+					boardId={board.id}
+					groupId={group.id}
+					token={token}
+					s3Url={s3Url}
+					user={user}
+				/> : <TldrawBoard
+					updateCollaborators={setBoardActiveCollaborators || (() => { })}
+					canEdit={isPreview ? false : canEdit(board.accessLevel, user?.isDev)}
+					useOppositeColorForBoard={useOppositeColorForBoard || false}
+					hideCollaborators={boardInfo?.hideCollaborators || false}
+					canReallyEdit={canEdit(board.accessLevel, user?.isDev)}
+					name={`${category.name} - ${board.name}`}
+					licenseKey={licenseKey || undefined}
+					isMobile={isMobile || false}
+					categoryId={category.id}
+					currentUrl={currentUrl}
+					colorMode={colorMode}
+					socketUrl={socketUrl}
+					s3Bucket={s3Bucket}
+					boardId={board.id}
+					groupId={group.id}
+					token={token}
+					s3Url={s3Url}
+					user={user}
+				/>}
+			</Suspense>
 		</PresenceContext.Provider>
 	);
 }

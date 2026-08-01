@@ -1,6 +1,6 @@
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, Avatar, Text, Button, Image, Flex, HStack, IconButton, useColorMode, Heading, Box, useBreakpointValue, Divider, Tooltip, Drawer, DrawerBody, DrawerCloseButton, DrawerContent, DrawerHeader, DrawerOverlay, useDisclosure, FlexProps, VStack, Center, useToast } from '@chakra-ui/react';
 import { FaArrowUp, FaCode, FaCogs, FaList, FaMoon, FaSun, FaUser, FaUsers, FaUserSlash } from 'react-icons/fa';
-import { AccessLevel, CollabUser, GetUsersOutput } from '@excali-boards/boards-api-client';
+import type { AccessLevel, CollabUser, GetUsersOutput } from '@excali-boards/boards-api-client';
 import { Fragment, useCallback, useContext, useMemo, useState } from 'react';
 import { Link, useFetcher, useLocation } from '@remix-run/react';
 import { IconLinkButton, LinkButton } from '~/components/Button';
@@ -10,7 +10,7 @@ import { IoIosColorPalette } from 'react-icons/io';
 import { canEdit, canManage } from '~/other/utils';
 import { IoFlash, IoMenu } from 'react-icons/io5';
 import { FiLogIn, FiUsers } from 'react-icons/fi';
-import { WebReturnType } from '~/other/types';
+import type { WebReturnType } from '~/other/types';
 import { useScroll } from '~/hooks/useScroll';
 import { MdPrivacyTip } from 'react-icons/md';
 
@@ -183,6 +183,8 @@ export function Header({ user, forceGoBack }: HeaderProps) {
 									rounded={'full'}
 									bg={'alpha100'}
 									boxSize={10}
+									position='relative'
+									top={1}
 									alignItems={'center'}
 									justifyContent={'center'}
 									display={'flex'}
@@ -559,18 +561,20 @@ export function NavbarButtons({
 	onClose,
 	...props
 }: NavbarButtonsProps) {
-	const { canInvite, showAllBoards } = useContext(RootContext) || {};
+	const { canInvite, showAllBoards, personalBoardsMode } = useContext(RootContext) || {};
+	const showPersonalBoards = personalBoardsMode === 'anyone' || (personalBoardsMode === 'devs' && isDev);
 
 	const allItems = useMemo((): NavButton[] => {
 		const buttons: NavButton[] = [];
 
 		if (isDev) buttons.push({ id: 2, name: 'Admin', icon: <FaCogs />, to: '/admin', dividerBelow: isDrawer });
 		if (canInvite) buttons.push({ id: 2, name: 'Invites', icon: <FaUsers />, to: '/invites' });
+		if (addProfile && showPersonalBoards) buttons.push({ id: 2, name: 'Personal Boards', icon: <FaUser />, to: '/personal' });
 		if (addProfile && showAllBoards) buttons.push({ id: 2, name: 'All Boards', icon: <FaList />, to: '/all' });
 		if (isDrawer && addProfile) buttons.unshift({ id: 2, name: 'Profile', icon: <FaUser />, to: '/profile' });
 
 		return buttons;
-	}, [addProfile, isDev, isDrawer, canInvite, showAllBoards]);
+	}, [addProfile, isDev, isDrawer, canInvite, showAllBoards, showPersonalBoards]);
 
 	return (
 		<Flex gap={2} {...props}>

@@ -1,4 +1,3 @@
-import { chunkSplitPlugin } from 'vite-plugin-chunk-split';
 import { vitePlugin as remix } from '@remix-run/dev';
 import { installGlobals } from '@remix-run/node';
 import tsconfigPaths from 'vite-tsconfig-paths';
@@ -34,7 +33,6 @@ export default defineConfig({
 		},
 	},
 	plugins: [
-		chunkSplitPlugin(),
 		tsconfigPaths(),
 		devServer({
 			entry: 'server/index.ts',
@@ -59,9 +57,6 @@ export default defineConfig({
 					platform: 'node',
 					format: 'esm',
 					bundle: true,
-				}).catch((error: unknown) => {
-					console.error(error);
-					process.exit(1);
 				});
 			},
 		}),

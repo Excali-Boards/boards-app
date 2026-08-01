@@ -37,6 +37,8 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 	private idleTimeoutId: number | null;
 
 	private onUmmount: (() => void) | null = null;
+	private handleBeforeUnloadEvent = (event: BeforeUnloadEvent) => this.handleBeforeUnload(event, this.state.isSaved);
+	private handleResize = () => this.relayVisibleSceneBounds();
 
 	constructor (props: BoardProps) {
 		super(props);
@@ -65,9 +67,9 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 
 	componentDidMount = () => {
 		window.addEventListener('pointermove', this.onPointerMove);
-		window.addEventListener('beforeunload', (event) => this.handleBeforeUnload(event, this.state.isSaved));
+		window.addEventListener('beforeunload', this.handleBeforeUnloadEvent);
 		window.addEventListener('visibilitychange', this.onVisibilityChange);
-		window.addEventListener('resize', () => this.relayVisibleSceneBounds());
+		window.addEventListener('resize', this.handleResize);
 		window.addEventListener('keydown', this.handleKeyDown);
 	};
 
@@ -77,9 +79,9 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		this.context?.setSocket?.(null);
 
 		window.removeEventListener('pointermove', this.onPointerMove);
-		window.removeEventListener('beforeunload', (event) => this.handleBeforeUnload(event, this.state.isSaved));
+		window.removeEventListener('beforeunload', this.handleBeforeUnloadEvent);
 		window.removeEventListener('visibilitychange', this.onVisibilityChange);
-		window.removeEventListener('resize', () => this.relayVisibleSceneBounds());
+		window.removeEventListener('resize', this.handleResize);
 		window.removeEventListener('keydown', this.handleKeyDown);
 
 		this.updateUserPointer.cancel();
@@ -90,11 +92,6 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 	componentDidUpdate = (prevProps: BoardProps, prevState: BoardExcalidrawState) => {
 		if (prevState.excalidrawAPI !== this.state.excalidrawAPI) {
 			this.connectSocket(); this.setupEvents();
-		}
-
-		if (prevState.isSaved !== this.state.isSaved) {
-			window.removeEventListener('beforeunload', (event) => this.handleBeforeUnload(event, prevState.isSaved));
-			window.addEventListener('beforeunload', (event) => this.handleBeforeUnload(event, this.state.isSaved));
 		}
 
 		if (prevProps.hideCollaborators !== this.props.hideCollaborators) {

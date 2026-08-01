@@ -402,7 +402,7 @@ export function ManageBoard({
 			label: `${b.groupName} > ${b.categoryName} > ${b.name}`,
 			value: b.id,
 		})),
-		[availableBoards],
+	[availableBoards],
 	);
 
 	useEffect(() => {

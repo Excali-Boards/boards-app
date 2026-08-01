@@ -4,7 +4,6 @@ import { RemixBrowser } from '@remix-run/react';
 import { CacheProvider } from '@emotion/react';
 import * as ReactDOM from 'react-dom/client';
 import React, { useState } from 'react';
-import 'temporal-polyfill/global';
 
 function ClientCacheProvider({ children }: { children: React.ReactNode; }) {
 	const [cache, setCache] = useState(defaultCache);
@@ -31,5 +30,7 @@ const hydrate = () => {
 	});
 };
 
-if (window.requestIdleCallback) window.requestIdleCallback(hydrate);
-else setTimeout(hydrate, 1);
+// Hydrate immediately after the SSR document is available. Deferring this to
+// requestIdleCallback leaves the page looking loaded but non-interactive until
+// the browser becomes idle, which is especially noticeable on mobile.
+hydrate();

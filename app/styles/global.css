@@ -2,6 +2,7 @@ html,
 body {
 	scroll-behavior: smooth;
 	background-color: #1a1a1a;
+	scrollbar-width: none;
 }
 
 ::-webkit-scrollbar {

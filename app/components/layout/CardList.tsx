@@ -71,6 +71,16 @@ export default function CardList({
 		}
 	}, [onReorder]);
 
+	// Most lists are not editable. Avoid mounting the dnd-kit context for those
+	// common read-only views.
+	if (!canReorder) {
+		return (
+			<VStack w={'100%'} spacing={2}>
+				{cards.length ? cards.map((card) => <Card key={card.id} {...card} />) : <NoCard noWhat={noWhat} />}
+			</VStack>
+		);
+	}
+
 	return (
 		<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
 			<SortableContext items={items}>

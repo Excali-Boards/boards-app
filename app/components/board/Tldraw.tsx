@@ -1,5 +1,5 @@
 import { AssetRecordType, Editor, getHashForString, TLAssetStore, TLBookmarkAsset, TLRecord, TLUserPreferences, useTldrawUser } from 'tldraw';
-import { TLPersistentClientSocket, TLSocketStatusChangeEvent, useSync } from '@tldraw/sync';
+import { useSync, type TLPersistentClientSocket, type TLSocketStatusChangeEvent } from '@tldraw/sync';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ClientToServerEvents, ServerToClientEvents } from '~/other/types';
 import { PresenceContext } from '~/components/Context';
