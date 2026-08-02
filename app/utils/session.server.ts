@@ -4,7 +4,7 @@ import { authenticator } from '~/utils/auth.server';
 import { api } from '~/utils/web.server';
 import { UAParser } from 'ua-parser-js';
 
-export type UserResponse = WebResponse<GetUsersOutput>;
+export type UserResponse = WebResponse<GetUsersOutput & { personalBoardsEnabled?: boolean }>;
 const userCache = new Map<string, { data: UserResponse; expiry: number }>();
 const maxUserCacheEntries = 1000;
 

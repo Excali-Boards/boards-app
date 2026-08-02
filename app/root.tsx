@@ -1,6 +1,6 @@
 import { Outlet, ShouldRevalidateFunctionArgs, isRouteErrorResponse, useLoaderData, useMatches, useRouteError } from '@remix-run/react';
 import type { LoaderFunctionArgs, LinksFunction, MetaFunction } from '@remix-run/node';
-import config, { allowedPlatforms as allowedLoginPlatforms } from '~/utils/config.server';
+import { allowedPlatforms as allowedLoginPlatforms } from '~/utils/config.server';
 import Layout, { BoardInfo, SidebarObject } from '~/components/Layout';
 import { CachedResponse, getCachedUser } from './utils/session.server';
 import type { CollabUser } from '@excali-boards/boards-api-client';
@@ -52,7 +52,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 			user: null,
 			isMobile: isMobileDetect({ ua: request.headers.get('user-agent') || '' }),
 			allowedPlatforms: allowedLoginPlatforms,
-			personalBoardsMode: config.personalBoardsMode,
 			nullHeader: [
 				{ t: 'board', r: 'routes/groups.$groupId.$categoryId.$boardId._index' },
 				{ t: 'calendar', r: 'routes/groups.$groupId.calendar._index' },
@@ -75,7 +74,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 		user: data?.data && 'data' in data.data ? data.data.data : null,
 		isMobile: isMobileDetect({ ua: request.headers.get('user-agent') || '' }),
 		allowedPlatforms: allowedLoginPlatforms,
-		personalBoardsMode: config.personalBoardsMode,
 		nullHeader: [
 			{ t: 'board', r: 'routes/groups.$groupId.$categoryId.$boardId._index' },
 			{ t: 'calendar', r: 'routes/groups.$groupId.calendar._index' },
@@ -92,7 +90,7 @@ export function shouldRevalidate({ formAction, defaultShouldRevalidate, actionSt
 }
 
 export default function App() {
-	const { user, token, nullHeader, isMobile, allowedPlatforms, personalBoardsMode } = useLoaderData<typeof loader>();
+	const { user, token, nullHeader, isMobile, allowedPlatforms } = useLoaderData<typeof loader>();
 
 	const [sideBarHeader, setSiteBarHeader] = useState<'header' | 'sidebar' | 'none'>('header');
 	const [boardActiveCollaborators, setBoardActiveCollaborators] = useState<CollabUser[]>([]);
@@ -126,12 +124,11 @@ export default function App() {
 		boardInfo, setBoardInfo,
 		canInvite, setCanInvite,
 		allowedPlatforms,
-		personalBoardsMode,
 		sideBarType,
 		token,
 		user,
 	}), [
-		allowedPlatforms, personalBoardsMode, boardActiveCollaborators, boardInfo, canInvite, showAllBoards,
+		allowedPlatforms, boardActiveCollaborators, boardInfo, canInvite, showAllBoards,
 		sideBarHeader, sideBarType, token, useOppositeColorForBoard, user,
 	]);
 

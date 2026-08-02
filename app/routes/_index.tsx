@@ -13,7 +13,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const DBGroups = await api?.groups.getGroups({ auth: token, headers: ipHeaders });
 	if (!DBGroups || 'error' in DBGroups) throw makeResponse(DBGroups, 'Failed to get groups.');
 
-	const defaultGroup = DBGroups.data.find((group) => group.isDefault);
+	const groups = Array.isArray(DBGroups.data) ? DBGroups.data : [];
+	const defaultGroup = groups.find((group) => group.isDefault);
 	if (!defaultGroup) return redirect('/groups');
 
 	return redirect(`/groups/${defaultGroup.id}`);

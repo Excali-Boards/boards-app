@@ -561,8 +561,8 @@ export function NavbarButtons({
 	onClose,
 	...props
 }: NavbarButtonsProps) {
-	const { canInvite, showAllBoards, personalBoardsMode } = useContext(RootContext) || {};
-	const showPersonalBoards = personalBoardsMode === 'anyone' || (personalBoardsMode === 'devs' && isDev);
+	const { canInvite, showAllBoards, user } = useContext(RootContext) || {};
+	const showPersonalBoards = Boolean(user?.personalBoardsEnabled || isDev);
 
 	const allItems = useMemo((): NavButton[] => {
 		const buttons: NavButton[] = [];

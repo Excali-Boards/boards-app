@@ -73,9 +73,9 @@ export default function All() {
 				<MenuBar name='All Boards' description='List of all boards sorted by groups and categories.' />
 				<Divider my={4} />
 
-				<Container flexDir='column' bg='transparent' p={0} mb={4}>
-					<Accordion allowMultiple>
-						{personal.length ? (
+				{personal.length > 0 && (
+					<Container flexDir='column' bg='transparent' p={0} mb={4}>
+						<Accordion allowMultiple>
 							<Flex flex={1} bg='alpha100' p={2} rounded='lg' gap={2} flexDir='column'>
 								<AccordionItem border='none'>
 									<AccordionButton rounded='lg'>
@@ -91,11 +91,9 @@ export default function All() {
 									</AccordionPanel>
 								</AccordionItem>
 							</Flex>
-						) : (
-							<NoCard noWhat='groups, categories, or boards' />
-						)}
-					</Accordion>
-				</Container>
+						</Accordion>
+					</Container>
+				)}
 
 				<Container flexDir='column' bg='transparent' p={0}>
 					<Accordion allowMultiple defaultIndex={typeof indexOfDefaultGroup === 'number' ? [indexOfDefaultGroup] : undefined}>

@@ -4,6 +4,8 @@ import type { BoardInfo, SidebarType } from './Layout';
 import type { Socket } from 'socket.io-client';
 import { createContext } from 'react';
 
+export type RootUser = GetUsersOutput & { personalBoardsEnabled?: boolean };
+
 export type RootContextType = null | {
 	sideBarHeader: 'header' | 'sidebar' | 'none';
 	setSiteBarHeader: React.Dispatch<React.SetStateAction<'header' | 'sidebar' | 'none'>>;
@@ -24,10 +26,9 @@ export type RootContextType = null | {
 	setBoardInfo: React.Dispatch<React.SetStateAction<BoardInfo | null>>;
 
 	allowedPlatforms: string[];
-	personalBoardsMode: 'none' | 'devs' | 'anyone';
 	sideBarType: SidebarType | null;
 
-	user: GetUsersOutput | null;
+	user: RootUser | null;
 	token: string | null;
 };
 
