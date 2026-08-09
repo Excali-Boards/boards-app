@@ -1,7 +1,6 @@
 import { AccordionButton, AccordionIcon, AccordionItem, AccordionPanel, Avatar, Box, Text } from '@chakra-ui/react';
 import AllBoardsCategorySection, { AllBoardsCategory } from './AllBoardsCategorySection';
 import type { PersonalBoardOwnerOutput } from '@excali-boards/boards-api-client';
-import type { AllBoardsBoard } from './AllBoardsBoardRow';
 
 export type AllBoardsGroup = {
 	id: string;
@@ -9,7 +8,6 @@ export type AllBoardsGroup = {
 	categories: AllBoardsCategory[];
 };
 export type AllBoardsPersonalGroup = AllBoardsGroup & {
-	boards: AllBoardsBoard[];
 	owner: PersonalBoardOwnerOutput;
 };
 
@@ -29,19 +27,8 @@ export default function AllBoardsGroupSection({ group, owner }: AllBoardsGroupSe
 				<AccordionIcon />
 			</AccordionButton>
 			<AccordionPanel pb={4} display='flex' flexDir='column' flexWrap='wrap' gap={2}>
-				{owner && owner.boards.length > 0 && (
-					<AllBoardsCategorySection
-						groupId={group.id}
-						category={{
-							id: 'personal',
-							name: 'Uncategorized Boards',
-							boards: owner.boards,
-						}}
-					/>
-				)}
-
 				{group.categories.length > 0 ? group.categories.map((category) => (
-					<AllBoardsCategorySection key={category.id} category={category} groupId={group.id} />
+					<AllBoardsCategorySection key={category.id} category={category} groupId={group.id} ownerId={owner?.owner.userId} />
 				)) : (
 					<Text p={2} textAlign='center' fontStyle='italic'>No categories in this group.</Text>
 				)}

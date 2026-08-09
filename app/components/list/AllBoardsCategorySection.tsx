@@ -8,9 +8,10 @@ export type AllBoardsCategory = Omit<PersonalCategoryOutput | GroupCategory, 'bo
 export type AllBoardsCategorySectionProps = {
 	category: AllBoardsCategory;
 	groupId: string;
+	ownerId?: string;
 };
 
-export default function AllBoardsCategorySection({ category, groupId }: AllBoardsCategorySectionProps) {
+export default function AllBoardsCategorySection({ category, groupId, ownerId }: AllBoardsCategorySectionProps) {
 	return (
 		<Flex flex={1} bg='alpha100' p={2} rounded='lg' gap={2} flexDir='column'>
 			<AccordionItem border='none'>
@@ -20,7 +21,7 @@ export default function AllBoardsCategorySection({ category, groupId }: AllBoard
 				</AccordionButton>
 				<AccordionPanel pb={4} display='flex' flexDir='column' flexWrap='wrap' gap={2}>
 					{category.boards.length > 0 ? category.boards.map((board) => (
-						<AllBoardsBoardRow key={board.id} board={board} to={`/groups/${groupId}/${category.id}/${board.id}`} />
+						<AllBoardsBoardRow key={board.id} board={board} to={ownerId ? `/personal/${ownerId}/${category.id}/${board.id}` : `/groups/${groupId}/${category.id}/${board.id}`} />
 					)) : (
 						<Text p={2} textAlign='center' fontStyle='italic'>No boards in this category.</Text>
 					)}

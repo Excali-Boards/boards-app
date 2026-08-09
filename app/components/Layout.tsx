@@ -5,12 +5,12 @@ import { Fragment, useCallback, useContext, useMemo, useState } from 'react';
 import { Link, useFetcher, useLocation } from '@remix-run/react';
 import { IconLinkButton, LinkButton } from '~/components/Button';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
+import type { WebReturnType } from '~/other/types';
 import { RootContext } from '~/components/Context';
 import { IoIosColorPalette } from 'react-icons/io';
 import { canEdit, canManage } from '~/other/utils';
 import { IoFlash, IoMenu } from 'react-icons/io5';
 import { FiLogIn, FiUsers } from 'react-icons/fi';
-import type { WebReturnType } from '~/other/types';
 import { useScroll } from '~/hooks/useScroll';
 import { MdPrivacyTip } from 'react-icons/md';
 
@@ -569,7 +569,7 @@ export function NavbarButtons({
 
 		if (isDev) buttons.push({ id: 2, name: 'Admin', icon: <FaCogs />, to: '/admin', dividerBelow: isDrawer });
 		if (canInvite) buttons.push({ id: 2, name: 'Invites', icon: <FaUsers />, to: '/invites' });
-		if (addProfile && showPersonalBoards) buttons.push({ id: 2, name: 'Personal Boards', icon: <FaUser />, to: '/personal' });
+		if (addProfile && showPersonalBoards) buttons.push({ id: 2, name: 'Personal', icon: <FaUser />, to: '/personal' });
 		if (addProfile && showAllBoards) buttons.push({ id: 2, name: 'All Boards', icon: <FaList />, to: '/all' });
 		if (isDrawer && addProfile) buttons.unshift({ id: 2, name: 'Profile', icon: <FaUser />, to: '/profile' });
 

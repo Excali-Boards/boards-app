@@ -21,31 +21,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 	const [DBResources, personalResources] = await Promise.all([
 		api?.groups.getAllSorted({ auth: token, headers: ipHeaders }),
-		api?.boards.getPersonalBoards({ auth: token, headers: ipHeaders }),
+		api?.personal.getAllPersonalBoards({ auth: token, headers: ipHeaders }),
 	]);
 
 	if (!DBResources || 'error' in DBResources) throw makeResponse(DBResources, 'Failed to get groups.');
-	const personalData = personalResources && !('error' in personalResources) ? personalResources.data : null;
-	const personal = (personalData && 'owners' in personalData ? personalData.owners : personalData ? [personalData] : []).map((owner) => ({
+	const personal = (personalResources && !('error' in personalResources) ? personalResources.data : []).map((owner) => ({
 		...owner,
 		owner: { ...owner.owner, email: securityUtils.decrypt(owner.owner.email) },
-	}));
-
-	return {
-		personal: personal.map((owner) => ({
-			...owner,
-			boards: owner.boards.map((board) => ({
+		categories: owner.categories.map((category) => ({
+			...category,
+			boards: category.boards.map((board) => ({
 				...board,
 				scheduledForDeletionText: board.scheduledForDeletion ? formatRelativeTime(new Date(board.scheduledForDeletion), true) : null,
 			})),
-			categories: owner.categories.map((category) => ({
-				...category,
-				boards: category.boards.map((board) => ({
-					...board,
-					scheduledForDeletionText: board.scheduledForDeletion ? formatRelativeTime(new Date(board.scheduledForDeletion), true) : null,
-				})),
-			})),
 		})),
+	}));
+
+	return {
+		personal,
 		groups: DBResources.data.map((group) => ({
 			...group,
 			categories: group.categories.map((category) => ({
@@ -79,7 +72,7 @@ export default function All() {
 							<Flex flex={1} bg='alpha100' p={2} rounded='lg' gap={2} flexDir='column'>
 								<AccordionItem border='none'>
 									<AccordionButton rounded='lg'>
-										<Text flex='1' textAlign='left' fontWeight='bold' fontSize='lg'>Personal Boards</Text>
+										<Text flex='1' textAlign='left' fontWeight='bold' fontSize='lg'>Personal</Text>
 										<AccordionIcon />
 									</AccordionButton>
 									<AccordionPanel pb={4} display='flex' flexDir='column' flexWrap='wrap' gap={2}>
