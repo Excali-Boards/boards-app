@@ -1,8 +1,8 @@
 import { Badge, Box, Divider, Flex, LinkBox, LinkOverlay, Text, VStack } from '@chakra-ui/react';
-import { LoaderFunctionArgs } from '@remix-run/node';
-import { Link, useLoaderData } from '@remix-run/react';
-import { authenticator } from '~/utils/auth.server';
 import { getIpHeaders, makeResponse } from '~/utils/functions.server';
+import { Link, useLoaderData } from '@remix-run/react';
+import { LoaderFunctionArgs } from '@remix-run/node';
+import { authenticator } from '~/utils/auth.server';
 import MenuBar from '~/components/layout/MenuBar';
 import { api } from '~/utils/web.server';
 

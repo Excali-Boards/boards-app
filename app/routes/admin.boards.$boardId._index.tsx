@@ -3,7 +3,6 @@ import { ActionFunctionArgs, LoaderFunctionArgs, json, redirect } from '@remix-r
 import { getIpHeaders, makeResponse } from '~/utils/functions.server';
 import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import { lazy, Suspense, useContext, useState } from 'react';
-import type { AdminS3Board } from './admin.boards._index';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import MenuBar from '~/components/layout/MenuBar';
