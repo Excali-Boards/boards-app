@@ -19,6 +19,7 @@ export default function Admin() {
 					cards={[
 						{ name: 'Users', url: '/admin/users', id: 'users' },
 						{ name: 'Rooms', url: '/admin/rooms', id: 'rooms' },
+						{ name: 'S3 Boards', url: '/admin/boards', id: 'boards' },
 					]}
 				/>
 			</Box>

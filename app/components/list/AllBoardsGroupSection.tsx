@@ -1,6 +1,7 @@
 import { AccordionButton, AccordionIcon, AccordionItem, AccordionPanel, Avatar, Box, Text } from '@chakra-ui/react';
 import AllBoardsCategorySection, { AllBoardsCategory } from './AllBoardsCategorySection';
 import type { PersonalBoardOwnerOutput } from '@excali-boards/boards-api-client';
+import { NoCard } from '~/components/layout/Card';
 
 export type AllBoardsGroup = {
 	id: string;
@@ -30,7 +31,7 @@ export default function AllBoardsGroupSection({ group, owner }: AllBoardsGroupSe
 				{group.categories.length > 0 ? group.categories.map((category) => (
 					<AllBoardsCategorySection key={category.id} category={category} groupId={group.id} ownerId={owner?.owner.userId} />
 				)) : (
-					<Text p={2} textAlign='center' fontStyle='italic'>No categories in this group.</Text>
+					<NoCard noWhat='categories' />
 				)}
 			</AccordionPanel>
 		</AccordionItem>
