@@ -5,8 +5,8 @@ import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import { lazy, Suspense, useContext, useState } from 'react';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
-import MenuBar from '~/components/layout/MenuBar';
 import configServer from '~/utils/config.server';
+import MenuBar from '~/components/layout/MenuBar';
 import { validateParams } from '~/other/utils';
 import { api } from '~/utils/web.server';
 import { FaLink } from 'react-icons/fa';
@@ -47,6 +47,11 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 		return {
 			boardId,
 			content: contentResult.data,
+			webUrl: configServer.baseUrl,
+			licenseKey: configServer.tldrawLicense,
+			socketUrl: configServer.apiUrl,
+			s3Bucket: configServer.s3Bucket,
+			s3Url: configServer.s3Url,
 			categories: groups.data.flatMap((group) => group.categories.map((category) => ({
 				id: category.id,
 				name: category.name,
@@ -80,7 +85,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 };
 
 export default function AdminBoard() {
-	const { boardId, categories, content } = useLoaderData<typeof loader>();
+	const { boardId, categories, content, webUrl, licenseKey, socketUrl, s3Bucket, s3Url } = useLoaderData<typeof loader>();
 	const actionData = useActionData<typeof action>();
 	const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
 	const { user, token, useOppositeColorForBoard } = useContext(RootContext) || {};
@@ -94,14 +99,14 @@ export default function AdminBoard() {
 		canReallyEdit: false,
 		user,
 		categoryId: 'unresolved',
-		currentUrl: `${configServer.baseUrl}/admin/boards/${boardId}`,
+		currentUrl: `${webUrl}/admin/boards/${boardId}`,
 		isMobile: isMobile || false,
-		socketUrl: configServer.apiUrl,
+		socketUrl,
 		canEdit: false,
-		s3Bucket: configServer.s3Bucket,
+		s3Bucket,
 		boardId,
 		groupId: 'unresolved',
-		s3Url: configServer.s3Url,
+		s3Url,
 		token: token || '',
 		name: `Unresolved board - ${boardId}`,
 		staticMode: true,
@@ -126,7 +131,7 @@ export default function AdminBoard() {
 				<Divider my={4} />
 				<Box h='calc(100vh - 180px)' minH='500px' rounded='lg' overflow='hidden'>
 					<Suspense fallback={<Text p={6}>Loading board preview…</Text>}>
-						{content.type === 'Excalidraw' ? <ExcalidrawBoard {...boardProps} user={user!} /> : <TldrawBoard {...boardProps} user={user!} licenseKey={configServer.tldrawLicense || undefined} />}
+		{content.type === 'Excalidraw' ? <ExcalidrawBoard {...boardProps} user={user!} /> : <TldrawBoard {...boardProps} user={user!} licenseKey={licenseKey || undefined} />}
 					</Suspense>
 				</Box>
 				<Modal isOpen={isLinkModalOpen} onClose={() => setIsLinkModalOpen(false)}>
