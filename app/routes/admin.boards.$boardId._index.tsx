@@ -1,23 +1,25 @@
+import { Box, Button, Divider, FormControl, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Select, Text, VStack, useBreakpointValue, useColorMode } from '@chakra-ui/react';
 import { ActionFunctionArgs, LoaderFunctionArgs, json, redirect } from '@remix-run/node';
-import { Form, useActionData, useLoaderData } from '@remix-run/react';
-import { Box, Button, Divider, FormControl, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Select, Text, VStack } from '@chakra-ui/react';
-import { authenticator } from '~/utils/auth.server';
 import { getIpHeaders, makeResponse } from '~/utils/functions.server';
+import { Form, useActionData, useLoaderData } from '@remix-run/react';
+import { lazy, Suspense, useContext, useState } from 'react';
+import type { AdminS3Board } from './admin.boards._index';
+import { authenticator } from '~/utils/auth.server';
+import { RootContext } from '~/components/Context';
+import MenuBar from '~/components/layout/MenuBar';
+import configServer from '~/utils/config.server';
 import { validateParams } from '~/other/utils';
 import { api } from '~/utils/web.server';
-import type { AdminS3Board } from './admin.boards._index';
-import MenuBar from '~/components/layout/MenuBar';
-import { lazy, Suspense } from 'react';
-import { useState } from 'react';
 import { FaLink } from 'react-icons/fa';
 
-const RawExcalidraw = lazy(async () => {
-	const module = await import('@excalidraw/excalidraw');
-	return { default: module.Excalidraw };
+const ExcalidrawBoard = lazy(async () => {
+	const module = await import('~/components/board/Excalidraw');
+	return { default: module.ExcalidrawBoard };
 });
-const RawTldrawImage = lazy(async () => {
-	const module = await import('tldraw');
-	return { default: module.TldrawImage };
+
+const TldrawBoard = lazy(async () => {
+	const module = await import('~/components/board/Tldraw');
+	return { default: module.TldrawBoard };
 });
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
@@ -82,6 +84,30 @@ export default function AdminBoard() {
 	const { boardId, categories, content } = useLoaderData<typeof loader>();
 	const actionData = useActionData<typeof action>();
 	const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+	const { user, token, useOppositeColorForBoard } = useContext(RootContext) || {};
+	const { colorMode } = useColorMode();
+	const isMobile = useBreakpointValue({ base: true, md: false });
+	const boardProps = {
+		updateCollaborators: () => undefined,
+		useOppositeColorForBoard: useOppositeColorForBoard || false,
+		colorMode,
+		hideCollaborators: true,
+		canReallyEdit: false,
+		user,
+		categoryId: 'unresolved',
+		currentUrl: `${configServer.baseUrl}/admin/boards/${boardId}`,
+		isMobile: isMobile || false,
+		socketUrl: configServer.apiUrl,
+		canEdit: false,
+		s3Bucket: configServer.s3Bucket,
+		boardId,
+		groupId: 'unresolved',
+		s3Url: configServer.s3Url,
+		token: token || '',
+		name: `Unresolved board - ${boardId}`,
+		staticMode: true,
+		staticContent: content.content,
+	};
 
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }}>
@@ -99,13 +125,9 @@ export default function AdminBoard() {
 					}]}
 				/>
 				<Divider my={4} />
-				<Box h='calc(100vh - 180px)' minH='500px' rounded='lg' overflow='hidden' bg='white'>
+				<Box h='calc(100vh - 180px)' minH='500px' rounded='lg' overflow='hidden'>
 					<Suspense fallback={<Text p={6}>Loading board preview…</Text>}>
-						{content.type === 'Excalidraw' ? (
-							<RawExcalidraw viewModeEnabled initialData={{ elements: content.content as never }} />
-						) : (
-							<RawTldrawImage snapshot={content.content as never} />
-						)}
+						{content.type === 'Excalidraw' ? <ExcalidrawBoard {...boardProps} user={user!} /> : <TldrawBoard {...boardProps} user={user!} licenseKey={configServer.tldrawLicense || undefined} />}
 					</Suspense>
 				</Box>
 				<Modal isOpen={isLinkModalOpen} onClose={() => setIsLinkModalOpen(false)}>

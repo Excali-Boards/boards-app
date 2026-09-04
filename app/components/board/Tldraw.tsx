@@ -1,4 +1,4 @@
-import { AssetRecordType, Editor, getHashForString, TLAssetStore, TLBookmarkAsset, TLRecord, TLUserPreferences, useTldrawUser } from 'tldraw';
+import { AssetRecordType, createTLStore, Editor, getHashForString, TLAssetStore, TLBookmarkAsset, TLRecord, TLUserPreferences, useTldrawUser } from 'tldraw';
 import { useSync, type TLPersistentClientSocket, type TLSocketStatusChangeEvent } from '@tldraw/sync';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ClientToServerEvents, ServerToClientEvents } from '~/other/types';
@@ -13,6 +13,8 @@ import { Tldraw } from './Imports';
 import 'tldraw/tldraw.css';
 
 export function TldrawBoard(props: TldrawBoardProps) {
+	if (props.staticMode) return <StaticTldrawBoard {...props} />;
+
 	const { boardId, token, socketUrl, canEdit, user, licenseKey } = props;
 	const [editor, setEditor] = useState<Editor | null>(null);
 	const [isConnected, setIsConnected] = useState(false);
@@ -188,6 +190,31 @@ export function TldrawBoard(props: TldrawBoardProps) {
 						setTimeout(() => {
 							triggerColorUpdate();
 						}, 50);
+					}}
+				/>
+			</Box>
+		</Flex>
+	);
+}
+
+function StaticTldrawBoard(props: TldrawBoardProps) {
+	const { colorMode, useOppositeColorForBoard, staticContent, licenseKey } = props;
+	const user = useTldrawUser({
+		userPreferences: { id: props.user.userId, name: props.user.displayName, colorScheme: colorMode },
+		setUserPreferences: () => undefined,
+	});
+	const store = useMemo(() => createTLStore({ snapshot: staticContent as never }), [staticContent]);
+
+	return (
+		<Flex direction='column' w='100%' h='100vh' overflow='hidden'>
+			<Box w='100%' h='100%' overflow='hidden'>
+				<Tldraw
+					store={store}
+					user={user}
+					licenseKey={licenseKey}
+					onMount={(editor) => {
+						editor.user.updateUserPreferences({ colorScheme: useOppositeColorForBoard ? (colorMode === 'light' ? 'dark' : 'light') : colorMode });
+						editor.updateInstanceState({ isReadonly: true, isToolLocked: true });
 					}}
 				/>
 			</Box>

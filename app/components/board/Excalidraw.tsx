@@ -60,12 +60,19 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		this.initialDataPromise = new Promise((resolve) => {
 			this.initialDataResolve = resolve;
 		});
+		if (props.staticMode) {
+			this.initialDataPromise = Promise.resolve({ elements: props.staticContent as never, appState: {} });
+			this.initialDataResolve = null;
+		}
 
 		this.activeIntervalId = null;
 		this.idleTimeoutId = null;
 	}
 
 	componentDidMount = () => {
+		if (this.props.staticMode) {
+			this.setState({ isConnected: true, isInitialized: true, isFirstTime: false, isSaved: true });
+		}
 		window.addEventListener('pointermove', this.onPointerMove);
 		window.addEventListener('beforeunload', this.handleBeforeUnloadEvent);
 		window.addEventListener('visibilitychange', this.onVisibilityChange);
@@ -90,7 +97,7 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 	};
 
 	componentDidUpdate = (prevProps: BoardProps, prevState: BoardExcalidrawState) => {
-		if (prevState.excalidrawAPI !== this.state.excalidrawAPI) {
+		if (!this.props.staticMode && prevState.excalidrawAPI !== this.state.excalidrawAPI) {
 			this.connectSocket(); this.setupEvents();
 		}
 

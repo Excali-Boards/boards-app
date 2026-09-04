@@ -21,6 +21,8 @@ export type BoardProps = {
 	s3Url: string;
 	token: string;
 	name: string;
+	staticMode?: boolean;
+	staticContent?: unknown;
 };
 
 export type TldrawBoardProps = BoardProps & {
