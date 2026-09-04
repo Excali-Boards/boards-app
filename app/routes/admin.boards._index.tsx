@@ -28,7 +28,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const ipHeaders = getIpHeaders(request);
 	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
 
-	const result = await api?.request<AdminS3Board[]>({ method: 'GET', auth: token, headers: ipHeaders, endpoint: '/admin/boards' });
+	const result = await api?.admin.getS3Boards({ auth: token, headers: ipHeaders });
 	if (!result || 'error' in result) throw makeResponse(result, 'Failed to retrieve board files from S3.');
 
 	return { boards: result.data };

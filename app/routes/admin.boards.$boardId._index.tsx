@@ -26,7 +26,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const ipHeaders = getIpHeaders(request);
 	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
 
-	const result = await api?.request<AdminS3Board[]>({ method: 'GET', auth: token, headers: ipHeaders, endpoint: '/admin/boards' });
+	const result = await api?.admin.getS3Boards({ auth: token, headers: ipHeaders });
 	if (!result || 'error' in result) throw makeResponse(result, 'Failed to resolve board.');
 
 	const storedBoard = result.data.find((entry) => entry.boardId === boardId);
@@ -36,7 +36,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	if (!board) {
 		const [groups, contentResult] = await Promise.all([
 			api?.groups.getAllSorted({ auth: token, headers: ipHeaders }),
-			api?.request<{ boardId: string; type: 'Excalidraw' | 'Tldraw'; content: unknown }>({ method: 'GET', auth: token, headers: ipHeaders, endpoint: `/admin/boards/${boardId}/content` }),
+			api?.admin.getS3BoardContent({ auth: token, boardId, headers: ipHeaders }),
 		]);
 		if (!groups || 'error' in groups) throw makeResponse(groups, 'Failed to retrieve categories.');
 		if (!contentResult || 'error' in contentResult) throw makeResponse(contentResult, 'Failed to load board content.');
@@ -70,10 +70,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 	const type = String(formData.get('type') || '');
 	if (!name || !categoryId || (type !== 'Excalidraw' && type !== 'Tldraw')) return json({ error: 'Name, category, and board type are required.' }, { status: 400 });
 
-	const result = await api?.request<{ boardId: string }>({
-		method: 'POST', auth: token, headers: ipHeaders, endpoint: `/admin/boards/${boardId}/resolve`,
-		body: { name, categoryId, type },
-	});
+	const result = await api?.admin.resolveS3Board({ auth: token, boardId, headers: ipHeaders, body: { name, categoryId, type } });
 	if (!result || 'error' in result) return json({ error: 'Failed to link board.' }, { status: 400 });
 
 	return redirect(`/admin/boards/${boardId}`);
