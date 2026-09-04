@@ -46,14 +46,10 @@ export default function AdminBoards() {
 					{boards.length ? boards.map(({ boardId, board }) => (
 						<LinkBox key={boardId} as={Flex} w='100%' rounded='lg' bg='alpha100' p={4} alignItems='center' justifyContent='space-between' _hover={{ bg: 'alpha200' }}>
 							<Box minW={0}>
-								{board ? (
-									<>
-										<LinkOverlay as={Link} to={`/admin/boards/${boardId}`}>
-											<Text fontSize='xl' fontWeight='bold' wordBreak='break-word'>{board.name}</Text>
-										</LinkOverlay>
-										<Text color='gray.500' fontSize='sm'>{board.groupName} • {board.categoryName} • {board.type}</Text>
-									</>
-								) : <Text fontSize='xl' fontWeight='bold' wordBreak='break-word'>Unresolved board</Text>}
+								<LinkOverlay as={Link} to={`/admin/boards/${boardId}`}>
+									<Text fontSize='xl' fontWeight='bold' wordBreak='break-word'>{board?.name || 'Unresolved board'}</Text>
+								</LinkOverlay>
+								{board && <Text color='gray.500' fontSize='sm'>{board.groupName} • {board.categoryName} • {board.type}</Text>}
 								<Text color='gray.500' fontSize='sm'>{boardId}</Text>
 							</Box>
 							<Badge colorScheme={board ? 'green' : 'red'}>{board ? 'Resolved' : 'Unresolved'}</Badge>
