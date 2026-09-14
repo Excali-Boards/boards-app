@@ -1,17 +1,17 @@
-import { Accordion, Box, Divider, Flex, VStack } from '@chakra-ui/react';
 import { getIpHeaders, makeResponse, securityUtils } from '~/utils/functions.server';
 import AllBoardsGroupSection from '~/components/list/AllBoardsGroupSection';
-import { Container } from '~/components/layout/Container';
+import { Accordion, Box, Divider, Flex, VStack } from '@chakra-ui/react';
 import { LoaderFunctionArgs, redirect } from '@remix-run/node';
+import { Container } from '~/components/layout/Container';
 import { authenticator } from '~/utils/auth.server';
+import { RootContext } from '~/components/Context';
 import { formatRelativeTime } from '~/other/utils';
 import MenuBar from '~/components/layout/MenuBar';
 import { NoCard } from '~/components/layout/Card';
-import { useContext } from 'react';
 import { useLoaderData } from '@remix-run/react';
 import { FaFolderOpen } from 'react-icons/fa';
-import { RootContext } from '~/components/Context';
 import { api } from '~/utils/web.server';
+import { useContext } from 'react';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const token = await authenticator.isAuthenticated(request);
@@ -63,6 +63,7 @@ export default function PersonalBoards() {
 						tooltip: 'Manage my personal workspace',
 					}] : undefined}
 				/>
+
 				<Divider my={4} />
 
 				<Container flexDir='column' bg='transparent' p={0}>
