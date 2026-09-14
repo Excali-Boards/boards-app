@@ -7,7 +7,10 @@ import { authenticator } from '~/utils/auth.server';
 import { formatRelativeTime } from '~/other/utils';
 import MenuBar from '~/components/layout/MenuBar';
 import { NoCard } from '~/components/layout/Card';
+import { useContext } from 'react';
 import { useLoaderData } from '@remix-run/react';
+import { FaFolderOpen } from 'react-icons/fa';
+import { RootContext } from '~/components/Context';
 import { api } from '~/utils/web.server';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -44,11 +47,22 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function PersonalBoards() {
 	const { personal } = useLoaderData<typeof loader>();
+	const { user } = useContext(RootContext) || {};
 
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 16 }}>
 			<Box maxWidth='1000px' width={{ base: '100%', sm: '90%', md: '80%', xl: '60%' }}>
-				<MenuBar name='Personal Boards' description='List of all personal boards sorted by users and categories.' />
+				<MenuBar
+					name='Personal Boards'
+					description='List of all personal boards sorted by users and categories.'
+					customButtons={user?.userId ? [{
+						type: 'link',
+						label: 'Manage my workspace',
+						icon: <FaFolderOpen />,
+						to: `/personal/${user.userId}`,
+						tooltip: 'Manage my personal workspace',
+					}] : undefined}
+				/>
 				<Divider my={4} />
 
 				<Container flexDir='column' bg='transparent' p={0}>

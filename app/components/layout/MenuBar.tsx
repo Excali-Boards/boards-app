@@ -38,6 +38,7 @@ export default function MenuBar({
 	customButtons,
 }: MenuBarProps) {
 	const showDivider = useBreakpointValue({ base: false, md: true });
+	const hasActions = Boolean(goBackPath || goBackWindow || customButtons?.length);
 	const [loadingKeys, setLoadingKeys] = useState<Set<string>>(new Set());
 	const getButtonKey = (button: CustomButton<'normal' | 'link'>, index: number) => `custom-button-${button.type}-${button.label}-${index}`;
 
@@ -76,7 +77,7 @@ export default function MenuBar({
 				flexDir={'row'}
 				gap={4}
 			>
-				{showDivider && <Divider orientation={'vertical'} color={'red'} height={'50px'} />}
+				{showDivider && hasActions && <Divider orientation={'vertical'} color={'red'} height={'50px'} />}
 
 				<HStack w={'100%'} spacing={2}>
 					{(goBackPath || goBackWindow) && <Tooltip
