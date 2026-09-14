@@ -48,11 +48,22 @@ export function parseUserAgent(uaString: string | null): Device {
 	const ua = new UAParser(uaString).getDevice();
 
 	switch (ua.type) {
-		case 'desktop': return 'Desktop';
 		case 'mobile': return 'Mobile';
 		case 'tablet': return 'Tablet';
+		case 'desktop':
+		case undefined: return 'Desktop';
 		default: return 'Other';
 	}
+}
+
+export function describeUserAgent(uaString: string | null): string {
+	if (!uaString) return 'Unknown browser · Desktop';
+
+	const result = new UAParser(uaString).getResult();
+	const browser = result.browser.name || 'Unknown browser';
+	const operatingSystem = result.os.name || 'Unknown operating system';
+	const device = result.device.type === 'mobile' ? 'Mobile' : result.device.type === 'tablet' ? 'Tablet' : 'Desktop';
+	return `${browser} on ${operatingSystem} · ${device}`.slice(0, 120);
 }
 
 function pruneUserCache(now: number): void {

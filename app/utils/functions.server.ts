@@ -127,3 +127,14 @@ export function getIpHeaders(request: Request): Record<string, string> | null {
 		'X-Forwarded-For': ip,
 	};
 }
+
+export function rejectCrossSiteRequest(request: Request): Response | null {
+	const headers = { 'Cache-Control': 'no-store' };
+	const expectedOrigin = config.baseUrl || new URL(request.url).origin;
+	const origin = request.headers.get('Origin');
+	if (origin && origin !== expectedOrigin) return new Response('Invalid request origin.', { status: 403, headers });
+
+	const fetchSite = request.headers.get('Sec-Fetch-Site');
+	if (fetchSite === 'cross-site') return new Response('Invalid request origin.', { status: 403, headers });
+	return null;
+}

@@ -132,6 +132,7 @@ export default function Sessions() {
 								createdAt={session.createdAt}
 								lastUsed={session.lastUsed}
 								device={session.device}
+								isQrLogin={session.isQrLogin}
 								isCurrent={session.dbId === activeDbId}
 								onDelete={() => setConfirmModal({ type: 'single', token: session.dbId })}
 							/>

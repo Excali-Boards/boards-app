@@ -184,7 +184,7 @@ export default function Board() {
 
 	return (
 		<PresenceContext.Provider value={presenceContextValue}>
-			<Suspense fallback={<div>Loading board editor…</div>}>
+			<Suspense fallback={<div>Loading board editor..</div>}>
 				{board.type === 'Excalidraw' ? <ExcalidrawBoard
 					updateCollaborators={setBoardActiveCollaborators || (() => { })}
 					canEdit={isPreview ? false : canEdit(board.accessLevel, user?.isDev)}

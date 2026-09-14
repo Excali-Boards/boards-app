@@ -1,5 +1,5 @@
 import { Flex, Text, HStack, VStack, IconButton, FlexProps, Badge, useBreakpointValue } from '@chakra-ui/react';
-import { FaDesktop, FaGlobe, FaMobileAlt, FaQuestionCircle, FaTabletAlt, FaTrash } from 'react-icons/fa';
+import { FaDesktop, FaGlobe, FaMobileAlt, FaQuestionCircle, FaQrcode, FaTabletAlt, FaTrash } from 'react-icons/fa';
 import { Device } from '@excali-boards/boards-api-client/prisma/generated/client';
 import { Fragment, useCallback } from 'react';
 
@@ -12,6 +12,7 @@ export type SessionCardProps = {
 	lastUsed: string;
 	isCurrent?: boolean;
 	onDelete?: () => void;
+	isQrLogin?: boolean;
 };
 
 export function SessionCard({
@@ -23,6 +24,7 @@ export function SessionCard({
 	lastUsed,
 	isCurrent,
 	onDelete,
+	isQrLogin,
 }: SessionCardProps & FlexProps) {
 	const isMobile = useBreakpointValue({ base: true, md: false });
 	const cardPadding = useBreakpointValue({ base: 4, md: 6 });
@@ -47,14 +49,19 @@ export function SessionCard({
 		const now = new Date();
 		const expiry = new Date(date);
 		const diffMs = expiry.getTime() - now.getTime();
-		const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-		if (diffDays <= 0) return 'Expired';
-		if (diffDays === 1) return 'Expires in 1 day';
-		return `Expires in ${diffDays} days`;
+		if (expiry.getTime() <= now.getTime()) return 'Expired';
+		const diffMinutes = Math.max(1, Math.floor(diffMs / (1000 * 60)));
+		if (diffMinutes < 60) return `Expires in ${diffMinutes} minute${diffMinutes === 1 ? '' : 's'}`;
+
+		const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+		if (diffHours < 24) return `Expires in ${diffHours} hour${diffHours === 1 ? '' : 's'}`;
+
+		const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+		return `Expires in ${diffDays} day${diffDays === 1 ? '' : 's'}`;
 	};
 
-	const isExpired = new Date(expiresAt) < new Date();
+	const isExpired = new Date(expiresAt).getTime() <= Date.now();
 
 	const DeviceIcon = useCallback(() => {
 		if (!device) return <FaGlobe />;
@@ -125,6 +132,12 @@ export function SessionCard({
 										Expired
 									</Badge>
 								)}
+
+								{isQrLogin && (
+									<Badge px={2} py={1} borderRadius='full' textTransform='none' colorScheme='purple'>
+										<FaQrcode />
+									</Badge>
+								)}
 							</HStack>
 						</HStack>
 
@@ -137,6 +150,7 @@ export function SessionCard({
 								)}
 
 								<HStack spacing={1} flexWrap='wrap'>
+									{isQrLogin && <Text fontSize='sm' color='purple.400'>Remote computer</Text>}
 									<Text fontSize='sm' color='gray.500'>
 										• Created {formatRelativeTime(createdAt)}
 									</Text>
@@ -222,6 +236,12 @@ export function SessionCard({
 								textTransform={'none'}
 							>
 								Expired
+							</Badge>
+						)}
+
+						{isQrLogin && (
+							<Badge px={2} py={1} borderRadius='full' textTransform='none' colorScheme='purple'>
+								Remote computer
 							</Badge>
 						)}
 					</HStack>

@@ -5,8 +5,8 @@ import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import { lazy, Suspense, useContext, useState } from 'react';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
-import configServer from '~/utils/config.server';
 import MenuBar from '~/components/layout/MenuBar';
+import configServer from '~/utils/config.server';
 import { validateParams } from '~/other/utils';
 import { api } from '~/utils/web.server';
 import { FaLink } from 'react-icons/fa';
@@ -130,13 +130,13 @@ export default function AdminBoard() {
 				/>
 				<Divider my={4} />
 				<Box h='calc(100vh - 180px)' minH='500px' rounded='lg' overflow='hidden'>
-					<Suspense fallback={<Text p={6}>Loading board preview…</Text>}>
-		{content.type === 'Excalidraw' ? <ExcalidrawBoard {...boardProps} user={user!} /> : <TldrawBoard {...boardProps} user={user!} licenseKey={licenseKey || undefined} />}
+					<Suspense fallback={<Text p={6}>Loading board preview..</Text>}>
+						{content.type === 'Excalidraw' ? <ExcalidrawBoard {...boardProps} user={user!} /> : <TldrawBoard {...boardProps} user={user!} licenseKey={licenseKey || undefined} />}
 					</Suspense>
 				</Box>
 				<Modal isOpen={isLinkModalOpen} onClose={() => setIsLinkModalOpen(false)}>
 					<ModalOverlay />
-					<ModalContent>
+					<ModalContent bg={colorMode === 'light' ? 'white' : 'brand900'} mx={2}>
 						<ModalHeader>Link board to a category</ModalHeader>
 						<ModalCloseButton />
 						<Form method='post'>

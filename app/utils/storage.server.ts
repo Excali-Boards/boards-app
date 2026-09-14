@@ -20,3 +20,12 @@ export const loginInfo = createCookie('login-info', {
 	httpOnly: false,
 	maxAge: 60 * 60, // 1 hour
 });
+
+export const qrDeviceCookie = createCookie('__qr_device', {
+	secrets: [config.sessionSecret],
+	httpOnly: true,
+	secure: true,
+	sameSite: 'lax',
+	path: '/login/qr',
+	maxAge: 5 * 60,
+});

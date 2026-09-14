@@ -1,24 +1,30 @@
+import { Box, Button, Divider, Flex, Text, VStack, useColorMode } from '@chakra-ui/react';
 import { getCachedUser, parseUserAgent } from '~/utils/session.server';
 import { LoaderFunctionArgs, redirect } from '@remix-run/node';
 import { Container } from '~/components/layout/Container';
 import { allowedPlatforms } from '~/utils/config.server';
 import { platformButtons } from '~/other/platforms';
 import { authenticator } from '~/utils/auth.server';
-import { useSearchParams } from '@remix-run/react';
+import { Outlet, useLocation, useSearchParams } from '@remix-run/react';
 import { RootContext } from '~/components/Context';
 import { loginInfo } from '~/utils/storage.server';
 import { LinkButton } from '~/components/Button';
-import { Box, VStack, useColorMode } from '@chakra-ui/react';
-import { useContext, useMemo } from 'react';
+import { useContext, useMemo, useState } from 'react';
+import { FaQrcode } from 'react-icons/fa';
+import { getSafeBackTo } from '~/other/qr-login';
+import { QrLogin } from '~/components/QrLogin';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-	const query = new URLSearchParams(request.url.split('?')[1]);
+	const url = new URL(request.url);
+	if (url.pathname.startsWith('/login/qr/')) return null;
+
+	const query = url.searchParams;
 
 	const token = await authenticator.isAuthenticated(request);
 	const DBUser = (await getCachedUser(request))?.data;
 
 	const type = query.get('type') as string | undefined;
-	const backTo = query.get('backTo') || '/';
+	const backTo = getSafeBackTo(query.get('backTo'));
 	const refreshProfile = query.get('refreshProfile') === 'true';
 
 	if (!type || !allowedPlatforms.some((p) => p.toLowerCase() === type.toLowerCase())) {
@@ -76,11 +82,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function Login() {
 	const { allowedPlatforms = [] } = useContext(RootContext) || {};
-	const { colorMode } = useColorMode();
-	const allButtons = useMemo(() => platformButtons(allowedPlatforms), [allowedPlatforms]);
 	const [searchParams] = useSearchParams();
+	const location = useLocation();
+	const { colorMode } = useColorMode();
+	const [qrOpen, setQrOpen] = useState(false);
 
-	const backTo = searchParams.get('backTo');
+	const allButtons = useMemo(() => platformButtons(allowedPlatforms), [allowedPlatforms]);
+	const backTo = getSafeBackTo(searchParams.get('backTo'));
+	if (location.pathname.startsWith('/login/qr')) return <Outlet />;
 
 	return (
 		<VStack w='100%' align='center' px={4} spacing={{ base: 8, md: '30px' }} mt={{ base: 8, md: 40 }} id='a1'>
@@ -108,8 +117,33 @@ export default function Login() {
 							No platforms enabled.
 						</Box>
 					)}
+
+					{allButtons.length > 0 && (
+						<Flex align='center' gap={3} my={2}>
+							<Divider flex={1} />
+							<Text color='gray.500' fontSize='sm'>or</Text>
+							<Divider flex={1} />
+						</Flex>
+					)}
+
+					<Button
+						type='button'
+						onClick={() => setQrOpen(true)}
+						leftIcon={<FaQrcode size={24} />}
+						pl={{ base: '25%', md: '30%' }}
+						justifyContent='flex-start'
+						id='login-button-qr'
+						colorScheme='brand'
+						variant='solid'
+						rounded={12}
+						size='lg'
+						w='100%'
+					>
+						Log in with QR code
+					</Button>
 				</Container>
 			</Box>
+			<QrLogin backTo={backTo || '/'} isOpen={qrOpen} onClose={() => setQrOpen(false)} />
 		</VStack>
 	);
 }
