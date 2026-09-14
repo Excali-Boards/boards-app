@@ -42,7 +42,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 	headers.append('Set-Cookie', await sessionStorage.commitSession(session, { maxAge: secondsRemaining }));
 	headers.append('Set-Cookie', await qrDeviceCookie.serialize('', { maxAge: 0 }));
 
-	return json({ status: 'approved' as const }, { headers });
+	return json({ status: 'approved' as const, redirectDelay: result.data.redirectDelay }, { headers });
 };
 
 function unavailable() {

@@ -1,4 +1,4 @@
-import { VStack, Box, Divider, Flex, Input, Button, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, useToast, IconButton, Tooltip, Text, FormControl, FormLabel } from '@chakra-ui/react';
+import { VStack, Box, Divider, Flex, Input, Button, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, useColorMode, useToast, IconButton, Tooltip, Text, FormControl, FormLabel, Switch } from '@chakra-ui/react';
 import { securityUtils, convertPlatform, getIpHeaders, makeResponse, makeResObject } from '~/utils/functions.server';
 import { FaChartBar, FaEye, FaEyeSlash, FaLink, FaTrash, FaUnlink, FaUser } from 'react-icons/fa';
 import { Platforms } from '@excali-boards/boards-api-client/prisma/generated/client';
@@ -7,6 +7,7 @@ import { Fragment, useCallback, useContext, useMemo, useState } from 'react';
 import { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { allowedPlatforms, convertName } from '~/utils/config.server';
 import MenuBar, { CustomButton } from '~/components/layout/MenuBar';
+import { LinkButton, IconLinkButton } from '~/components/Button';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { ConfirmModal } from '~/components/other/ConfirmModal';
 import { UserInput } from '@excali-boards/boards-api-client';
@@ -16,7 +17,6 @@ import { platformButtons } from '~/other/platforms';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import { MdDesktopWindows } from 'react-icons/md';
-import { LinkButton, IconLinkButton } from '~/components/Button';
 import { WebReturnType } from '~/other/types';
 import { GrConfigure } from 'react-icons/gr';
 import { FiLogOut } from 'react-icons/fi';
@@ -263,6 +263,7 @@ export default function Profile() {
 				groups={groups}
 				fetcher={fetcher}
 				displayName={user.displayName}
+				qrLoginRedirectDelay={user.qrLoginRedirectDelay}
 				isOpen={modalShown === 'change'}
 				onClose={() => setModalShown(null)}
 				currentMainPlatform={user?.mainLoginType}
@@ -357,14 +358,16 @@ export type UpdateUserModalProps = {
 	linkedPlatforms: Platforms[];
 	currentMainPlatform: Platforms;
 	currentMainGroupId: string | null;
+	qrLoginRedirectDelay: boolean;
 	fetcher: FetcherWithComponents<unknown>;
 	groups: { id: string; name: string; }[];
 };
 
-export function UpdateUserModal({ isOpen, onClose, displayName, currentMainPlatform, linkedPlatforms, groups, currentMainGroupId, fetcher }: UpdateUserModalProps) {
+export function UpdateUserModal({ isOpen, onClose, displayName, currentMainPlatform, linkedPlatforms, groups, currentMainGroupId, qrLoginRedirectDelay: initialQrLoginRedirectDelay, fetcher }: UpdateUserModalProps) {
 	const [mainPlatform, setMainPlatform] = useState<Platforms>(currentMainPlatform);
 	const [mainGroup, setMainGroup] = useState<string | null>(currentMainGroupId);
 	const [newDisplayName, setNewDisplayName] = useState<string>(displayName);
+	const [qrLoginRedirectDelay, setQrLoginRedirectDelay] = useState(initialQrLoginRedirectDelay);
 
 	const { colorMode } = useColorMode();
 
@@ -372,6 +375,7 @@ export function UpdateUserModal({ isOpen, onClose, displayName, currentMainPlatf
 		const userData: UserInput = {};
 		if (mainPlatform !== currentMainPlatform) userData.platform = mainPlatform;
 		if (mainGroup !== currentMainGroupId) userData.mainGroupId = mainGroup === 'none' ? null : mainGroup;
+		if (qrLoginRedirectDelay !== initialQrLoginRedirectDelay) userData.qrLoginRedirectDelay = qrLoginRedirectDelay;
 
 		const trimmedDisplayName = newDisplayName.trim();
 		if (trimmedDisplayName.length > 0 && trimmedDisplayName !== displayName) userData.displayName = trimmedDisplayName;
@@ -382,7 +386,7 @@ export function UpdateUserModal({ isOpen, onClose, displayName, currentMainPlatf
 		}
 
 		fetcher.submit({ type: 'updateUser', userData: JSON.stringify(userData) }, { method: 'post' });
-	}, [mainPlatform, currentMainPlatform, mainGroup, currentMainGroupId, newDisplayName, displayName, fetcher, onClose]);
+	}, [mainPlatform, currentMainPlatform, mainGroup, currentMainGroupId, qrLoginRedirectDelay, initialQrLoginRedirectDelay, newDisplayName, displayName, fetcher, onClose]);
 
 	const groupOptions = useMemo(() => {
 		return [{ value: 'none', label: 'None' }, ...groups.map((g) => ({ value: g.id, label: g.name }))];
@@ -447,6 +451,21 @@ export function UpdateUserModal({ isOpen, onClose, displayName, currentMainPlatf
 						<Text fontSize='sm' color='gray.500' mt={-2} mb={2}>
 							Your main group is the one that opens when you navigate to the home page. You can set it to &apos;None&apos; to show all groups.
 						</Text>
+
+						<Divider />
+
+						<FormControl display='flex' alignItems='flex-start' gap={3}>
+							<Switch
+								id='qrLoginRedirectDelay'
+								isChecked={qrLoginRedirectDelay}
+								onChange={(event) => setQrLoginRedirectDelay(event.target.checked)}
+								mt={1}
+							/>
+							<Box>
+								<FormLabel htmlFor='qrLoginRedirectDelay' mb={1}>Show QR sign-in confirmation</FormLabel>
+								<Text fontSize='sm' color='gray.500'>Keep the approval message visible briefly before redirecting.</Text>
+							</Box>
+						</FormControl>
 					</VStack>
 				</ModalBody>
 				<ModalFooter display={'flex'} gap={1}>

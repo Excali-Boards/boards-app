@@ -18,6 +18,7 @@ export type QrLoginData = {
 export type QrPollResponse = {
 	status: 'pending' | 'approved' | 'denied' | 'expired';
 	expiresAt?: string;
+	redirectDelay?: boolean;
 	error?: string;
 };
 

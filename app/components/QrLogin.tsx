@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FaCheckCircle, FaClock, FaTimesCircle } from 'react-icons/fa';
 import { QRCode } from 'react-qrcode-logo';
 
+const QR_REDIRECT_DELAY_SECONDS = 3;
+
 export type QrFlowStatus = 'idle' | 'loading' | 'pending' | 'denied' | 'expired' | 'error';
 
 export type QrStartResponse = {
@@ -111,8 +113,10 @@ export function QrLogin({ backTo, isOpen, onClose }: QrLoginProps) {
 
 				if (response.ok && result.status === 'approved') {
 					stopped = true;
-					setRedirectPath(getSafeBackTo(data.backTo));
-					setRedirectSeconds(3);
+					const safeBackTo = getSafeBackTo(data.backTo);
+					setRedirectPath(safeBackTo);
+					if (result.redirectDelay === false) window.location.assign(safeBackTo);
+					else setRedirectSeconds(QR_REDIRECT_DELAY_SECONDS);
 					return;
 				}
 
