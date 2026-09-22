@@ -318,7 +318,7 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		await Promise.all(
 			fileIds.map(async (fileId) => {
 				try {
-					const response = await axios(`${this.props.s3Url}/${this.props.s3Bucket}/${this.props.boardId}/${fileId}`, {
+					const response = await axios(`${this.props.s3Url}${this.props.s3Bucket ? `/${this.props.s3Bucket}` : ""}/${this.props.boardId}/${fileId}`, {
 						method: 'GET',
 						responseType: 'arraybuffer',
 					}).catch(() => null);
