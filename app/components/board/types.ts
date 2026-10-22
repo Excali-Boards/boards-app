@@ -14,8 +14,8 @@ export type BoardProps = {
 	currentUrl: string;
 	isMobile: boolean;
 	socketUrl: string;
+	s3Bucket?: string;
 	canEdit: boolean;
-	s3Bucket: string | null;
 	boardId: string;
 	groupId: string;
 	s3Url: string;

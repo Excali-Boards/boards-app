@@ -13,8 +13,12 @@ import { Tldraw } from './Imports';
 import 'tldraw/tldraw.css';
 
 export function TldrawBoard(props: TldrawBoardProps) {
-	if (props.staticMode) return <StaticTldrawBoard {...props} />;
+	return props.staticMode
+		? <StaticTldrawBoard {...props} />
+		: <InteractiveTldrawBoard {...props} />;
+}
 
+function InteractiveTldrawBoard(props: TldrawBoardProps) {
 	const { boardId, token, socketUrl, canEdit, user, licenseKey } = props;
 	const [editor, setEditor] = useState<Editor | null>(null);
 	const [isConnected, setIsConnected] = useState(false);
@@ -203,6 +207,7 @@ function StaticTldrawBoard(props: TldrawBoardProps) {
 		userPreferences: { id: props.user.userId, name: props.user.displayName, colorScheme: colorMode },
 		setUserPreferences: () => undefined,
 	});
+
 	const store = useMemo(() => createTLStore({ snapshot: staticContent as never }), [staticContent]);
 
 	return (

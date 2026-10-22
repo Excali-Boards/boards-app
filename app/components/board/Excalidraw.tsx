@@ -318,10 +318,8 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		await Promise.all(
 			fileIds.map(async (fileId) => {
 				try {
-					const response = await axios(`${this.props.s3Url}${this.props.s3Bucket ? `/${this.props.s3Bucket}` : ""}/${this.props.boardId}/${fileId}`, {
-						method: 'GET',
-						responseType: 'arraybuffer',
-					}).catch(() => null);
+					const bucket = this.props.s3Bucket ? `/${this.props.s3Bucket}` : '';
+					const response = await axios(this.props.s3Url + bucket + '/' + this.props.boardId + '/' + fileId, { method: 'GET', responseType: 'arraybuffer' }).catch(() => null);
 					if (!response || response.status !== 200) throw new Error(response?.data || 'Unknown error fetching file.');
 
 					const buffer = await response.data as ArrayBuffer;
