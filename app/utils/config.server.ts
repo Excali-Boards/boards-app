@@ -57,7 +57,7 @@ const ConfigSchema = z.object({
 	isDev: z.boolean(),
 
 	s3Url: z.string(),
-	s3Bucket: z.string(),
+	s3Bucket: z.string().nullable().default(null),
 
 	auth: z.object({
 		google: z.object({
