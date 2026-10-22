@@ -71,6 +71,7 @@
 		"lib0": "0.2.114",
 		"lodash.isequalwith": "^4.4.0",
 		"lodash.throttle": "4.1.1",
+		"openid-client": "6.8.8",
 		"pako": "2.1.0",
 		"preact": "10.27.2",
 		"react": "18.3.1",

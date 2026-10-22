@@ -13,7 +13,7 @@ import { ConfirmModal } from '~/components/other/ConfirmModal';
 import { UserInput } from '@excali-boards/boards-api-client';
 import { Container } from '~/components/layout/Container';
 import { clearUserCache } from '~/utils/session.server';
-import { platformButtons } from '~/other/platforms';
+import { oidcLoginButton, platformButtons } from '~/other/platforms';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import { MdDesktopWindows } from 'react-icons/md';
@@ -94,14 +94,17 @@ export default function Profile() {
 	const [modalShown, setModalShown] = useState<'logout' | 'change' | 'delete' | null>(null);
 	const [showEmail, setShowEmail] = useState(false);
 
-	const { allowedPlatforms } = useContext(RootContext) || {};
+	const { allowedPlatforms, oidcDisplayName } = useContext(RootContext) || {};
 	const { user, groups, platforms } = useLoaderData<typeof loader>();
 	const toast = useToast();
 
 	const fetcher = useFetcher<WebReturnType<string>>();
 	useFetcherResponse(fetcher, toast, () => setModalShown(null));
 
-	const allPlatformData = useMemo(() => platformButtons(allowedPlatforms || []), [allowedPlatforms]);
+	const allPlatformData = useMemo(() => [
+		...platformButtons(allowedPlatforms || []),
+		...((allowedPlatforms || []).includes('oidc') ? [oidcLoginButton(oidcDisplayName)] : []),
+	], [allowedPlatforms, oidcDisplayName]);
 	const customButtons = useMemo(() => {
 		const buttons: CustomButton<'link'>[] = [{
 			type: 'link',
@@ -198,7 +201,7 @@ export default function Profile() {
 							{platforms.map((p, i) => (
 								<Platform
 									key={p.id}
-									icon={allPlatformData.find((d) => d.name.toLowerCase() === p.id.toLowerCase())?.faIcon({ boxSize: 10 }) || <FaLink />}
+									icon={allPlatformData.find((d) => d.key.toLowerCase() === p.id.toLowerCase())?.faIcon({ boxSize: 10 }) || <FaLink />}
 									title={p.name}
 									primaryAction={p.isConnected ? {
 										label: 'Unlink',

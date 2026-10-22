@@ -1,5 +1,5 @@
-import type { ClientToServerEvents, ServerToClientEvents } from '~/other/types';
 import type { CollabUser, GetUsersOutput } from '@excali-boards/boards-api-client';
+import type { ClientToServerEvents, ServerToClientEvents } from '~/other/types';
 import type { BoardInfo, SidebarType } from './Layout';
 import type { Socket } from 'socket.io-client';
 import { createContext } from 'react';
@@ -26,6 +26,9 @@ export type RootContextType = null | {
 	setBoardInfo: React.Dispatch<React.SetStateAction<BoardInfo | null>>;
 
 	allowedPlatforms: string[];
+	oidcDisplayName: string;
+	qrLoginEnabled: boolean;
+
 	sideBarType: SidebarType | null;
 
 	user: RootUser | null;

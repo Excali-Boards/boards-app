@@ -1,16 +1,15 @@
 import { Box, Button, Divider, Flex, Text, VStack, useColorMode } from '@chakra-ui/react';
+import { oidcLoginButton, platformButtons, qrLoginButton } from '~/other/platforms';
+import { Outlet, useLocation, useSearchParams } from '@remix-run/react';
 import { getCachedUser, parseUserAgent } from '~/utils/session.server';
 import { LoaderFunctionArgs, redirect } from '@remix-run/node';
 import { Container } from '~/components/layout/Container';
 import { allowedPlatforms } from '~/utils/config.server';
-import { platformButtons } from '~/other/platforms';
+import { useContext, useMemo, useState } from 'react';
 import { authenticator } from '~/utils/auth.server';
-import { Outlet, useLocation, useSearchParams } from '@remix-run/react';
 import { RootContext } from '~/components/Context';
 import { loginInfo } from '~/utils/storage.server';
 import { LinkButton } from '~/components/Button';
-import { useContext, useMemo, useState } from 'react';
-import { FaQrcode } from 'react-icons/fa';
 import { getSafeBackTo } from '~/other/qr-login';
 import { QrLogin } from '~/components/QrLogin';
 
@@ -81,13 +80,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function Login() {
-	const { allowedPlatforms = [] } = useContext(RootContext) || {};
-	const [searchParams] = useSearchParams();
-	const location = useLocation();
-	const { colorMode } = useColorMode();
+	const { allowedPlatforms = [], oidcDisplayName, qrLoginEnabled = true } = useContext(RootContext) || {};
 	const [qrOpen, setQrOpen] = useState(false);
+	const [searchParams] = useSearchParams();
+	const { colorMode } = useColorMode();
+	const location = useLocation();
 
 	const allButtons = useMemo(() => platformButtons(allowedPlatforms), [allowedPlatforms]);
+	const oidcButton = useMemo(() => allowedPlatforms.includes('oidc') ? oidcLoginButton(oidcDisplayName) : null, [allowedPlatforms, oidcDisplayName]);
+	const hasSpecialLogin = !!oidcButton || qrLoginEnabled;
 	const backTo = getSafeBackTo(searchParams.get('backTo'));
 	if (location.pathname.startsWith('/login/qr')) return <Outlet />;
 
@@ -97,28 +98,28 @@ export default function Login() {
 				<Container gap={2} bg='transparent' p={0}>
 					{allButtons.length ? allButtons.map((platform) => (
 						<LinkButton
-							to={`/login?type=${platform.name.toLowerCase()}${backTo ? `&backTo=${encodeURIComponent(backTo)}` : ''}`}
-							id={`login-button-${platform.name}`}
+							to={`/login?type=${platform.key}${backTo ? `&backTo=${encodeURIComponent(backTo)}` : ''}`}
+							id={`login-button-${platform.key}`}
 							rounded={12}
-							key={platform.name}
+							key={platform.key}
 							bgColor={platform.color}
 							color={colorMode === 'dark' ? 'gray.900' : 'white'}
-							leftIcon={platform.icon({ boxSize: 6 })}
+							leftIcon={platform.faIcon({ boxSize: 6 })}
 							pl={{ base: '25%', md: '30%' }}
 							justifyContent='flex-start'
 							variant='solid'
 							size='lg'
 							w='100%'
 						>
-							Continue with {platform.name}
+							{platform.action} {platform.name}
 						</LinkButton>
-					)) : (
+					)) : !hasSpecialLogin ? (
 						<Box>
 							No platforms enabled.
 						</Box>
-					)}
+					) : null}
 
-					{allButtons.length > 0 && (
+					{allButtons.length > 0 && hasSpecialLogin && (
 						<Flex align='center' gap={3} my={2}>
 							<Divider flex={1} />
 							<Text color='gray.500' fontSize='sm'>or</Text>
@@ -126,24 +127,45 @@ export default function Login() {
 						</Flex>
 					)}
 
-					<Button
-						type='button'
-						onClick={() => setQrOpen(true)}
-						leftIcon={<FaQrcode size={24} />}
-						pl={{ base: '25%', md: '30%' }}
-						justifyContent='flex-start'
-						id='login-button-qr'
-						colorScheme='brand'
-						variant='solid'
-						rounded={12}
-						size='lg'
-						w='100%'
-					>
-						Log in with QR code
-					</Button>
+					{oidcButton && (
+						<LinkButton
+							to={`/login?type=${oidcButton.key}${backTo ? `&backTo=${encodeURIComponent(backTo)}` : ''}`}
+							id={`login-button-${oidcButton.key}`}
+							rounded={12}
+							bgColor={oidcButton.color}
+							color={colorMode === 'dark' ? 'gray.900' : 'white'}
+							leftIcon={oidcButton.faIcon({ boxSize: 6 })}
+							pl={{ base: '25%', md: '30%' }}
+							justifyContent='flex-start'
+							variant='solid'
+							size='lg'
+							w='100%'
+						>
+							{oidcButton.action} {oidcButton.name}
+						</LinkButton>
+					)}
+
+					{qrLoginEnabled && (
+						<Button
+							type='button'
+							onClick={() => setQrOpen(true)}
+							leftIcon={qrLoginButton.faIcon({ boxSize: 6 })}
+							color={colorMode === 'dark' ? 'gray.900' : 'white'}
+							pl={{ base: '25%', md: '30%' }}
+							justifyContent='flex-start'
+							id='login-button-qr'
+							bgColor={qrLoginButton.color}
+							variant='solid'
+							rounded={12}
+							size='lg'
+							w='100%'
+						>
+							{qrLoginButton.action} {qrLoginButton.name}
+						</Button>
+					)}
 				</Container>
 			</Box>
-			<QrLogin backTo={backTo || '/'} isOpen={qrOpen} onClose={() => setQrOpen(false)} />
+			{qrLoginEnabled && <QrLogin backTo={backTo || '/'} isOpen={qrOpen} onClose={() => setQrOpen(false)} />}
 		</VStack>
 	);
 }

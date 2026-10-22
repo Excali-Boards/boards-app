@@ -56,12 +56,14 @@ export const securityUtils = {
 	},
 };
 
-export function convertPlatform(platform: Lowercase<Platforms>) {
+export function convertPlatform(platform: string) {
 	switch (platform) {
 		case 'discord': return 'Discord';
 		case 'google': return 'Google';
 		case 'github': return 'GitHub';
 		case 'microsoft': return 'Microsoft';
+		case 'oidc': return 'OIDC' as Platforms;
+		default: return platform;
 	}
 }
 

@@ -12,7 +12,7 @@
 - 🗝️ Fine-grained user access control (read/write permissions)
 - 🙈 Option to hide collaborators if preferred
 - 🌗 Dark and light mode themes
-- 🔒 OAuth login (GitHub, Google, Microsoft, Discord)
+- 🔒 OAuth/OIDC login (GitHub, Google, Microsoft, Discord, or any OIDC provider)
 - ☁️ S3-based file storage
 - 🗃️ PostgreSQL for persistent board and user data
 
@@ -56,6 +56,11 @@ PORT=3002
 SESSION_SECRET="your-session-secret"
 API_TOKEN="your-api-token"           # Must match backend token
 
+# Optional Features
+SHOW_SEARCHES=false
+USE_QR_LOGIN=true
+TLDRAW_LICENSE=""
+
 # S3 Configuration
 S3_URL="https://your-s3-url"
 S3_BUCKET="your-s3-bucket"
@@ -84,9 +89,19 @@ MICROSOFT_CLIENT_ID=""
 MICROSOFT_CLIENT_SECRET=""
 MICROSOFT_TENANT_ID=""
 MICROSOFT_REDIRECT_URI="http://localhost:3002/callback/microsoft"
+
+# Generic OpenID Connect
+USE_OIDC=false
+OIDC_ISSUER_URL="https://your-provider.example"
+OIDC_CLIENT_ID=""
+OIDC_CLIENT_SECRET=""
+OIDC_DISPLAY_NAME="OpenID Connect"
+OIDC_SCOPES="openid profile email"
 ```
 
-> 📌 Refer to [`remix-auth`](https://github.com/sergiodxa/remix-auth) and provider-specific plugins for setup instructions.
+> The OIDC issuer must expose standard discovery metadata at `/.well-known/openid-configuration`. Boards uses `BASE_URL + /callback/oidc` as the callback, so register that exact URL with the provider.
+
+> For [RelayId](https://github.com/RelayId), configure Boards as a downstream `oidc.clients` client and set `OIDC_ISSUER_URL` to RelayId's public base URL. RelayId's `oauth2.providers` are configured in RelayId itself; they are its upstream identity sources, not another Boards provider setting.
 
 ### 3. Run the frontend
 

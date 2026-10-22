@@ -7,7 +7,7 @@ import { useContext, useEffect, useMemo, useState } from 'react';
 import { Container } from '~/components/layout/Container';
 import { getCachedUser } from '~/utils/session.server';
 import { qrSessionDurations } from '~/other/qr-login';
-import { platformButtons } from '~/other/platforms';
+import { oidcLoginButton, platformButtons } from '~/other/platforms';
 import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import { LinkButton } from '~/components/Button';
@@ -80,10 +80,13 @@ export default function ApproveQrLogin() {
 	const data = useLoaderData<typeof loader>();
 	const actionData = useActionData<typeof action>();
 
-	const { allowedPlatforms: enabledPlatforms = [] } = useContext(RootContext) || {};
+	const { allowedPlatforms: enabledPlatforms = [], oidcDisplayName } = useContext(RootContext) || {};
 	const { colorMode } = useColorMode();
 
-	const platforms = useMemo(() => platformButtons(enabledPlatforms), [enabledPlatforms]);
+	const platforms = useMemo(() => [
+		...platformButtons(enabledPlatforms),
+		...(enabledPlatforms.includes('oidc') ? [oidcLoginButton(oidcDisplayName)] : []),
+	], [enabledPlatforms, oidcDisplayName]);
 	const [now, setNow] = useState(() => Date.now());
 	const expiresAt = data.available ? data.expiresAt : null;
 
@@ -109,9 +112,12 @@ export default function ApproveQrLogin() {
 				<Text>Sign in on this phone to review and approve the browser request.</Text>
 				<Text fontSize='lg' fontWeight='bold' textAlign='center'>Matching code: {data.userCode}</Text>
 				<Text fontSize='sm' color='gray.500' textAlign='center'>After signing in, approve only if this code matches the code shown on the browser.</Text>
+
 				{platforms.length ? platforms.map((platform) => (
-					<LinkButton key={platform.name} to={`/login?type=${platform.name.toLowerCase()}&backTo=${encodeURIComponent(approvalPath)}`} bgColor={platform.color} color={colorMode === 'dark' ? 'gray.900' : 'white'} leftIcon={platform.icon({ boxSize: 6 })} justifyContent='center' variant='solid' size='lg' w='100%' rounded={12}>Continue with {platform.name}</LinkButton>
-				)) : <Text>No platforms enabled.</Text>}
+					<LinkButton key={platform.key} to={`/login?type=${platform.key}&backTo=${encodeURIComponent(approvalPath)}`} bgColor={platform.color} color={colorMode === 'dark' ? 'gray.900' : 'white'} leftIcon={platform.faIcon({ boxSize: 6 })} justifyContent='center' variant='solid' size='lg' w='100%' rounded={12}>{platform.action} {platform.name}</LinkButton>
+				)) : (
+					<Text>No platforms enabled.</Text>
+				)}
 			</QrApprovalLayout>
 		);
 	}
@@ -123,11 +129,16 @@ export default function ApproveQrLogin() {
 				<Avatar size='sm' name={data.user.displayName} src={data.user.avatarUrl || undefined} />
 				<Box minW={0}><Text fontSize='sm' color='gray.500'>Signed in as</Text><Text fontWeight='bold' noOfLines={1}>{data.user.displayName}</Text></Box>
 			</HStack>}
+
 			<Text fontSize='lg' fontWeight='bold' textAlign='center'>Matching code: {data.userCode}</Text>
-			{data.requestDevice && <VStack spacing={1} w='100%'>
-				<Text fontSize='sm' color='gray.500'>Requesting device</Text>
-				<Text textAlign='center'>{data.requestDevice}</Text>
-			</VStack>}
+
+			{data.requestDevice && (
+				<VStack spacing={1} w='100%'>
+					<Text fontSize='sm' color='gray.500'>Requesting device</Text>
+					<Text textAlign='center'>{data.requestDevice}</Text>
+				</VStack>
+			)}
+
 			<Text fontSize='sm' color='gray.500' textAlign='center'>Only approve if this code matches the code displayed on the browser you are signing in.</Text>
 
 			{approved || denied ? (
@@ -160,5 +171,11 @@ export default function ApproveQrLogin() {
 }
 
 function QrApprovalLayout({ children }: { children: React.ReactNode; }) {
-	return <VStack w='100%' align='center' px={4} mt={{ base: 8, md: 20 }}><Box maxWidth='500px' width={{ base: '100%', sm: '90%', md: '80%', xl: '60%' }}><Container gap={5} alignItems='center'>{children}</Container></Box></VStack>;
+	return (
+		<VStack w='100%' align='center' px={4} mt={{ base: 8, md: 20 }}>
+			<Box maxWidth='500px' width={{ base: '100%', sm: '90%', md: '80%', xl: '60%' }}>
+				<Container gap={5} alignItems='center'>{children}</Container>
+			</Box>
+		</VStack>
+	);
 }

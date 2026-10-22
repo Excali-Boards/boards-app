@@ -10,6 +10,7 @@ const config = {
 	apiToken: process.env.API_TOKEN!,
 
 	showSearches: process.env.SHOW_SEARCHES === 'true',
+	qrLogin: process.env.USE_QR_LOGIN !== 'false',
 	tldrawLicense: process.env.TLDRAW_LICENSE || null,
 
 	port: process.env.PORT ? parseInt(process.env.PORT, 10) : 3002,
@@ -40,6 +41,13 @@ const config = {
 			redirectUri: process.env.MICROSOFT_REDIRECT_URI!,
 			tenantId: process.env.MICROSOFT_TENANT_ID!,
 		} : null,
+		oidc: process.env.USE_OIDC === 'true' ? {
+			issuerUrl: process.env.OIDC_ISSUER_URL!,
+			clientId: process.env.OIDC_CLIENT_ID!,
+			clientSecret: process.env.OIDC_CLIENT_SECRET!,
+			displayName: process.env.OIDC_DISPLAY_NAME || 'OpenID Connect',
+			scopes: (process.env.OIDC_SCOPES || 'openid profile email').split(/\s+/).filter(Boolean),
+		} : null,
 	},
 } satisfies z.infer<typeof ConfigSchema>;
 
@@ -51,6 +59,7 @@ const ConfigSchema = z.object({
 	apiToken: z.string(),
 
 	showSearches: z.coerce.boolean().default(false),
+	qrLogin: z.boolean(),
 	tldrawLicense: z.string().nullable(),
 
 	port: z.number().int().min(1).max(65535),
@@ -81,6 +90,13 @@ const ConfigSchema = z.object({
 			redirectUri: z.string(),
 			tenantId: z.string(),
 		}).nullable(),
+		oidc: z.object({
+			issuerUrl: z.url(),
+			clientId: z.string(),
+			clientSecret: z.string(),
+			displayName: z.string().min(1),
+			scopes: z.array(z.string().min(1)).min(1),
+		}).nullable(),
 	}),
 });
 
@@ -94,6 +110,7 @@ export const allowedPlatforms = [
 	...(config.auth.google ? ['google'] : []),
 	...(config.auth.github ? ['github'] : []),
 	...(config.auth.discord ? ['discord'] : []),
+	...(config.auth.oidc ? ['oidc'] : []),
 	...(config.auth.microsoft ? ['microsoft'] : []),
 ] as AllowedPlatforms[];
 
@@ -102,6 +119,10 @@ export function convertName(name: AllowedPlatforms): Platforms {
 		case 'google': return 'Google';
 		case 'github': return 'GitHub';
 		case 'discord': return 'Discord';
+		case 'oidc': return 'OIDC' as Platforms;
 		case 'microsoft': return 'Microsoft';
 	}
 }
+
+export const oidcDisplayName = config.auth.oidc?.displayName || 'OpenID Connect';
+export const qrLoginEnabled = config.qrLogin;
