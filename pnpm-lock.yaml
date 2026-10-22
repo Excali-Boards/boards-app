@@ -33,8 +33,8 @@ importers:
         specifier: 11.11.0
         version: 11.11.0
       '@excali-boards/boards-api-client':
-        specifier: 1.1.73
-        version: 1.1.73(typescript@5.7.3)
+        specifier: 1.1.75
+        version: 1.1.75(typescript@5.7.3)
       '@excalidraw/excalidraw':
         specifier: 0.18.0
         version: 0.18.0(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1455,8 +1455,8 @@ packages:
     resolution: {integrity: sha512-Ys+3g2TaW7gADOJzPt83SJtCDhMjndcDMFVQ/Tj9iA1BfJzFKD9mAUXT3OenpuPHbI6P/myECxRJrofUsDx/5g==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
 
-  '@excali-boards/boards-api-client@1.1.73':
-    resolution: {integrity: sha512-cfWtigjGv1pqXDOcwmfBaZRWIee7oS1r1XRHqe8P6eowmy+uHjc63GKvi+V+DlCG2dh0O6BB1bW7/ZUJ9yHyZw==}
+  '@excali-boards/boards-api-client@1.1.75':
+    resolution: {integrity: sha512-RDU3HeFrQ4fdKwU8TUpGHcqTPNBtxFJKoUAzGS7jJezYd/ltfW//uVsza1xgWPmufixxqnuAe55NR6oUMtg5kA==}
     engines: {node: '>=20.2.0'}
 
   '@excalidraw/excalidraw@0.18.0':
@@ -8547,7 +8547,7 @@ snapshots:
 
   '@eslint/js@8.57.0': {}
 
-  '@excali-boards/boards-api-client@1.1.73(typescript@5.7.3)':
+  '@excali-boards/boards-api-client@1.1.75(typescript@5.7.3)':
     dependencies:
       '@prisma/client': 6.16.2(prisma@6.16.2(typescript@5.7.3))(typescript@5.7.3)
       axios: 1.12.2

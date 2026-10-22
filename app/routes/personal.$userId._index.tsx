@@ -51,7 +51,6 @@ export type ManageCategoryProps = {
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const { userId } = validateParams(params, ['userId']);
-	const groupId = userId;
 
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
@@ -59,19 +58,27 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const ipHeaders = getIpHeaders(request);
 	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
 
-	const DBGroup = await api?.groups.getGroup({ auth: token, groupId, headers: ipHeaders });
-	if (!DBGroup || 'error' in DBGroup) throw makeResponse(DBGroup, 'Failed to get group.');
+	const DBWorkspace = await api?.personal.getPersonalWorkspace({ auth: token, userId, headers: ipHeaders });
+	if (!DBWorkspace || 'error' in DBWorkspace) throw makeResponse(DBWorkspace, 'Failed to get personal workspace.');
+
+	const workspace = DBWorkspace.data;
 
 	return {
-		group: DBGroup.data.group,
-		categories: DBGroup.data.categories,
+		userId,
+		group: { id: workspace.id, name: 'Personal Boards', accessLevel: 'admin' as const },
+		categories: workspace.categories.map((category) => ({
+			id: category.id,
+			name: category.name,
+			boards: category.boards.length,
+			totalSizeBytes: category.boards.reduce((total, board) => total + board.totalSizeBytes, 0),
+			accessLevel: 'admin' as const,
+		})),
 		showSearches: configServer.showSearches,
 	};
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
 	const { userId } = validateParams(params, ['userId']);
-	const groupId = userId;
 
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) return makeResObject(null, 'You are not authorized to perform this action.');
@@ -79,15 +86,18 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 	const ipHeaders = getIpHeaders(request);
 	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
 
+	const DBWorkspace = await api?.personal.getPersonalWorkspace({ auth: token, userId, headers: ipHeaders });
+	if (!DBWorkspace || 'error' in DBWorkspace) return makeResObject(DBWorkspace, 'Failed to get personal workspace.');
+	const groupId = DBWorkspace.data.id;
+
 	const formData = await request.formData();
 	const type = formData.get('type') as string;
 
 	switch (type) {
 		case 'newCategory': {
 			const categoryName = formData.get('categoryName') as string;
-			const copyPermissionsFromCategoryId = (formData.get('copyPermissionsFromCategoryId') as string) || undefined;
 
-			const result = await api?.groups.createCategoryInGroup({ auth: token, groupId, body: { name: categoryName, copyPermissionsFromCategoryId }, headers: ipHeaders });
+			const result = await api?.personal.createPersonalCategory({ auth: token, body: { name: categoryName }, headers: ipHeaders });
 			return makeResObject(result, 'Failed to create category.');
 		}
 		case 'updateCategory': {
@@ -160,7 +170,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 };
 
 export default function Categories() {
-	const { group, categories, showSearches } = useLoaderData<typeof loader>();
+	const { userId, group, categories, showSearches } = useLoaderData<typeof loader>();
 	const { user, setCanInvite } = useContext(RootContext) || {};
 
 	const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -229,12 +239,12 @@ export default function Categories() {
 				<MenuBar
 					name={`Categories in group: ${group.name}`}
 					description={'List of all categories that are currently available to you in this group.'}
-					goBackPath='/groups'
+					goBackPath={`/personal/${userId}`}
 					customButtons={[{
 						type: 'link',
 						label: 'Calendar',
 						icon: <FaCalendarAlt />,
-						to: `/groups/${group.id}/calendar`,
+						to: `/personal/${userId}/calendar`,
 						tooltip: 'View group calendar',
 						reloadDocument: true,
 					}, ...(canManageAnyCategory ? [{
@@ -278,7 +288,7 @@ export default function Categories() {
 						editorMode,
 						sizeBytes: c.totalSizeBytes,
 						isDeleteDisabled: c.boards > 0,
-						url: `/groups/${group.id}/${c.id}`,
+						url: `/personal/${userId}/${c.id}`,
 						hasPerms: canManage(c.accessLevel, user?.isDev),
 						name: c.name.charAt(0).toUpperCase() + c.name.slice(1),
 						permsUrl: canInviteAndPermit(c.accessLevel, user?.isDev) ? `/permissions/${group.id}/${c.id}` : undefined,

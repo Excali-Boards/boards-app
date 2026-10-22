@@ -23,7 +23,6 @@ const TldrawBoard = lazy(async () => {
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const { boardId, userId, categoryId } = validateParams(params, ['boardId', 'userId', 'categoryId']);
-	const groupId = userId;
 
 	const previewQuery = new URL(request.url).searchParams.get('preview');
 	const isPreview = previewQuery === 'true';
@@ -34,14 +33,14 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const ipHeaders = getIpHeaders(request);
 	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
 
-	const DBBoard = await api?.boards.getBoard({ auth: token, boardId, groupId, categoryId, headers: ipHeaders });
-	if (!DBBoard || 'error' in DBBoard) throw makeResponse(DBBoard, 'Failed to get board.');
+	const DBBoard = await api?.personal.getPersonalBoard({ auth: token, userId, categoryId, boardId, headers: ipHeaders });
+	if (!DBBoard || 'error' in DBBoard) throw makeResponse(DBBoard, 'Failed to get personal board.');
 
 	return {
 		...DBBoard.data,
 		webUrl: configServer.baseUrl,
 		licenseKey: configServer.tldrawLicense,
-		currentUrl: configServer.baseUrl + `/groups/${DBBoard.data.group.id}/${DBBoard.data.category.id}/${DBBoard.data.board.id}`,
+		currentUrl: configServer.baseUrl + `/personal/${userId}/${DBBoard.data.category.id}/${DBBoard.data.board.id}`,
 		socketUrl: configServer.apiUrl,
 		s3Bucket: configServer.s3Bucket,
 		s3Url: configServer.s3Url,
@@ -51,13 +50,16 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
 	const { userId, categoryId, boardId } = validateParams(params, ['userId', 'categoryId', 'boardId']);
-	const groupId = userId;
 
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
 	const ipHeaders = getIpHeaders(request);
 	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
+
+	const DBBoard = await api?.personal.getPersonalBoard({ auth: token, userId, categoryId, boardId, headers: ipHeaders });
+	if (!DBBoard || 'error' in DBBoard) return makeResObject(DBBoard, 'Failed to get personal board.');
+	const groupId = DBBoard.data.group.id;
 
 	const formData = await request.formData();
 	const type = formData.get('type') as string;

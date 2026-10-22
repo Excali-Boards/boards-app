@@ -41,13 +41,16 @@ export type EventData = CalendarEvent | Jsonify<FormattedHoliday>;
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const { userId } = validateParams(params, ['userId']);
-	const groupId = userId;
 
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
 	const ipHeaders = getIpHeaders(request);
 	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
+
+	const DBWorkspace = await api?.personal.getPersonalWorkspace({ auth: token, userId, headers: ipHeaders });
+	if (!DBWorkspace || 'error' in DBWorkspace) throw makeResponse(DBWorkspace, 'Failed to get personal workspace.');
+	const groupId = DBWorkspace.data.id;
 
 	const DBCalendarData = await api?.calendar.getCalendar({ auth: token, groupId, headers: ipHeaders });
 	if (!DBCalendarData || 'error' in DBCalendarData) throw makeResponse(DBCalendarData, 'Failed to get calendar data.');
@@ -75,13 +78,16 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
 	const { userId } = validateParams(params, ['userId']);
-	const groupId = userId;
 
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) return makeResObject(null, 'You are not authorized to perform this action.');
 
 	const ipHeaders = getIpHeaders(request);
 	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
+
+	const DBWorkspace = await api?.personal.getPersonalWorkspace({ auth: token, userId, headers: ipHeaders });
+	if (!DBWorkspace || 'error' in DBWorkspace) return makeResObject(DBWorkspace, 'Failed to get personal workspace.');
+	const groupId = DBWorkspace.data.id;
 
 	const formData = await request.formData();
 	const type = formData.get('type') as string;

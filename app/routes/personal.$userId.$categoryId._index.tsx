@@ -54,7 +54,6 @@ export type ManageBoardProps = {
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const { userId, categoryId } = validateParams(params, ['userId', 'categoryId']);
-	const groupId = userId;
 
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
@@ -62,14 +61,22 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const ipHeaders = getIpHeaders(request);
 	if (!ipHeaders) throw makeResponse(null, 'Failed to get client IP.');
 
-	const DBCategory = await api?.categories.getCategory({ auth: token, categoryId, groupId, headers: ipHeaders });
-	if (!DBCategory || 'error' in DBCategory) throw makeResponse(DBCategory, 'Failed to get category.');
+	const DBWorkspace = await api?.personal.getPersonalWorkspace({ auth: token, userId, headers: ipHeaders });
+	if (!DBWorkspace || 'error' in DBWorkspace) throw makeResponse(DBWorkspace, 'Failed to get personal workspace.');
+
+	const workspace = DBWorkspace.data;
+	const category = workspace.categories.find((candidate) => candidate.id === categoryId);
+	if (!category) throw makeResponse({ status: 404, error: 'Personal category not found.' }, 'Personal category not found.');
 
 	return {
-		...DBCategory.data,
+		userId,
+		group: { id: workspace.id, name: 'Personal Boards', accessLevel: 'admin' as const },
+		category: { id: category.id, name: category.name, index: 0, accessLevel: 'admin' as const },
 		showSearches: configServer.showSearches,
-		boards: DBCategory.data.boards.map((board) => ({
+		boards: category.boards.map((board) => ({
 			...board,
+			accessLevel: 'admin' as const,
+			hasFlashcards: false,
 			scheduledForDeletionText: board.scheduledForDeletion ? formatRelativeTime(new Date(board.scheduledForDeletion), true) : null,
 		})),
 	};
@@ -77,13 +84,16 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
 	const { userId, categoryId } = validateParams(params, ['userId', 'categoryId']);
-	const groupId = userId;
 
 	const token = await authenticator.isAuthenticated(request);
 	if (!token) throw makeResponse(null, 'You are not authorized to view this page.');
 
 	const ipHeaders = getIpHeaders(request);
 	if (!ipHeaders) return makeResObject(null, 'Failed to get client IP.');
+
+	const DBWorkspace = await api?.personal.getPersonalWorkspace({ auth: token, userId, headers: ipHeaders });
+	if (!DBWorkspace || 'error' in DBWorkspace) return makeResObject(DBWorkspace, 'Failed to get personal workspace.');
+	const groupId = DBWorkspace.data.id;
 
 	const formData = await request.formData();
 	const type = formData.get('type') as string;
@@ -92,9 +102,8 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 		case 'newBoard': {
 			const boardName = formData.get('boardName') as string;
 			const boardType = formData.get('boardType') as BoardType;
-			const copyPermissionsFromBoardId = (formData.get('copyPermissionsFromBoardId') as string) || undefined;
 
-			const result = await api?.categories.createBoardInCategory({ auth: token, categoryId, groupId, body: { name: boardName, type: boardType, copyPermissionsFromBoardId }, headers: ipHeaders });
+			const result = await api?.personal.createPersonalBoardInCategory({ auth: token, userId, categoryId, body: { name: boardName, type: boardType }, headers: ipHeaders });
 			return makeResObject(result, 'Failed to create board.');
 		}
 		case 'updateBoard': {
@@ -191,7 +200,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 };
 
 export default function Boards() {
-	const { group, category, boards, showSearches } = useLoaderData<typeof loader>();
+	const { userId, group, category, boards, showSearches } = useLoaderData<typeof loader>();
 	const { user } = useContext(RootContext) || {};
 
 	const [modalOpen, setModalOpen] = useState<ModalOpen>(null);
@@ -269,7 +278,7 @@ export default function Boards() {
 				<MenuBar
 					name={`Boards in category: ${category.name}`}
 					description={'List of all boards that are currently available to you in this category.'}
-					goBackPath={`/groups/${group.id}`}
+					goBackPath={`/personal/${userId}`}
 					customButtons={[
 						...(canManageAnyBoard ? [{
 							type: 'normal',
@@ -322,7 +331,7 @@ export default function Boards() {
 						editorMode,
 						sizeBytes: board.totalSizeBytes,
 						hasPerms: canManage(board.accessLevel, user?.isDev),
-						url: `/groups/${group.id}/${category.id}/${board.id}`,
+						url: `/personal/${userId}/${category.id}/${board.id}`,
 						name: board.name.charAt(0).toUpperCase() + board.name.slice(1),
 
 						flashExists: board.hasFlashcards,
