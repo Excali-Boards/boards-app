@@ -56,8 +56,8 @@ const ConfigSchema = z.object({
 	port: z.number().int().min(1).max(65535),
 	isDev: z.boolean(),
 
-	s3Url: z.string(),
-	s3Bucket: z.string(),
+	s3Url: z.string().nonempty(),
+	s3Bucket: z.string().optional(),
 
 	auth: z.object({
 		google: z.object({
