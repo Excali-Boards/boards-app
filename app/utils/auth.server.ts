@@ -1,5 +1,5 @@
 import { Device } from '@excali-boards/boards-api-client/prisma/generated/client';
-import { Platforms } from '@excali-boards/boards-api-client';
+import { CreateSessionInput, Platforms } from '@excali-boards/boards-api-client';
 import { MicrosoftStrategy } from 'remix-auth-microsoft';
 import { sessionStorage } from '~/utils/storage.server';
 import { DiscordStrategy } from 'remix-auth-discord';
@@ -147,27 +147,35 @@ const oidcStrategy = configServer.auth.oidc ? new OIDCStrategy<string | null>({
 	return createSession(parsedUser.data, request, context);
 }) : null;
 
-async function createSession(strategyData: AuthUser, request: Request, extra?: Partial<Record<'ip' | 'currentUserId' | 'device' | 'refreshProfile', string>>) {
+async function createSession(strategyData: AuthUser, request: Request, extra?: Partial<Record<'ip' | 'currentUserId' | 'device' | 'refreshProfile' | 'inviteCode', string>>) {
 	const ipHeaders = getIpHeaders(request);
-	if (!ipHeaders) throw new CustomError('Failed to get client IP.', 'CustomError');
+	if (!ipHeaders) throw new CustomError('CustomError', 'Failed to get client IP.');
+
+	const sessionBody: CreateSessionInput = {
+		email: strategyData.email,
+		platform: strategyData.platform as Platforms,
+		displayName: strategyData.displayName,
+		avatarUrl: strategyData.avatarUrl || null,
+		...(strategyData.providerIssuer ? { providerIssuer: strategyData.providerIssuer } : {}),
+		...(strategyData.providerSubject ? { providerSubject: strategyData.providerSubject } : {}),
+		currentUserId: 'currentUserId' in (extra || {}) ? extra?.currentUserId : undefined,
+		device: 'device' in (extra || {}) ? extra?.device as Device : undefined,
+		ip: 'ip' in (extra || {}) ? extra?.ip : undefined,
+		refreshProfile: 'refreshProfile' in (extra || {}) ? extra?.refreshProfile === 'true' : undefined,
+		inviteCode: 'inviteCode' in (extra || {}) ? extra?.inviteCode : undefined,
+	};
 
 	const DBUser = await api?.sessions.createSession({
 		auth: configServer.apiToken,
-		body: {
-			email: strategyData.email,
-			platform: strategyData.platform as Platforms,
-			displayName: strategyData.displayName,
-			avatarUrl: strategyData.avatarUrl || null,
-			...(strategyData.providerIssuer ? { providerIssuer: strategyData.providerIssuer } : {}),
-			...(strategyData.providerSubject ? { providerSubject: strategyData.providerSubject } : {}),
-			currentUserId: 'currentUserId' in (extra || {}) ? extra?.currentUserId : undefined,
-			device: 'device' in (extra || {}) ? extra?.device as Device : undefined,
-			ip: 'ip' in (extra || {}) ? extra?.ip : undefined,
-			refreshProfile: 'refreshProfile' in (extra || {}) ? extra?.refreshProfile === 'true' : undefined,
-		},
+		body: sessionBody,
 	});
 
-	if (!DBUser || 'error' in DBUser) throw new CustomError('Current user not found.', 'CustomError');
+	if (!DBUser) throw new CustomError('CustomError', 'Current user not found.');
+	if ('error' in DBUser) {
+		const message = Array.isArray(DBUser.error) ? DBUser.error.join(' ') : DBUser.error;
+		throw new CustomError('CustomError', message);
+	}
+
 	return DBUser.data.token;
 }
 

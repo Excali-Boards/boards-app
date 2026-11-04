@@ -10,7 +10,7 @@ import { authenticator } from '~/utils/auth.server';
 import { RootContext } from '~/components/Context';
 import { loginInfo } from '~/utils/storage.server';
 import { LinkButton } from '~/components/Button';
-import { getSafeBackTo } from '~/other/qr-login';
+import { getInviteCodeFromBackTo, getSafeBackTo } from '~/other/qr-login';
 import { QrLogin } from '~/components/QrLogin';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -24,6 +24,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 	const type = query.get('type') as string | undefined;
 	const backTo = getSafeBackTo(query.get('backTo'));
+	const inviteCode = getInviteCodeFromBackTo(backTo);
 	const refreshProfile = query.get('refreshProfile') === 'true';
 
 	if (!type || !allowedPlatforms.some((p) => p.toLowerCase() === type.toLowerCase())) {
@@ -32,6 +33,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 			const cookieHeader = request.headers.get('Cookie');
 			const backToCookie = await loginInfo.parse(cookieHeader) || {};
 			backToCookie.backTo = backTo;
+			backToCookie.inviteCode = inviteCode;
 
 			return {
 				data: null,
@@ -45,6 +47,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const cookieHeader = request.headers.get('Cookie');
 	const backToCookie = await loginInfo.parse(cookieHeader) || {};
 	backToCookie.backTo = backTo;
+	backToCookie.inviteCode = inviteCode;
 	backToCookie.refreshProfile = refreshProfile;
 
 	if (query.get('add') === 'true' && DBUser && 'data' in DBUser) {
@@ -61,6 +64,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 			failureRedirect: '/',
 			context: {
 				currentUserId: 'currentUserId' in backToCookie ? backToCookie.currentUserId : undefined,
+				inviteCode: 'inviteCode' in backToCookie ? backToCookie.inviteCode : undefined,
 				device: parseUserAgent(request.headers.get('user-agent')),
 				ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || request.headers.get('cf-connecting-ip') || undefined,
 				refreshProfile: 'refreshProfile' in backToCookie ? String(backToCookie.refreshProfile) : undefined,

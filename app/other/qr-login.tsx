@@ -34,3 +34,17 @@ export function getSafeBackTo(value: string | null | undefined) {
 		return '/';
 	}
 }
+
+export function getInviteCodeFromBackTo(value: string | null | undefined): string | undefined {
+	const backTo = getSafeBackTo(value);
+	const pathname = new URL(backTo, 'https://boards.invalid').pathname;
+	const match = /^\/invites\/([^/]+)$/.exec(pathname);
+	if (!match?.[1]) return undefined;
+
+	try {
+		const code = decodeURIComponent(match[1]);
+		return /^[a-z0-9_-]+$/i.test(code) ? code : undefined;
+	} catch {
+		return undefined;
+	}
+}

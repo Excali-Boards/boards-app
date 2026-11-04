@@ -108,6 +108,7 @@ export default function AcceptInvite() {
 
 	const isInviter = user?.userId === invite.invitedBy.userId;
 	const isAtMaxUses = invite.currentUses >= invite.maxUses;
+	const allowSignUp = invite.allowSignUp;
 
 	if (actionData && 'data' in actionData) {
 		return (
@@ -211,6 +212,7 @@ export default function AcceptInvite() {
 						<HStack spacing={2}>
 							<Text fontSize='xl' fontWeight='semibold'>{invite.invitedBy.displayName}</Text>
 							<Badge fontFamily='mono' colorScheme='purple'>Inviter</Badge>
+							{allowSignUp && <Badge colorScheme='green'>Sign-up enabled</Badge>}
 						</HStack>
 
 						<Text fontSize='sm' color='gray.500'>

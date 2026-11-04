@@ -1,4 +1,4 @@
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, FormControl, FormLabel, NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper, useColorMode, useToast, Flex, Text, Box, Divider, useColorModeValue, Icon } from '@chakra-ui/react';
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, FormControl, FormLabel, FormHelperText, NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper, useColorMode, useToast, Flex, Text, Box, Divider, useColorModeValue, Icon, Checkbox } from '@chakra-ui/react';
 import { GetAllSortedOutput } from '@excali-boards/boards-api-client';
 import { getRandomColorScheme, findConflicts } from '~/other/utils';
 import { Fragment, useCallback, useMemo, useState } from 'react';
@@ -45,6 +45,7 @@ export function CreateInviteModal({ isOpen, onClose, allData, canSelectGroups, c
 
 	const [maxUses, setMaxUses] = useState<number>(1);
 	const [expiresIn, setExpiresIn] = useState(7);
+	const [allowSignUp, setAllowSignUp] = useState(false);
 
 	useFetcherResponse(fetcher, toast, () => {
 		onClose();
@@ -59,6 +60,7 @@ export function CreateInviteModal({ isOpen, onClose, allData, canSelectGroups, c
 
 		setMaxUses(1);
 		setExpiresIn(7);
+		setAllowSignUp(false);
 	});
 
 	const groupOptions = useMemo(() => allData.map((group) => ({
@@ -109,12 +111,13 @@ export function CreateInviteModal({ isOpen, onClose, allData, canSelectGroups, c
 
 		if (maxUses) inviteData.maxUses = maxUses;
 		if (expiresIn) inviteData.expiresIn = expiresIn;
+		inviteData.allowSignUp = allowSignUp;
 
 		const formData = new FormData();
 		formData.append('type', 'createInvite');
 		formData.append('inviteData', JSON.stringify(inviteData));
 		fetcher.submit(formData, { method: 'post' });
-	}, [selectedGroups, selectedCategories, selectedBoards, groupRole, categoryRole, boardRole, maxUses, expiresIn, fetcher, canSelectGroups, canSelectCategories, canSelectBoards]);
+	}, [selectedGroups, selectedCategories, selectedBoards, groupRole, categoryRole, boardRole, maxUses, expiresIn, allowSignUp, fetcher, canSelectGroups, canSelectCategories, canSelectBoards]);
 
 	const conflicts = useMemo(() => findConflicts({
 		allData,
@@ -234,6 +237,18 @@ export function CreateInviteModal({ isOpen, onClose, allData, canSelectGroups, c
 								<Divider />
 							</Fragment>
 						)}
+
+						<FormControl>
+							<Checkbox
+								isChecked={allowSignUp}
+								onChange={(event) => setAllowSignUp(event.target.checked)}
+							>
+								Allow new users to sign up with this invite
+							</Checkbox>
+							<FormHelperText>
+								This lets someone create an account through this invite when public sign-up is disabled.
+							</FormHelperText>
+						</FormControl>
 
 						<Flex w='100%' gap={4} flexDir={{ base: 'column', md: 'row' }}>
 							<FormControl flex={1}>

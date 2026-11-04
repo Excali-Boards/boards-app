@@ -15,6 +15,7 @@ export type InviteCardProps = {
 	uses: number;
 	maxUses: number;
 	expiresAt: Date | null;
+	allowSignUp?: boolean;
 
 	canManage?: boolean;
 	onDelete?: () => void;
@@ -28,6 +29,7 @@ export function InviteCard({
 	uses,
 	maxUses,
 	expiresAt,
+	allowSignUp,
 	canManage,
 	onDelete,
 	onDetails,
@@ -99,6 +101,17 @@ export function InviteCard({
 			>
 				{role}
 			</Badge>
+
+			{allowSignUp && (
+				<Badge
+					px={2} py={1}
+					colorScheme='green'
+					borderRadius='full'
+					textTransform='none'
+				>
+					Sign-up enabled
+				</Badge>
+			)}
 		</HStack>
 	);
 

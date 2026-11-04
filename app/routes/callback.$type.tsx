@@ -12,10 +12,12 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 	const backToCookie = await loginInfo.parse(cookieHeader) || {};
 
 	const backTo = backToCookie?.backTo || '/';
+	const inviteCode = backToCookie?.inviteCode;
 
 	const check = await authenticator.isAuthenticated(request);
 	if (check) {
 		backToCookie.backTo = undefined;
+		backToCookie.inviteCode = undefined;
 		return redirect(backTo, { headers: { 'Set-Cookie': await loginInfo.serialize(backToCookie) } });
 	}
 
@@ -24,15 +26,19 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
 	try {
 		backToCookie.backTo = undefined;
+		backToCookie.inviteCode = undefined;
+
+		const context = {
+			...(addToUser ? { currentUserId: addToUser } : {}),
+			inviteCode,
+			device: parseUserAgent(request.headers.get('user-agent')),
+			ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || request.headers.get('cf-connecting-ip') || undefined,
+		};
 
 		return await authenticator.authenticate(type, request, {
 			successRedirect: backTo,
 			failureRedirect: '/login',
-			context: addToUser ? {
-				currentUserId: addToUser,
-				device: parseUserAgent(request.headers.get('user-agent')),
-				ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || request.headers.get('cf-connecting-ip') || undefined,
-			} : undefined,
+			context,
 		});
 	} catch (error) { // This is really ingenious way.
 		if (error instanceof Response && !error.redirected) {

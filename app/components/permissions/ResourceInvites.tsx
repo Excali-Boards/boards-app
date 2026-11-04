@@ -1,4 +1,4 @@
-import { Button, Flex, FormControl, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, NumberInput, NumberInputField, VStack, useColorMode, useToast } from '@chakra-ui/react';
+import { Button, Checkbox, Flex, FormControl, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, NumberInput, NumberInputField, VStack, useColorMode, useToast } from '@chakra-ui/react';
 import { Invite } from '@excali-boards/boards-api-client/prisma/generated/client';
 import { Jsonify } from '@remix-run/server-runtime/dist/jsonify';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
@@ -60,6 +60,7 @@ export function ResourceInvites({ invites, canManage, showRenew }: ResourceInvit
 						uses={invite.currentUses}
 						maxUses={invite.maxUses || 0}
 						expiresAt={invite.expiresAt ? new Date(invite.expiresAt) : null}
+						allowSignUp={invite.allowSignUp}
 						canManage={canManage}
 
 						onDetails={() => setTargetInvite(invite)}
@@ -94,7 +95,7 @@ export function ResourceInvites({ invites, canManage, showRenew }: ResourceInvit
 	);
 }
 
-export type UpdatedInviteData = Jsonify<Pick<Invite, 'code' | 'expiresAt' | 'maxUses' | 'currentUses' | 'boardRole' | 'categoryRole' | 'groupRole'>> & {
+export type UpdatedInviteData = Jsonify<Pick<Invite, 'code' | 'expiresAt' | 'maxUses' | 'currentUses' | 'allowSignUp' | 'boardRole' | 'categoryRole' | 'groupRole'>> & {
 	groups: { value: string; label: string; }[];
 	categories: { value: string; label: string; }[];
 	boards: { value: string; label: string; }[];
@@ -216,6 +217,12 @@ export function ResourceInviteDetailsModal({ invite, isOpen, onClose, onRenew }:
 								/>
 							</FormControl>
 						)}
+
+						<FormControl>
+							<Checkbox isChecked={Boolean(invite.allowSignUp)} isDisabled>
+								Allows new users to sign up with this invite
+							</Checkbox>
+						</FormControl>
 
 						<Flex w='100%' gap={4} flexDir={{ base: 'column', md: 'row' }}>
 							<FormControl w='25%'>

@@ -1,4 +1,4 @@
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, FormControl, FormLabel, NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper, useColorMode, VisuallyHiddenInput, Input, Flex, useToast } from '@chakra-ui/react';
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, FormControl, FormLabel, FormHelperText, NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper, useColorMode, VisuallyHiddenInput, Input, Flex, useToast, Checkbox } from '@chakra-ui/react';
 import { useFetcherResponse } from '~/hooks/useFetcherResponse';
 import { ResourceType } from '@excali-boards/boards-api-client';
 import { HigherRoles, LowerRoles } from './CreateInviteModal';
@@ -42,12 +42,14 @@ export function ResourceInviteModal({
 	const [selectedRole, setSelectedRole] = useState<string | null>('Viewer');
 	const [expiresIn, setExpiresIn] = useState(7);
 	const [maxUses, setMaxUses] = useState(1);
+	const [allowSignUp, setAllowSignUp] = useState(false);
 
 	useFetcherResponse(fetcher, toast, () => {
 		onClose();
 
 		setMaxUses(1);
 		setExpiresIn(7);
+		setAllowSignUp(false);
 	});
 
 	const resourcePath = useMemo(() => {
@@ -69,6 +71,7 @@ export function ResourceInviteModal({
 
 		if (maxUses) inviteData.maxUses = maxUses;
 		if (expiresIn) inviteData.expiresIn = expiresIn;
+		inviteData.allowSignUp = allowSignUp;
 
 		switch (resourceType) {
 			case 'group':
@@ -91,7 +94,7 @@ export function ResourceInviteModal({
 		formData.append('type', 'createInvite');
 		formData.append('inviteData', JSON.stringify(inviteData));
 		fetcher.submit(formData, { method: 'post' });
-	}, [maxUses, expiresIn, fetcher, selectedRole, resourceType, resourceId]);
+	}, [maxUses, expiresIn, allowSignUp, fetcher, selectedRole, resourceType, resourceId]);
 
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} size='lg' isCentered>
@@ -170,6 +173,18 @@ export function ResourceInviteModal({
 										</NumberInput>
 									</FormControl>
 								</Flex>
+
+								<FormControl>
+									<Checkbox
+										isChecked={allowSignUp}
+										onChange={(event) => setAllowSignUp(event.target.checked)}
+									>
+										Allow new users to sign up with this invite
+									</Checkbox>
+									<FormHelperText>
+										This lets someone create an account through this invite when public sign-up is disabled.
+									</FormHelperText>
+								</FormControl>
 							</VStack>
 						</VStack>
 					</ModalBody>
