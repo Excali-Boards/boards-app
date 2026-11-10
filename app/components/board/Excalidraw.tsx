@@ -855,7 +855,36 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 	};
 
 	handleKeyDown = (event: KeyboardEvent) => {
-		if (!this.props.canEdit || !this.state.excalidrawAPI) return;
+		const api = this.state.excalidrawAPI;
+		if (!api) return;
+		const appState = api.getAppState();
+
+		if (appState.viewModeEnabled) {
+			if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+
+			const target = event.target;
+			if (target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(target.tagName))) return;
+
+			const pan = {
+				ArrowLeft: { x: 1, y: 0 },
+				ArrowRight: { x: -1, y: 0 },
+				ArrowUp: { x: 0, y: 1 },
+				ArrowDown: { x: 0, y: -1 },
+			}[event.key];
+			if (!pan) return;
+
+			const step = 50 / appState.zoom.value;
+
+			event.preventDefault();
+			api.updateScene({
+				appState: {
+					scrollX: appState.scrollX + pan.x * step,
+					scrollY: appState.scrollY + pan.y * step,
+				},
+				captureUpdate: 'NEVER',
+			});
+			return;
+		}
 
 		const isMac = /(Mac|iPhone|iPod|iPad)/i.test(navigator?.platform);
 		const ctrlOrMeta = isMac ? event.metaKey : event.ctrlKey;
