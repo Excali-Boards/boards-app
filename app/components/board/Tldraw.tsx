@@ -60,8 +60,10 @@ function InteractiveTldrawBoard(props: TldrawBoardProps) {
 
 	useEffect(() => {
 		return () => {
-			if (presenceSocketRef.current && presenceContext?.socket === presenceSocketRef.current) presenceContext.setSocket(null);
-			presenceSocketRef.current = null;
+			if (presenceSocketRef.current && presenceContext?.socket === presenceSocketRef.current) {
+				presenceContext.setSocket(null);
+				presenceSocketRef.current = null;
+			}
 		};
 	}, [presenceContext]);
 

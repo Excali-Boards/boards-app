@@ -173,4 +173,6 @@ export type ClientToServerEvents = {
 
 	// Presence.
 	presenceUpdate: (data: PresenceUpdatePayload) => unknown;
+	presenceActivity: () => unknown;
+	presenceHeartbeat: () => unknown;
 };

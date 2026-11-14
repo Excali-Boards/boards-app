@@ -1,5 +1,5 @@
-import { PresenceContext, PresenceContextValue, PresenceSocket, RootContext } from '~/components/Context';
-import { lazy, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { PresenceContext, RootContext } from '~/components/Context';
+import { lazy, Suspense, useContext, useEffect } from 'react';
 import { getIpHeaders, makeResObject, makeResponse } from '~/utils/functions.server';
 import { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { useBreakpointValue, useColorMode } from '@chakra-ui/react';
@@ -8,7 +8,7 @@ import { authenticator } from '~/utils/auth.server';
 import configServer from '~/utils/config.server';
 import { useLoaderData } from '@remix-run/react';
 import InfoComponent from '~/components/Info';
-import { PresenceState } from '~/other/types';
+import { useBoardPresence } from '~/components/board/useBoardPresence';
 import { api } from '~/utils/web.server';
 
 const ExcalidrawBoard = lazy(async () => {
@@ -79,12 +79,7 @@ export default function Board() {
 	const isMobile = useBreakpointValue({ base: true, md: false });
 	const { colorMode } = useColorMode();
 
-	const [presenceSocket, setPresenceSocket] = useState<PresenceSocket | null>(null);
-	const presenceSocketRef = useRef<PresenceSocket | null>(null);
-	const currentStateRef = useRef<PresenceState>('active');
-	const activityRafRef = useRef<number | null>(null);
-	const idleTimerRef = useRef<number | null>(null);
-	const lastActivityAtRef = useRef(0);
+	const { presenceContextValue } = useBoardPresence();
 
 	useEffect(() => {
 		setBoardInfo?.({ accessLevel: board.accessLevel, hideCollaborators: false, hasFlashCards: board.hasFlashcards });
@@ -93,83 +88,6 @@ export default function Board() {
 	useEffect(() => {
 		window.EXCALIDRAW_ASSET_PATH = '/';
 	}, [webUrl]);
-
-	useEffect(() => {
-		presenceSocketRef.current = presenceSocket;
-	}, [presenceSocket]);
-
-	const setPresence = useCallback((state: PresenceState) => {
-		if (state === currentStateRef.current) return;
-		currentStateRef.current = state;
-		presenceSocketRef.current?.emit?.('presenceUpdate', { state });
-	}, []);
-
-	const bumpActivity = useCallback(() => {
-		if (document.hidden || !document.hasFocus()) return;
-		setPresence('active');
-
-		if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
-		idleTimerRef.current = window.setTimeout(() => setPresence('idle'), 90000); // 90 seconds
-	}, [setPresence]);
-
-	const handleActivityEvent = useCallback(() => {
-		const now = Date.now();
-		if (now - lastActivityAtRef.current < 1500) return; // 1.5 seconds (minimum interval between activity bumps)
-
-		lastActivityAtRef.current = now;
-
-		if (activityRafRef.current !== null) return;
-		activityRafRef.current = window.requestAnimationFrame(() => {
-			activityRafRef.current = null;
-			bumpActivity();
-		});
-	}, [bumpActivity]);
-
-	useEffect(() => {
-		const activityEvents = ['mousemove', 'mousedown', 'mouseup', 'click', 'keydown', 'keyup', 'wheel', 'touchstart', 'touchmove', 'pointerdown', 'pointermove', 'scroll', 'focusin'] as const;
-		const handleVisibilityChange = () => {
-			if (document.hidden) setPresence('away');
-			else bumpActivity();
-		};
-
-		const handleFocus = () => bumpActivity();
-		const handleBlur = () => setPresence('away');
-		const handlePageShow = () => bumpActivity();
-
-		for (const evt of activityEvents) window.addEventListener(evt, handleActivityEvent, { passive: true });
-		document.addEventListener('visibilitychange', handleVisibilityChange);
-		window.addEventListener('focus', handleFocus);
-		window.addEventListener('blur', handleBlur);
-		window.addEventListener('pageshow', handlePageShow);
-
-		return () => {
-			for (const evt of activityEvents) window.removeEventListener(evt, handleActivityEvent);
-
-			document.removeEventListener('visibilitychange', handleVisibilityChange);
-			window.removeEventListener('focus', handleFocus);
-			window.removeEventListener('blur', handleBlur);
-			window.removeEventListener('pageshow', handlePageShow);
-
-			if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
-			if (activityRafRef.current !== null) window.cancelAnimationFrame(activityRafRef.current);
-		};
-	}, [bumpActivity, handleActivityEvent, setPresence]);
-
-	useEffect(() => {
-		if (!presenceSocket) return;
-		const handleConnect = () => bumpActivity();
-		presenceSocket.on?.('connect', handleConnect);
-		if (presenceSocket.connected) bumpActivity();
-
-		return () => {
-			presenceSocket.off?.('connect', handleConnect);
-		};
-	}, [presenceSocket, bumpActivity]);
-
-	const presenceContextValue = useMemo<PresenceContextValue>(() => ({
-		socket: presenceSocket,
-		setSocket: setPresenceSocket,
-	}), [presenceSocket]);
 
 	if (board.type !== 'Excalidraw' && board.type !== 'Tldraw') return <div>Board type not supported.</div>;
 

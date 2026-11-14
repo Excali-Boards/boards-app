@@ -21,11 +21,11 @@ export default function AllBoardsCategorySection({ category, groupId, ownerId }:
 					<AccordionIcon />
 				</AccordionButton>
 				<AccordionPanel pb={4} display='flex' flexDir='column' flexWrap='wrap' gap={2}>
-							{category.boards.length > 0 ? category.boards.map((board) => (
-								<AllBoardsBoardRow key={board.id} board={board} to={ownerId ? `/personal/${ownerId}/${category.id}/${board.id}` : `/groups/${groupId}/${category.id}/${board.id}`} />
-							)) : (
-								<NoCard noWhat='boards' />
-							)}
+					{category.boards.length > 0 ? category.boards.map((board) => (
+						<AllBoardsBoardRow key={board.id} board={board} to={ownerId ? `/personal/${ownerId}/${category.id}/${board.id}` : `/groups/${groupId}/${category.id}/${board.id}`} />
+					)) : (
+						<NoCard noWhat='boards' />
+					)}
 				</AccordionPanel>
 			</AccordionItem>
 		</Flex>

@@ -33,9 +33,6 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 	private initialDataResolve: ((data: ExcalidrawInitialDataState) => void) | null = null;
 	private initialDataPromise: Promise<ExcalidrawInitialDataState> | null;
 
-	private activeIntervalId: number | null;
-	private idleTimeoutId: number | null;
-
 	private onUmmount: (() => void) | null = null;
 	private handleBeforeUnloadEvent = (event: BeforeUnloadEvent) => this.handleBeforeUnload(event, this.state.isSaved);
 	private handleResize = () => this.relayVisibleSceneBounds();
@@ -65,17 +62,13 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 			this.initialDataResolve = null;
 		}
 
-		this.activeIntervalId = null;
-		this.idleTimeoutId = null;
 	}
 
 	componentDidMount = () => {
 		if (this.props.staticMode) {
 			this.setState({ isConnected: true, isInitialized: true, isFirstTime: false, isSaved: true });
 		}
-		window.addEventListener('pointermove', this.onPointerMove);
 		window.addEventListener('beforeunload', this.handleBeforeUnloadEvent);
-		window.addEventListener('visibilitychange', this.onVisibilityChange);
 		window.addEventListener('resize', this.handleResize);
 		window.addEventListener('keydown', this.handleKeyDown);
 	};
@@ -85,9 +78,7 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		this.state.socketIO?.close();
 		this.context?.setSocket?.(null);
 
-		window.removeEventListener('pointermove', this.onPointerMove);
 		window.removeEventListener('beforeunload', this.handleBeforeUnloadEvent);
-		window.removeEventListener('visibilitychange', this.onVisibilityChange);
 		window.removeEventListener('resize', this.handleResize);
 		window.removeEventListener('keydown', this.handleKeyDown);
 
@@ -543,56 +534,6 @@ export class ExcalidrawBoard extends Component<BoardProps, BoardExcalidrawState>
 		this.toggleSave(false);
 
 		this.queueSave();
-	};
-
-	reportIdle = () => {
-		if (!this.state.socketIO?.id) return;
-		this.state.socketIO?.emit('collaboratorPointerUpdate', { state: 'idle', socketId: this.state.socketIO.id, username: this.props.user?.displayName });
-
-		if (this.activeIntervalId) {
-			window.clearInterval(this.activeIntervalId);
-			this.activeIntervalId = null;
-		}
-	};
-
-	reportActive = () => {
-		if (!this.state.socketIO?.id) return;
-		this.state.socketIO?.emit('collaboratorPointerUpdate', { state: 'active', socketId: this.state.socketIO.id, username: this.props.user?.displayName });
-	};
-
-	onPointerMove = () => {
-		if (this.idleTimeoutId) {
-			window.clearTimeout(this.idleTimeoutId);
-			this.idleTimeoutId = null;
-		}
-
-		this.idleTimeoutId = window.setTimeout(this.reportIdle, 60 * 1000);
-
-		if (!this.activeIntervalId) {
-			this.activeIntervalId = window.setInterval(this.reportActive, 3 * 1000);
-		}
-	};
-
-	onVisibilityChange = () => {
-		if (!this.state.socketIO?.id) return;
-
-		if (document.hidden) {
-			if (this.idleTimeoutId) {
-				window.clearTimeout(this.idleTimeoutId);
-				this.idleTimeoutId = null;
-			}
-
-			if (this.activeIntervalId) {
-				window.clearInterval(this.activeIntervalId);
-				this.activeIntervalId = null;
-			}
-
-			this.state.socketIO?.emit('collaboratorPointerUpdate', { state: 'away', socketId: this.state.socketIO.id, username: this.props.user?.displayName });
-		} else {
-			this.idleTimeoutId = window.setTimeout(this.reportIdle, 60 * 1000);
-			this.activeIntervalId = window.setInterval(this.reportActive, 3 * 1000);
-			this.state.socketIO?.emit('collaboratorPointerUpdate', { state: 'active', socketId: this.state.socketIO.id, username: this.props.user?.displayName });
-		}
 	};
 
 	updateUserPointer: ReturnType<typeof throttle> = throttle((payload: {
